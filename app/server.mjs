@@ -1,0 +1,33 @@
+import http from 'node:http';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+import {spawn} from 'node:child_process';
+import {createAuthApi} from './auth-api.mjs';
+const root=path.dirname(fileURLToPath(import.meta.url));
+const handleApi=await createAuthApi({directory:process.env.VILAZUNI_DATA_DIR||path.join(root,'.data')});
+const files={'/tasks-ui.mjs':'tasks-ui.mjs','/residents-ui.mjs':'residents-ui.mjs','/auth-ui.mjs':'auth-ui.mjs','/immersive.mjs':'immersive.mjs','/immersive.css':'immersive.css','/':'index.html','/index.html':'index.html','/styles.css':'styles.css','/world.css':'world.css','/world.mjs':'world.mjs'};
+const mime={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.mjs':'text/javascript; charset=utf-8'};
+const server=http.createServer(async(req,res)=>{
+ if(new URL(req.url,'http://localhost').pathname.startsWith('/api/')){await handleApi(req,res);return;}
+ const name=files[new URL(req.url,'http://localhost').pathname];
+ if(!name||!['GET','HEAD'].includes(req.method)){res.writeHead(404);res.end('Não encontrado');return;}
+ try{const data=await fs.readFile(path.join(root,name));res.writeHead(200,{'Content-Type':mime[path.extname(name)],'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Content-Security-Policy':"default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'"});res.end(req.method==='HEAD'?undefined:data);}catch{res.writeHead(500);res.end('Arquivo indisponível');}
+});
+let port=Number(process.env.PORT||4173);
+if(!Number.isInteger(port)||port<0||port>65535)throw new Error('PORT deve ser um número entre 0 e 65535.');
+let attempts=0;
+server.on('error',error=>{
+ if(error.code==='EADDRINUSE'&&!process.env.PORT&&attempts++<10){port++;server.listen(port,'127.0.0.1');return;}
+ console.error('Não foi possível iniciar o Vilazuni:',error.message);
+ process.exitCode=1;
+});
+server.on('listening',()=>{
+ const url='http://127.0.0.1:'+server.address().port;
+ console.log('\nVilazuni pronto: '+url+'\nMantenha esta janela aberta durante o uso. Para encerrar, pressione Ctrl+C.\n');
+ if(process.argv.includes('--open')&&process.platform==='win32'){
+  const browser=spawn('cmd.exe',['/d','/c','start','',url],{windowsHide:true,stdio:'ignore'});
+  browser.on('error',()=>console.log('Abra manualmente no navegador: '+url));
+ }
+});
+server.listen(port,'127.0.0.1');
