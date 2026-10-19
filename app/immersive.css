@@ -18,3 +18,5 @@
 .table-scroll{max-width:100%;overflow:auto;margin:18px 0}.table-scroll table{border-collapse:collapse;width:100%;font-size:11px}.table-scroll th,.table-scroll td{padding:10px 8px;border-bottom:1px solid #b5c5ad70;text-align:left;vertical-align:top}.table-scroll caption{font-size:12px;text-align:left;margin-bottom:8px}.table-scroll td details{max-width:180px;overflow-wrap:anywhere}.floating-note a{display:inline-block;text-decoration:none}
 .finance-hash{overflow-wrap:anywhere}
 @media(min-width:901px){.experience-dock.wide{width:min(920px,calc(100vw - 250px))}}
+
+.assessment-unit{border:1px solid #b5c5ad;border-radius:14px;margin:14px 0;padding:12px}.assessment-unit legend{font-size:12px;color:#345b4b}.float-wizard .assessment-choice{flex-direction:row;align-items:center;gap:8px}.assessment-choice input{width:auto}

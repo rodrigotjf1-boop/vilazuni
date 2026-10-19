@@ -32,7 +32,7 @@ O serviço atende somente em 127.0.0.1. Para distribuição ainda faltam Postgre
 
 ## Verificação
 
-`npm test`: 86 testes, incluindo integração HTTP com contas sintéticas temporárias, domínio, delegações, manutenção, reservas, encomendas, avisos e persistência após reinício. Cobre escopo de casas e condomínios, convite único, sessão, suspensão, expiração de delegação, troca de senha e campos mínimos por perfil. O teste HTTP exige conexão de loopback permitida. A tela inicial foi conferida no navegador; a senha da conta real deve ser criada pelo usuário.
+`npm test`: 100 testes, incluindo integração HTTP com contas sintéticas temporárias, domínio, delegações, manutenção, reservas, encomendas, avisos e persistência após reinício. Cobre escopo de casas e condomínios, convite único, sessão, suspensão, expiração de delegação, troca de senha e campos mínimos por perfil. O teste HTTP exige conexão de loopback permitida. A tela inicial foi conferida no navegador; a senha da conta real deve ser criada pelo usuário.
 
 
 ## Moradores e vínculos
@@ -103,8 +103,8 @@ Prévias desta etapa com dados sintéticos: [compra recebida](../previa-compras.
 No menu de delegações, o síndico concede separadamente:
 
 - **Consulta financeira:** saldos, contas a pagar/receber, orçamento e relatórios, sem escrita.
-- **Lançamentos, contas a pagar e receber:** receitas/despesas, transferências entre contas, contas a pagar/receber e baixas manuais.
-- **Contas, fundos, orçamento e fechamento:** cadastros/saldos iniciais, realocação entre fundos, ajustes, previsões orçamentárias e fechamento.
+- **Lançamentos, contas a pagar e receber:** receitas/despesas, transferências entre contas, contas a pagar/receber, geração de rateios aprovados e baixas manuais.
+- **Contas, fundos, orçamento, rateios e fechamento:** cadastros/saldos iniciais, realocação entre fundos, ajustes, previsões orçamentárias, preparação/aprovação de rateios e fechamento.
 - **Exportação financeira:** leitura e download de relatórios JSON, sem escrita.
 
 Comece em Financeiro → Contas e fundos. Cadastre fundos/finalidades e uma conta bancária ou caixa com saldo inicial, data e origem. Fundos são destinações do saldo das contas; não some os totais das duas visões. Ajustes e estornos preservam os registros anteriores. O piloto não permite saldo negativo ao fim do dia por conta/fundo, nem lançamento anterior ao saldo inicial, no futuro ou em período encerrado.
@@ -115,10 +115,18 @@ Em Contas a receber, cadastre pagador, referência única para o pagador, valor,
 
 Em Orçamento, escolha o mês e cadastre previsões de receita/despesa por fundo e categoria com permissão de controle. Cada combinação é única; revisões mantêm valores/justificativas anteriores e zero retira a previsão sem apagar o registro. Pode planejar meses futuros e revisar qualquer mês aberto, inclusive após terminar. Comparar com o realizado abre o relatório mensal: categorias são comparadas ignorando maiúsculas/minúsculas; categorias sem previsão também aparecem. Realizado usa caixa líquido de estornos na data do estorno, podendo ficar negativo. Não inclui saldos iniciais, ajustes, transferências ou contas ainda não baixadas. Diferença = realizado − previsto; positiva em despesa indica gasto acima da previsão.
 
-Consulte um mês em Relatório mensal. O relatório mostra contas/fundos, movimentos, contas a pagar/receber na data de corte, orçamento versus realizado e pendências de compras. Receitas/despesas aparecem antes dos estornos, mostrados separadamente. Feche somente mês concluído, após conferir saldos e compromissos das compras recebidas. O fechamento bloqueia o período e anteriores; próximos meses devem seguir em sequência. Só o síndico reabre o último fechamento. Cada versão fechada mantém relatório, revisão orçamentária e hash; fechamentos anteriores aos novos módulos continuam sem campos retroativos; históricos podem ser consultados mesmo após reabertura. Exportação JSON requer permissão própria.
+Em Rateios por unidade, controle financeiro prepara rascunho com referência única, competência, emissão, vencimento, fundo, categoria, total e fundamento da decisão. Selecione as unidades e informe pagadores explicitamente; não usamos nomes de proprietários/ocupantes como pagadores automáticos. Escolha divisão igual ou pesos inteiros positivos (1 a 1.000.000). Salvar e conferir prévia calcula no servidor os valores exatos em centavos: partes inteiras, depois maiores sobras, com desempate por número/identificador da unidade. Valores devem somar o total; cada contribuição tem pelo menos R$ 0,01. Limites: 100 unidades e R$ 1.000.000,00 por rateio.
 
-Não há transferência bancária, pagamento, conciliação, cobrança ou rateio automático. Os saldos são registros gerenciais manuais, sem validação bancária. Ainda faltam rateios por unidade, baixas parciais/acordos e integração com parceiro. Valores de teste são sintéticos. Até R$ 1.000.000,00 por registro. Verificação atual: 86 testes aprovados e fluxo conferido no Chromium, incluindo consulta em tela móvel.
+Controle financeiro pode revisar o rascunho com histórico da distribuição anterior e aprovar a prévia. A aprovação congela a distribuição e registra a decisão informada, sem validação jurídica automática ou exigência de segundo aprovador. Operação financeira gera uma conta a receber por unidade usando somente os valores aprovados. O lote inteiro é gravado uma única vez; colisões não deixam contas parciais. Após outra conta aprovar ou gerar, use Atualizar financeiro para consultar a situação atual. Referências canceladas não podem ser reutilizadas. Geração não aumenta caixa ou envia cobrança. Competência pode ser futura; emissão não pode ser futura e ambas precisam estar em períodos abertos.
+
+Rateios ainda não gerados podem ser cancelados por controle. Depois de gerar, recebimento/estorno, ajustes de prazo/fundo/categoria e cancelamento são feitos em cada conta a receber pela operação, preservando a distribuição aprovada. Não há emissão recorrente ou vários pagadores da mesma unidade no mesmo rateio. As referências de origem e unidade ficam visíveis no recebível.
+
+Consulte um mês em Relatório mensal. O relatório mostra contas/fundos, movimentos, contas a pagar/receber na data de corte, orçamento versus realizado, distribuição dos rateios e pendências de compras/rateios aprovados ainda não gerados. Receitas/despesas aparecem antes dos estornos, mostrados separadamente. Feche somente mês concluído, após conferir saldos, compromissos das compras recebidas e gerar/cancelar os rateios aprovados com emissão no período. O fechamento bloqueia o período e anteriores; próximos meses devem seguir em sequência. Só o síndico reabre o último fechamento. Cada versão fechada mantém relatório, revisão orçamentária e hash; fechamentos anteriores aos novos módulos continuam sem campos retroativos; históricos podem ser consultados mesmo após reabertura. Exportação JSON requer permissão própria.
+
+Não há transferência bancária, pagamento, conciliação, cobrança externa ou emissão recorrente automática. Os saldos são registros gerenciais manuais, sem validação bancária. Ainda faltam baixas parciais/acordos, recorrência/evolução dos rateios e integração com parceiro. Valores de teste são sintéticos. Até R$ 1.000.000,00 por registro. Verificação atual: 100 testes aprovados e fluxo conferido no Chromium, incluindo consulta em tela móvel.
 
 Prévias com valores sintéticos: [relatório mensal](../previa-financeiro.png) e [consulta no celular](../previa-financeiro-mobile.png).
 
 Prévias desta continuação: [orçamento no relatório](../previa-orcamento.png) e [recebível no celular](../previa-recebiveis-mobile.png).
+
+Prévias dos rateios com valores sintéticos: [distribuição por unidade](../previa-rateios.png) e [consulta no celular](../previa-rateios-mobile.png).

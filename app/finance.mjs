@@ -5,16 +5,18 @@ import {canReadFinance,requireFinance,text,date,rows,revision,bump,lastClosedMon
 import {purchaseSources,payablesAt} from './finance-payables.mjs';
 import {receivablesAt} from './finance-receivables.mjs';
 import {budgetComparison} from './finance-budget.mjs';
+import {financialUnits,unissuedAssessments,assessmentsAt} from './finance-assessments.mjs';
 export {createFund,createAccount,toggleFinancial,createEntry,transfer} from './finance-ledger.mjs';
 export {createPayable,importPurchase,payPayable,changePayable,editPayable} from './finance-payables.mjs';
 export {createReceivable,receiveReceivable,changeReceivable,editReceivable} from './finance-receivables.mjs';
 export {saveBudget} from './finance-budget.mjs';
+export {saveAssessment,approveAssessment,cancelAssessment,generateAssessment} from './finance-assessments.mjs';
 export function financeView(s,u,now=Date.now()){
  if(!canReadFinance(u))return null;
  const accounts=rows(s,'financialAccounts',u.tenant).map(a=>({...structuredClone(a),balanceCents:balance(s,u.tenant,a.id)}));
  const funds=rows(s,'financialFunds',u.tenant).map(f=>({...structuredClone(f),balanceCents:balance(s,u.tenant,null,f.id)}));
  const allocations=accounts.flatMap(a=>funds.map(f=>({accountId:a.id,fundId:f.id,balanceCents:balance(s,u.tenant,a.id,f.id)})));
- return {revision:revision(s,u.tenant),lastClosedMonth:lastClosedMonth(s,u.tenant),accounts,funds,allocations,entries:structuredClone(ledger(s,u.tenant)),payables:structuredClone(rows(s,'financialPayables',u.tenant)),receivables:structuredClone(rows(s,'financialReceivables',u.tenant)),budgets:structuredClone(rows(s,'financialBudgets',u.tenant)),purchaseSources:purchaseSources(s,u),closures:rows(s,'financialClosures',u.tenant).map(({report,...c})=>structuredClone(c)),totalCents:balance(s,u.tenant),today:localDay(now)};
+ return {revision:revision(s,u.tenant),lastClosedMonth:lastClosedMonth(s,u.tenant),accounts,funds,allocations,entries:structuredClone(ledger(s,u.tenant)),payables:structuredClone(rows(s,'financialPayables',u.tenant)),receivables:structuredClone(rows(s,'financialReceivables',u.tenant)),budgets:structuredClone(rows(s,'financialBudgets',u.tenant)),units:financialUnits(s,u),assessments:structuredClone(rows(s,'financialAssessments',u.tenant)),purchaseSources:purchaseSources(s,u),closures:rows(s,'financialClosures',u.tenant).map(({report,...c})=>structuredClone(c)),totalCents:balance(s,u.tenant),today:localDay(now)};
 }
 export function reverseEntry(s,u,input,now=Date.now()){
  const original=rows(s,'financialEntries',u.tenant).find(e=>e.id===input.id);
@@ -51,7 +53,7 @@ export function buildReport(s,u,month){
  const commitments=payablesAt(s,u.tenant,through),outstanding=commitments.filter(p=>p.status==='open');
  const unregisteredPurchases=purchaseSources(s,u).filter(p=>p.receivedOn<=through&&!rows(s,'financialPayables',u.tenant).some(x=>x.purchaseId===p.id&&x.issuedOn<=through));
  const receivables=receivablesAt(s,u.tenant,through),receivableOutstanding=receivables.filter(r=>r.status==='open'),budget=budgetComparison(s,u.tenant,month);
- return {month,from,through,revision:revision(s,u.tenant),summary,accounts:accounts.map(a=>aggregate('accountId',{id:a.id,name:a.name})),funds:funds.map(f=>aggregate('fundId',{id:f.id,name:f.name})),allocations,entries:structuredClone(entries.filter(e=>e.date>=from)),outstanding,commitments,unregisteredPurchases,receivables,receivableOutstanding,budget};
+ return {month,from,through,revision:revision(s,u.tenant),summary,accounts:accounts.map(a=>aggregate('accountId',{id:a.id,name:a.name})),funds:funds.map(f=>aggregate('fundId',{id:f.id,name:f.name})),allocations,entries:structuredClone(entries.filter(e=>e.date>=from)),outstanding,commitments,unregisteredPurchases,receivables,receivableOutstanding,budget,assessments:assessmentsAt(s,u.tenant,through,receivables),unissuedAssessments:unissuedAssessments(s,u.tenant,through)};
 }
 export function financialReport(s,u,month){
  if(!canReadFinance(u))throw Object.assign(Error('Relatório financeiro indisponível.'),{status:403});
@@ -71,6 +73,7 @@ export function closeMonth(s,u,input,now=Date.now()){
  const last=lastClosedMonth(s,u.tenant);if(!last){const first=rows(s,'financialClosures',u.tenant).map(c=>c.month).sort()[0];if(first&&input.month!==first)throw Error('Reencerre primeiro o mês reaberto.');}if(last){const next=new Date(last+'-01T12:00Z');next.setUTCMonth(next.getUTCMonth()+1);if(input.month!==next.toISOString().slice(0,7))throw Error('Feche os meses em sequência após o último encerramento.');}
  if(!rows(s,'financialAccounts',u.tenant).some(a=>a.openingOn<=through))throw Error('Nenhuma conta cadastrada neste período.');
  const reason=text(input.reason,'Conferência do fechamento',500),report=buildReport(s,u,input.month);if(report.unregisteredPurchases.length)throw Error('Cadastre os compromissos das compras recebidas no período antes de fechar.');
+ if(report.unissuedAssessments.length)throw Error('Gere ou cancele os rateios aprovados com emissão no período antes de fechar.');
  const record={id:randomUUID(),tenant:u.tenant,month:input.month,status:'closed',version:1,report,sha256:createHash('sha256').update(JSON.stringify(report)).digest('hex'),history:[{at:new Date(now).toISOString(),actor:u.name,action:'Mês encerrado',reason}]};s.financialClosures??=[];s.financialClosures.push(record);bump(s,u.tenant);return structuredClone(record);
 }
 export function reopenMonth(s,u,input,now=Date.now()){

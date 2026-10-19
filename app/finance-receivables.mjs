@@ -5,6 +5,7 @@ import {requireFinance,text,date,amount,rows,bump,openDate,activeFund,post,ledge
 const normalize=v=>v.normalize('NFKC').trim().toLocaleLowerCase('pt-BR');
 export function createReceivable(s,u,input,now=Date.now()){
  requireFinance(u,'finance');
+ if(input.assessmentId||input.houseId||input.competence)throw Error('Use a geração do rateio aprovado para vincular contribuições por unidade.');
  const issuedOn=openDate(s,u,input.issuedOn,now),dueOn=date(input.dueOn),fund=activeFund(s,u,input.fundId);
  const debtor=text(input.debtor,'Pagador'),reference=text(input.reference,'Documento / referência'),description=text(input.description,'Descrição'),category=text(input.category,'Categoria'),value=amount(input.amountCents);
  if(dueOn<issuedOn)throw Error('Vencimento deve ser igual ou posterior à emissão.');
@@ -43,6 +44,6 @@ export function receivablesAt(s,tenant,through){
  return rows(s,'financialReceivables',tenant).filter(r=>r.issuedOn<=through).map(r=>{
   const terms=r.terms.filter(t=>t.date<=through).at(-1),event=r.events.filter(e=>e.date<=through).at(-1),cancelled=event?.kind==='cancelled';
   const receivedCents=entries.filter(e=>e.receivableId===r.id).reduce((sum,e)=>sum+e.postings.reduce((n,p)=>n+p.amountCents,0),0);
-  return {id:r.id,description:r.description,debtor:r.debtor,fundId:terms.fundId,category:terms.category,amountCents:r.amountCents,dueOn:terms.dueOn,status:cancelled?'cancelled':receivedCents===r.amountCents?'received':'open',receivedCents,statusReason:cancelled?event.reason||null:null};
+  return {id:r.id,description:r.description,reference:r.reference,debtor:r.debtor,fundId:terms.fundId,category:terms.category,amountCents:r.amountCents,dueOn:terms.dueOn,assessmentId:r.assessmentId||null,houseId:r.houseId||null,houseNumber:r.houseNumber||null,competence:r.competence||null,status:cancelled?'cancelled':receivedCents===r.amountCents?'received':'open',receivedCents,statusReason:cancelled?event.reason||null:null};
  });
 }
