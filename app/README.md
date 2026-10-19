@@ -53,3 +53,11 @@ Verificação atual: 17 testes aprovados, incluindo envio/leitura de foto pela A
 No menu “Ocorrências”, abra um relato com título, local, descrição e casa opcional autorizada. Cada conta acompanha apenas seus relatos; a gestão acompanha os do condomínio. A gestão atribui um responsável de gestão, inicia apuração, resolve/cancela com justificativa e pode reabrir. Comentários, decisões e atribuições preservam histórico e versão. Ao receber aviso de conflito, use “Atualizar ocorrências”.
 
 Não há relatos anônimos, anexos ou notificações nesta etapa. Não encaminhamos relatos privados automaticamente ao zelador. O autor vê todos os acompanhamentos da gestão no próprio relato. Testes atuais: 21 aprovados; interface nova ainda sem conferência visual em navegador.
+
+## Materiais e estoque — 19/10/2026
+
+Menu “Materiais”: gestão cadastra consumíveis, unidade, depósito e mínimo, depois registra entradas com motivo. Gestão e zeladoria registram consumo escolhendo tarefa aberta; zeladoria só pode consumir em tarefas atribuídas à sua conta. Saldo e histórico da tarefa são atualizados juntos. Até três casas decimais; saldo insuficiente e versões desatualizadas são recusados. Use “Atualizar estoque” após conflito. O painel de tarefas mostra os materiais consumidos.
+
+Zeladoria consulta saldos e apenas os próprios movimentos. Não há compras, custos, estornos, ajustes de inventário ou empréstimos nesta entrega. Cancelar tarefa não devolve material automaticamente. Testes atuais: 25 aprovados.
+
+Fluxo de materiais conferido no Chromium com base temporária: cadastro, entrada, tarefa, consumo e exibição na tarefa, sem erros JavaScript. Consulta do painel também verificada em viewport móvel. Nenhuma conta real criada.

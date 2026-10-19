@@ -2,6 +2,14 @@
 
 Atualização: 19/10/2026.
 
+## Materiais e estoque — 19/10/2026
+
+Consumíveis cadastrados pela gestão com nome, unidade de medida, depósito/local e estoque mínimo. Saldo inicial zero; entradas exigem quantidade e origem/motivo. Gestão e zeladoria consultam saldo e indicação de reposição quando saldo menor ou igual ao mínimo. Zeladoria vê apenas os movimentos que registrou; demais perfis não recebem estoque.
+
+Consumo exige tarefa no mesmo condomínio, em estado a fazer/em execução, e atribuição à própria conta para zeladoria. Gestão pode consumir nas tarefas abertas do condomínio. Atualiza saldo, movimento e histórico/consumos da tarefa na mesma gravação. Quantidades até três casas decimais; saldo negativo, tarefa desatualizada e estoque desatualizado são recusados. Movimento não é apagado nem reverte automaticamente ao cancelar uma tarefa. Sem ajuste de inventário, estorno, empréstimo, compras ou integração financeira nesta entrega.
+
+Verificação: 25 testes aprovados, incluindo integração HTTP, duas retiradas simultâneas sobre a mesma versão com apenas uma efetivada, saldo insuficiente, quantidades inválidas, isolamento, autorização e persistência no arquivo local. Fluxo conferido em Chromium: cadastro, entrada, criação de tarefa, seleção explícita da tarefa, consumo e exibição na tarefa; sem erros JavaScript. Consulta do painel também conferida em viewport móvel (390 × 844), com base temporária e dados sintéticos. Próximas frentes: perfis/delegações, manutenção preventiva e reservas; infraestrutura central ainda necessária para produção.
+
 ## Ocorrências privadas — 19/10/2026
 
 Etapa 3 (operação) avançou com o módulo de ocorrências no menu do cenário. Todos os cinco perfis autenticados podem abrir relatos e acompanhar os próprios registros. Somente o autor e a gestão do mesmo condomínio recebem o relato e seu histórico; ser proprietário da casa relacionada não concede acesso a relatos de outras pessoas.
@@ -10,7 +18,7 @@ Abertura com título, local, descrição e casa opcional dentro do escopo autori
 
 Verificação: 21 testes aprovados, incluindo ciclo de ocorrência pela API, privacidade entre contas/condomínios, restrições de casas, atribuição, transições, justificativas e conflito de versões. Servidor real validado por HTTP com entrega da página/módulos, gravação em base temporária e reinício preservando a base e invalidando sessão. A interface nova ainda precisa de conferência visual em navegador. Nenhuma conta ou dado real foi criado.
 
-Próxima frente recomendada: materiais e estoque ligados às tarefas; permanecem pendentes os demais módulos da etapa 3 e a infraestrutura de produção.
+A frente seguinte de materiais e estoque foi implementada (ver seção acima); permanecem pendentes os demais módulos da etapa 3 e a infraestrutura de produção.
 
 ## Etapa anterior: proprietários e locações residenciais
 
