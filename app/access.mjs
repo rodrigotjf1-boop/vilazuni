@@ -9,14 +9,15 @@ export function prepareBinding(state,issuer,input,now=Date.now()){
  const validUntil=input.validUntil||null;if(validUntil&&(typeof validUntil!=='string'||!Number.isFinite(Date.parse(validUntil))||Date.parse(validUntil)<=now))throw Error('Informe validade futura.');
  const delegated=DELEGATED_ROLES.includes(input.role);
  if((delegated||['imobiliaria','ocupante'].includes(input.role))&&!validUntil)throw Error('Defina a validade deste vínculo.');
- let houses=[],residentId=null,delegations=[],delegationReason=null;
+ let houses=[],residentId=null,delegations=[],delegationReason=null,purchaseLimitCents=null;
  if(delegated){delegations=modules(input.delegations);if(!delegations.length)throw Error('Selecione ao menos um módulo delegado.');delegationReason=reason(input.delegationReason);}
+ if(delegations.includes('purchaseApproval')){if(!Number.isSafeInteger(input.purchaseLimitCents)||input.purchaseLimitCents<1||input.purchaseLimitCents>100000000)throw Error('Defina o limite de aprovação em centavos (até R$ 1.000.000,00).');purchaseLimitCents=input.purchaseLimitCents;}
  if(['proprietario','imobiliaria'].includes(input.role)){if(!ids.length)throw Error('Selecione ao menos uma casa.');houses=ids;}
  if(input.role==='ocupante'){
   const r=(state.residents||[]).find(r=>r.id===input.residentId&&r.tenant===issuer.tenant&&r.kind==='annual'&&!r.endedOn&&r.startDate<=day(now));if(!r)throw Error('Selecione um vínculo residencial anual vigente.');
   if(ids.some(id=>id!==r.houseId))throw Error('O ocupante só pode acessar a casa do vínculo.');houses=[r.houseId];residentId=r.id;
  }
- return {role:input.role,houses,validUntil,residentId,delegations,delegationReason,delegatedBy:delegated?issuer.id:null,accessVersion:0};
+ return {role:input.role,houses,validUntil,residentId,delegations,delegationReason,purchaseLimitCents,delegatedBy:delegated?issuer.id:null,accessVersion:0};
 }
 export function validBinding(state,user,now=Date.now()){
  if(!user?.active||user.validUntil&&(!Number.isFinite(Date.parse(user.validUntil))||Date.parse(user.validUntil)<=now))return false;

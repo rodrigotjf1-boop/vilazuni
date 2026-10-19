@@ -17,6 +17,9 @@ A tabela de fundação abaixo continua sendo a direção do produto. A implement
 | Ocupante | Vínculo anual vigente, prazo de acesso e uma casa; identificação da casa sem ficha de terceiros; encerramento do vínculo invalida login |
 | Reservas | Moradores/proprietários/imobiliárias solicitam dentro das casas autorizadas; gestão de dependências decide/interdita; terceiros veem apenas intervalos ocupados |
 | Encomendas | Portaria/gestão opera; destinatário com conta vê apenas as próprias encomendas e precisa manter vínculo à casa; copropriedade não amplia acesso |
+| Compras e fornecedores | Preparação por módulo próprio; aprovador separado, com limite explícito; sem autoaprovação, mesmo para síndico; contatos do fornecedor apenas a quem prepara |
+| Recebimento de compra | Preparação e, para consumíveis, acesso a materiais; gravação única de estoque e compra; versão atual obrigatória |
+| Documentos privados | Somente contas com módulo de documentos; responsável precisa manter acesso; download de cada versão autenticado por condomínio; moradores não recebem arquivos ou prazos |
 | Avisos internos | Individuais e filtrados pela autorização atual; leitura não altera avisos de terceiros; sem envio externo |
 
 A concessão manual do piloto não verifica mandato nem titularidade documental. Múltiplos vínculos por conta, substituição formal do síndico, recuperação de conta e MFA continuam pendentes.
@@ -86,3 +89,9 @@ Os cinco perfis disponíveis abrem relatos identificados. Leitura e comentários
 ### Materiais e estoque — 19/10/2026
 
 Gestão cadastra materiais e registra entradas; gestão e zeladoria consultam saldo/local/mínimo do próprio condomínio. Somente gestão consulta todos os movimentos; zeladoria recebe apenas os movimentos registrados por sua conta. Consumo exige tarefa aberta (a fazer/em execução) no mesmo condomínio; zeladoria precisa ser o responsável atual. Gestão pode registrar consumo nas tarefas abertas do condomínio. Demais perfis recebem lista vazia e não podem escrever. Cada consumo confere versões de material e tarefa e grava ambos atomicamente na persistência local. Histórico de consumo da tarefa acompanha as regras existentes de acesso/reatribuição da tarefa.
+
+### Compras e documentos — 19/10/2026
+
+Preparação de compras não concede aprovação nem acesso a arquivos; aprovação não concede edição de fornecedores, recebimento ou contatos do cadastro. O módulo de materiais é necessário para compras vinculadas a estoque; relacionar uma tarefa exige acesso a tarefas. Cada aprovador delegado tem limite em centavos, validado ao conceder/alterar e novamente ao aprovar. Mesmo o síndico não aprova compra que preparou ou proposta que registrou. Cotação única requer justificativa. Recebimento usa a proposta aprovada, valida versões de compra e estoque e não cria movimento financeiro.
+
+Documentos só são visíveis à gestão explicitamente autorizada no módulo. Cada leitura binária confere o acesso atual e a integridade, sem URL pública. A projeção de estado omite conteúdo base64 de todas as versões. Arquivamento não libera arquivos nem elimina histórico. Avisos de compras/documentos acompanham as mesmas permissões; prazos de documentos são derivados do dia atual de Brasília, não enviados externamente.

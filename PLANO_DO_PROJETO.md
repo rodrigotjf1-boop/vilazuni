@@ -88,7 +88,7 @@ Os três canais orientam a arquitetura desde a etapa 1. Sensores, automação av
 
 ### Execução em 19/10/2026
 
-O piloto local já implementa as jornadas da etapa 2 e parte ampla da etapa 3: tarefas com revisão/fotos, ocorrências, estoque consumível, manutenção preventiva com checklist, dependências/reservas, encomendas e avisos internos. Subsíndico/administradora têm delegações por módulo; ocupante é vinculado à locação anual. Testes atuais: 44 aprovados, incluindo reinício e concorrência. A etapa 3 ainda não está encerrada: faltam fornecedores/compras e evoluções operacionais; infraestrutura de produção, comunicação externa, múltiplos vínculos e governança formal seguem pendentes. Consulte STATUS_DO_PROJETO.md para limites e validações.
+O piloto local já implementa as jornadas da etapa 2 e parte ampla da etapa 3: tarefas com revisão/fotos, ocorrências, estoque consumível, manutenção preventiva com checklist, dependências/reservas, encomendas, fornecedores/compras com aprovação separada, documentos PDF privados com vencimentos e avisos internos. Subsíndico/administradora têm delegações por módulo; ocupante é vinculado à locação anual. Testes atuais: 58 aprovados, incluindo reinício e concorrência. A etapa 3 ainda não está encerrada: faltam evoluções operacionais (como itens múltiplos e recebimentos parciais), integração financeira e preparo para uso real; infraestrutura de produção, comunicação externa, múltiplos vínculos e governança formal seguem pendentes. Consulte STATUS_DO_PROJETO.md para limites e validações.
 
 ## 8. Primeiro ciclo de trabalho
 

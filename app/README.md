@@ -32,7 +32,7 @@ O serviço atende somente em 127.0.0.1. Para distribuição ainda faltam Postgre
 
 ## Verificação
 
-`npm test`: 44 testes, incluindo integração HTTP com contas sintéticas temporárias, domínio, delegações, manutenção, reservas, encomendas, avisos e persistência após reinício. Cobre escopo de casas e condomínios, convite único, sessão, suspensão, expiração de delegação, troca de senha e campos mínimos por perfil. O teste HTTP exige conexão de loopback permitida. A tela inicial foi conferida no navegador; a senha da conta real deve ser criada pelo usuário.
+`npm test`: 58 testes, incluindo integração HTTP com contas sintéticas temporárias, domínio, delegações, manutenção, reservas, encomendas, avisos e persistência após reinício. Cobre escopo de casas e condomínios, convite único, sessão, suspensão, expiração de delegação, troca de senha e campos mínimos por perfil. O teste HTTP exige conexão de loopback permitida. A tela inicial foi conferida no navegador; a senha da conta real deve ser criada pelo usuário.
 
 
 ## Moradores e vínculos
@@ -73,3 +73,27 @@ Fluxo de materiais conferido no Chromium com base temporária: cadastro, entrada
 As regras/frequências dos espaços e equipamentos são configuradas pela gestão. Use dados fictícios neste piloto. Os fluxos acima foram conferidos em Chromium com bases temporárias; menus também verificados em tela móvel. Permanecem pendentes edição de planos/regras, compras/fornecedores, financeiro, múltiplos condomínios por conta e infraestrutura de produção.
 
 Prévias desta entrega com dados sintéticos: [manutenção preventiva](../previa-preventiva.png) e [reservas no celular](../previa-reservas-mobile.png).
+
+## Fornecedores e compras — 19/10/2026
+
+O menu “Compras” separa preparação e aprovação. O síndico concede os módulos “Fornecedores e compras” e “Aprovação de compras” no menu de delegações; para aprovadores delegados, informe limite por compra em reais. A aprovação exige outra pessoa, diferente de quem preparou e registrou o orçamento selecionado, inclusive para o síndico.
+
+1. Cadastre fornecedores, contatos e categorias. Edição e inativação exigem motivo e preservam histórico; aprovadores sem preparação não recebem os contatos.
+2. Prepare uma compra com especificação, quantidade e unidade. Selecione material de estoque e tarefa quando autorizado.
+3. Registre propostas com total incluindo frete/tributos, validade, entrega e condições. A última por fornecedor entra na comparação; versões anteriores permanecem disponíveis.
+4. Envie para análise. A segunda pessoa aprova uma proposta válida dentro do limite ou recusa com motivo; cotação única exige justificativa própria.
+5. Confira o recebimento integral, com referência e observação. Para material, é necessário acesso ao estoque: a entrada e a compra são gravadas juntas. Repetições e versões antigas são recusadas.
+
+Não há pedidos enviados, pagamentos ou despesas financeiras automáticas. Nesta entrega, cada compra tem uma especificação e um recebimento integral; ainda faltam itens múltiplos, recebimentos parciais, devoluções e garantias estruturadas. Limite de proposta: R$ 1.000.000,00. Nenhum fornecedor real foi contatado.
+
+## Documentos e vencimentos — 19/10/2026
+
+No menu “Documentos”, contas com o módulo “Documentos privados” cadastram título, categoria, responsável, vencimento opcional, antecedência de alerta e PDF. As versões anteriores permanecem disponíveis por download autenticado; novas versões exigem motivo. Arquivar conserva os arquivos e suspende alertas, sem excluir histórico.
+
+O servidor confere formato, limite de tamanho e integridade SHA-256 no download. PDF de até 2 MB, dez versões por documento e 32 MB totais no piloto. Arquivos são baixados como anexo; não há link público, visualização incorporada, antivírus ou assinatura digital. Vencimentos e regras são definidos pela gestão.
+
+Os prazos são calculados pelo dia de Brasília e consultados em “Documentos” e “Avisos”, sem envio externo. Arquivos continuam na base JSON local; armazenamento privado de objetos e backups permanecem pendentes. Use somente PDFs sintéticos neste piloto.
+
+Verificação atual: 58 testes, incluindo concorrência, limites de aprovação, segregação de funções, recebimento com estoque, arquivos privados, controle de versões, integridade e reinício. Fluxos também conferidos no Chromium, com renovação/download em tela móvel.
+
+Prévias desta etapa com dados sintéticos: [compra recebida](../previa-compras.png) e [documentos no celular](../previa-documentos-mobile.png).

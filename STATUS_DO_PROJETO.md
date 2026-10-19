@@ -4,11 +4,11 @@ Atualização: 19/10/2026.
 
 ## Estado atual — operação ampliada em 19/10/2026
 
-A etapa 2 está funcional como piloto local, e a etapa 3 já possui tarefas com fotos/revisão, ocorrências, consumíveis/estoque, manutenção preventiva, dependências/reservas, encomendas e avisos internos. O passeio 3D continua sendo prova de conceito ilustrativa. Esta entrega não implanta produção, PostgreSQL, HTTPS ou integrações externas.
+A etapa 2 está funcional como piloto local, e a etapa 3 já possui tarefas com fotos/revisão, ocorrências, consumíveis/estoque, manutenção preventiva, dependências/reservas, encomendas, fornecedores/compras, documentos com vencimentos e avisos internos. O passeio 3D continua sendo prova de conceito ilustrativa. Esta entrega não implanta produção, PostgreSQL, HTTPS ou integrações externas.
 
 ### Perfis e delegações
 
-O síndico convida subsíndico/administradora com validade obrigatória, justificativa e módulos explícitos: pessoas/vínculos, estadias/autorizações, tarefas/revisão, materiais, ocorrências privadas, preventiva, dependências/reservas e encomendas. Ser gestor delegado não dá acesso a módulos não concedidos, convites, suspensão de contas ou nova delegação. Somente o síndico atualiza as delegações (com controle de versão); a atualização encerra sessões antigas. Expiração e suspensão são verificadas em toda requisição. A delegação de ocorrências dá acesso aos relatos privados do condomínio e está identificada assim na interface. Não há verificação documental de mandato nem gestão de carteira de vários condomínios.
+O síndico convida subsíndico/administradora com validade obrigatória, justificativa e módulos explícitos: pessoas/vínculos, estadias/autorizações, tarefas/revisão, materiais, ocorrências privadas, preventiva, dependências/reservas, encomendas, preparação de compras, aprovação de compras com limite e documentos privados. Ser gestor delegado não dá acesso a módulos não concedidos, convites, suspensão de contas ou nova delegação. Somente o síndico atualiza as delegações (com controle de versão); a atualização encerra sessões antigas. Expiração e suspensão são verificadas em toda requisição. A delegação de ocorrências dá acesso aos relatos privados do condomínio e está identificada assim na interface. Não há verificação documental de mandato nem gestão de carteira de vários condomínios.
 
 Ocupante é convidado pelo síndico para um vínculo anual vigente e com prazo de acesso. Recebe identificação da sua casa, próprios relatos, reservas e encomendas destinadas à conta, sem fichas residenciais, proprietários, estadias de terceiros ou estoque. Encerrar o vínculo anual invalida sua sessão e novos logins; a data prevista de término continua sendo planejamento, não saída efetiva. Os demais perfis mantêm seus escopos existentes.
 
@@ -26,11 +26,29 @@ Portaria ou gestão de encomendas registra recebimento, casa, descrição breve 
 
 Avisos internos individuais para alterações de tarefas, relatos, reservas e encomendas; sem conteúdo sensível na mensagem. Leitura e abertura conferem autorização atual, inclusive após reatribuição ou retirada de delegação. Há marcação de leitura e atualização manual. Nenhum push, e-mail, WhatsApp, resumo de IA ou mensagem externa foi ativado. Não há aviso retroativo ao conceder novos módulos.
 
+### Fornecedores, orçamentos e compras
+
+Cadastro de fornecedores com contato, categoria, edição justificada, inativação/reativação e histórico. Orçamentos preservam a identificação do fornecedor da época; aprovadores sem acesso a compras não recebem contatos ou histórico cadastral. Compras são privadas aos módulos de preparação e aprovação, separados na delegação.
+
+Cada compra tem uma especificação, quantidade/unidade e vínculo opcional a material e tarefa. Propostas registram valor total em centavos (incluindo frete/tributos), validade, prazo de entrega e condições. A última proposta por fornecedor entra na comparação; versões anteriores permanecem no histórico. Fluxo: rascunho → análise → aprovação/recusa → recebimento integral, com reabertura justificada da recusa e cancelamento antes do recebimento.
+
+Aprovação exige pessoa diferente de quem preparou a compra e registrou a proposta escolhida, mesmo para síndico. Aprovadores delegados precisam de limite explícito por compra, aplicado no servidor e revogado/reavaliado ao alterar a delegação. Proposta vencida, fornecedor inativo, versão antiga e valor acima do limite são recusados. Cotação única exige justificativa específica. Orçamento aprovado é congelado na decisão.
+
+Recebimento de consumível exige também acesso a materiais e confere a versão do saldo. Compra, recibo e entrada no estoque são persistidos juntos, uma vez por compra. Referência já usada em recebimento do mesmo fornecedor é recusada. Uma compra sem material registra recebimento sem movimentar estoque. Não há pedido enviado ao fornecedor, pagamento, despesa financeira automática, itens múltiplos, recebimento parcial, devolução, contrato de fornecimento ou garantias estruturadas nesta etapa. Cada proposta pode ter até R$ 1.000.000,00 no piloto.
+
+### Documentos privados e vencimentos
+
+Gestão com módulo de documentos registra título, categoria, responsável ativo, vencimento opcional, antecedência de alerta e PDF. Arquivos ficam fora das projeções de estado: somente metadados são retornados. Download autenticado por condomínio e módulo, como anexo, sem URL pública e com conferência SHA-256 do conteúdo armazenado. Validação de formato e tamanho não equivale à análise de conteúdo/antivírus ou assinatura digital.
+
+Novas versões exigem motivo, preservam arquivos/dados anteriores e atualizam responsável/vencimento. Arquivar conserva versões e retira o documento da lista de prazos; reativar exige motivo. Limites do piloto: PDF de 2 MB, dez versões por documento, 32 MB totais incluindo arquivados. PDF ainda é persistido na base JSON; armazenamento de objetos e backups de produção permanecem pendentes.
+
+Alertas de documentos são calculados no servidor pelo dia de Brasília, usando a versão atual, e aparecem em Documentos e Avisos. Não dependem de agendador, e-mail ou mensagens externas; atualizar o painel consulta o prazo atual. Moradores, portaria, zeladoria e gestores sem esse módulo não recebem documentos nem alertas. Datas são informadas pela gestão; não há validação de exigências legais.
+
 ### Validação e continuidade
 
-44 testes aprovados, incluindo API, permissões por módulo, expiração/suspensão, encerramento de vínculo anual, concorrência em consumo/reserva/geração de tarefas/retirada, persistência e reinício. Fluxos conferidos em Chromium com contas e bases temporárias: convite/ativação delegada e menus por escopo, plano/checklist, solicitação/aprovação de reserva, recebimento/aviso privado/retirada. Menu adaptado à quantidade de módulos e à navegação móvel. Sem novas dependências de execução. Nenhuma conta ou dado pessoal real foi criado.
+58 testes aprovados, incluindo API, permissões por módulo, expiração/suspensão, encerramento de vínculo anual, concorrência em consumo/reserva/geração de tarefas/retirada, persistência e reinício. Fluxos conferidos em Chromium com contas e bases temporárias: convite/ativação delegada e menus por escopo, plano/checklist, solicitação/aprovação de reserva, recebimento/aviso privado/retirada. Menu adaptado à quantidade de módulos e à navegação móvel. Também foram conferidos em Chromium: cadastro/edição de fornecedores, comparação de propostas, aprovação por segunda conta dentro do limite, recebimento no estoque, upload/download de PDF com bytes idênticos, renovação e preservação da versão anterior. Sem novas dependências de execução. Nenhuma conta ou dado pessoal real foi criado.
 
-Pendências seguintes: fornecedores/orçamentos/compras, documentos e vencimentos, financeiro, múltiplos vínculos por pessoa e troca formal de gestão; infraestrutura central e backups para produção. As seções abaixo preservam o histórico das entregas anteriores, com contagens de testes da época.
+Pendências seguintes: financeiro, evoluções de compras (itens múltiplos/recebimento parcial/devoluções), múltiplos vínculos por pessoa e troca formal de gestão; infraestrutura central e backups para produção. As seções abaixo preservam o histórico das entregas anteriores, com contagens de testes da época.
 
 ## Materiais e estoque — 19/10/2026
 
