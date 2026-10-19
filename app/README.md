@@ -16,7 +16,7 @@ Os convites valem 48 horas, são de uso único e devem ser entregues manualmente
 - Portaria: dados mínimos das autorizações aprovadas; sem contatos particulares ou proprietários.
 - Zeladoria: tarefas; sem fichas residenciais ou de hóspedes.
 
-Subsíndico, administradora e ocupante ainda não possuem fluxo próprio. O convite não concede cargos de gestão.
+Subsíndico e administradora recebem somente módulos delegados explicitamente pelo síndico, com prazo e justificativa. Ocupante recebe convite ligado a um vínculo anual vigente, com validade obrigatória e escopo mínimo. Use “Delegações e ocupantes” no menu da conta do síndico. Convites comuns não concedem cargos de gestão.
 
 ## Dados e sessões
 
@@ -32,7 +32,7 @@ O serviço atende somente em 127.0.0.1. Para distribuição ainda faltam Postgre
 
 ## Verificação
 
-`npm test`: oito testes, incluindo integração HTTP com contas sintéticas temporárias e testes de domínio. Cobre escopo de casas e condomínios, convite único, sessão, suspensão, expiração de delegação, troca de senha e campos mínimos por perfil. O teste HTTP exige conexão de loopback permitida. A tela inicial foi conferida no navegador; a senha da conta real deve ser criada pelo usuário.
+`npm test`: 44 testes, incluindo integração HTTP com contas sintéticas temporárias, domínio, delegações, manutenção, reservas, encomendas, avisos e persistência após reinício. Cobre escopo de casas e condomínios, convite único, sessão, suspensão, expiração de delegação, troca de senha e campos mínimos por perfil. O teste HTTP exige conexão de loopback permitida. A tela inicial foi conferida no navegador; a senha da conta real deve ser criada pelo usuário.
 
 
 ## Moradores e vínculos
@@ -61,3 +61,15 @@ Menu “Materiais”: gestão cadastra consumíveis, unidade, depósito e mínim
 Zeladoria consulta saldos e apenas os próprios movimentos. Não há compras, custos, estornos, ajustes de inventário ou empréstimos nesta entrega. Cancelar tarefa não devolve material automaticamente. Testes atuais: 25 aprovados.
 
 Fluxo de materiais conferido no Chromium com base temporária: cadastro, entrada, tarefa, consumo e exibição na tarefa, sem erros JavaScript. Consulta do painel também verificada em viewport móvel. Nenhuma conta real criada.
+
+## Novas operações — 19/10/2026
+
+- **Delegações e ocupantes:** no menu da conta do síndico, convide com perfil, validade, módulos e justificativa; para ocupante selecione vínculo anual vigente. Atualizar delegação encerra sessões da conta. Encerrar o vínculo anual encerra o acesso do ocupante. Delegados não administram identidades nem repassam permissões.
+- **Preventiva:** configure local/equipamento, intervalo em dias, primeiro prazo e checklist. Gere a execução quando devida e acompanhe em Tarefas. Há somente uma execução aberta por plano. Checklist completo e foto são exigidos para revisão. Geração manual, sem agendador.
+- **Reservas:** configure dependência, capacidade, horário de Brasília, duração máxima e regras. Solicitações passam por aprovação e já reservam o horário pendente. Agenda de terceiros oculta dados pessoais. Interdição cancela agendamentos futuros com motivo; reabrir não restaura as reservas.
+- **Encomendas:** portaria/gestão registra recebimento e retirada após conferência presencial. Destinatário com conta acompanha apenas encomendas endereçadas à própria conta. Sem conta, acompanhamento apenas pela operação.
+- **Avisos:** mensagens internas individuais para alterações de tarefas, ocorrências, reservas e encomendas, com marcação de leitura. Use “Atualizar avisos”; nenhum serviço de mensagens externo está conectado.
+
+As regras/frequências dos espaços e equipamentos são configuradas pela gestão. Use dados fictícios neste piloto. Os fluxos acima foram conferidos em Chromium com bases temporárias; menus também verificados em tela móvel. Permanecem pendentes edição de planos/regras, compras/fornecedores, financeiro, múltiplos condomínios por conta e infraestrutura de produção.
+
+Prévias desta entrega com dados sintéticos: [manutenção preventiva](../previa-preventiva.png) e [reservas no celular](../previa-reservas-mobile.png).

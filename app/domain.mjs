@@ -1,5 +1,5 @@
-export const ROLES = ['sindico', 'proprietario', 'imobiliaria', 'portaria', 'zelador'];
-export const ROLE_NAMES = {sindico:'Síndica', proprietario:'Proprietária', imobiliaria:'Imobiliária', portaria:'Portaria',zelador:'Zeladoria'};
+import {can,ROLES,ROLE_NAMES} from './permissions.mjs';
+export {ROLES,ROLE_NAMES};
 export function seed() {
   return {
     version:1,
@@ -17,9 +17,10 @@ export function actor(role='sindico') {
   return {role,tenant:'chandra',houses:role==='proprietario'?['c01','c02']:role==='imobiliaria'?['c03']:[],name:role==='sindico'?'Luiza Demo':role==='proprietario'?'Ana Demo':role==='imobiliaria'?'Agência Demo':'Equipe Demo'};
 }
 export function scopedHouses(state,user) {
-  return state.houses.filter(h=>h.tenant===user.tenant && (['sindico','portaria'].includes(user.role)||user.houses.includes(h.id)));
+  return state.houses.filter(h=>h.tenant===user.tenant && (can(user,'residents')||can(user,'stays')||user.role==='portaria'||['proprietario','imobiliaria','ocupante'].includes(user.role)&&user.houses?.includes(h.id)));
 }
 export function scopedStays(state,user) {
+  if(!can(user,'stays')&&!['proprietario','imobiliaria','portaria'].includes(user.role))return [];
   const ids=new Set(scopedHouses(state,user).map(h=>h.id));
   return state.stays.filter(s=>s.tenant===user.tenant&&ids.has(s.houseId));
 }
@@ -34,7 +35,7 @@ export function dateBRLocal(value) {
   return result;
 }
 export function createStay(state,user,input,now=Date.now()) {
-  if(!['sindico','proprietario','imobiliaria'].includes(user.role)||!canHouse(state,user,input.houseId)) throw new Error('Sem permissão para cadastrar nesta casa.');
+  if(!(can(user,'stays')||['proprietario','imobiliaria'].includes(user.role))||!canHouse(state,user,input.houseId)) throw new Error('Sem permissão para cadastrar nesta casa.');
   const responsible=String(input.responsible||'').trim();
   const contact=String(input.contact||'').trim();
   const people=[...new Set((input.people||[]).map(p=>String(p).trim()).filter(Boolean))];
@@ -61,8 +62,8 @@ export function changeStay(state,user,id,status,reason,now=Date.now()) {
   if(!stay)throw new Error('Estadia indisponível.');
   const transition=stay.status==='pending'?['approved','rejected','cancelled']:stay.status==='approved'?['cancelled']:[];
   if(!transition.includes(status))throw new Error('Alteração de situação inválida.');
-  if(status!=='cancelled'&&user.role!=='sindico')throw new Error('Somente a gestão pode analisar esta solicitação.');
-  if(status==='cancelled'&&!['sindico','proprietario','imobiliaria'].includes(user.role))throw new Error('Sem permissão para cancelar.');
+  if(status!=='cancelled'&&!can(user,'stays'))throw new Error('Somente a gestão pode analisar esta solicitação.');
+  if(status==='cancelled'&&!(can(user,'stays')||['proprietario','imobiliaria'].includes(user.role)))throw new Error('Sem permissão para cancelar.');
   if(!String(reason||'').trim())throw new Error('Informe o motivo da decisão.');
   if(status==='approved'&&Date.parse(stay.end)<=Number(now))throw new Error('Não é possível autorizar uma estadia já expirada.');
   stay.status=status;stay.decisionReason=String(reason).trim().slice(0,500);
@@ -75,7 +76,7 @@ export function authorizationStatus(stay,now=Date.now()) {
   return 'Vigente';
 }
 export function changeTask(state,user,id,status,now=Date.now()) {
-  if(!['sindico','zelador'].includes(user.role))throw new Error('Alteração de tarefas disponível apenas à gestão e à zeladoria.');
+  if(!(can(user,'tasks')||user.role==='zelador'))throw new Error('Alteração de tarefas disponível apenas à gestão e à zeladoria.');
   const task=state.tasks.find(t=>t.id===id&&t.tenant===user.tenant);
   if(!task||!['todo','doing','review','done'].includes(status))throw new Error('Tarefa ou situação inválida.');
   task.status=status;audit(state,user,'Tarefa atualizada para '+status,id,now);

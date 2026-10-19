@@ -86,6 +86,10 @@ Definir finalidade e base legal dos tratamentos, responsáveis por dados, reten�
 
 Os três canais orientam a arquitetura desde a etapa 1. Sensores, automação avançada e integrações adicionais ficam para expansão após validar operação e custo. Prazos serão estimados ao decompor as entregas e confirmar capacidade da equipe; não há data de lançamento prometida.
 
+### Execução em 19/10/2026
+
+O piloto local já implementa as jornadas da etapa 2 e parte ampla da etapa 3: tarefas com revisão/fotos, ocorrências, estoque consumível, manutenção preventiva com checklist, dependências/reservas, encomendas e avisos internos. Subsíndico/administradora têm delegações por módulo; ocupante é vinculado à locação anual. Testes atuais: 44 aprovados, incluindo reinício e concorrência. A etapa 3 ainda não está encerrada: faltam fornecedores/compras e evoluções operacionais; infraestrutura de produção, comunicação externa, múltiplos vínculos e governança formal seguem pendentes. Consulte STATUS_DO_PROJETO.md para limites e validações.
+
 ## 8. Primeiro ciclo de trabalho
 
 1. Confirmar os dados e documentos disponíveis do Condomínio Chandra; enquanto isso, usar casas, pessoas e regras explicitamente fictícias.

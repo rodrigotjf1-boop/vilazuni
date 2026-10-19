@@ -4,7 +4,7 @@ Este repositório é a fonte de recuperação do código e do planejamento. A co
 
 ## Ponto atual — 19/10/2026
 
-Piloto local do Condomínio Chandra: cenário 3D com 14 sobrados, painéis flutuantes, interiores ilustrativos, autenticação e permissões no servidor, estadias, moradores/coproprietários/locação anual e tarefas da zeladoria com fotos e revisão pela gestão e ocorrências privadas com atribuição, acompanhamento e encerramento justificado, além de materiais e estoque com consumo ligado às tarefas. Consulte STATUS_DO_PROJETO.md, PLANO_DO_PROJETO.md e fundacao/PERMISSOES.md antes de continuar.
+Piloto local do Condomínio Chandra: cenário 3D com 14 sobrados, painéis flutuantes, interiores ilustrativos, autenticação e permissões no servidor, estadias, moradores/coproprietários/locação anual e tarefas da zeladoria com fotos e revisão pela gestão e ocorrências privadas com atribuição, acompanhamento e encerramento justificado, além de materiais e estoque com consumo ligado às tarefas. Agora também há perfis delegados por módulo, ocupante vinculado à locação anual, planos de manutenção/checklists, reservas com interdição, encomendas e avisos internos privados. Consulte STATUS_DO_PROJETO.md, PLANO_DO_PROJETO.md e fundacao/PERMISSOES.md antes de continuar.
 
 Disposição aprovada: à direita da entrada casas 01–07; à esquerda 08–14. Churrasqueira junto à casa 14, antes do salão de festas. Festas à esquerda, jogos à direita e piscina no patamar superior. Preservar a navegação visual e os painéis sobre o cenário.
 
@@ -28,4 +28,8 @@ Código, testes, documentos e prévias do protótipo. A base `app/.data/`, crede
 
 Ao concluir cada etapa, atualizar STATUS_DO_PROJETO.md, executar os testes relevantes e salvar um commit. Enviar ao repositório autorizado quando solicitado ou autorizado na sessão. Alterações futuras só ficam no GitHub depois de enviadas; o repositório não é uma sincronização automática de toda a pasta.
 
-Próximas frentes previstas: manutenção preventiva e reservas; expansão dos perfis (subsíndico, administradora e inquilino); infraestrutura central, backups e preparação para distribuição. Ainda não há portão, cobranças bancárias, mensagens automáticas, IA ou hospedagem de produção conectados.
+Próximas frentes previstas: fornecedores, orçamentos e compras; documentos e vencimentos; financeiro; múltiplos vínculos e troca formal de gestão; infraestrutura central, backups e preparação para distribuição. Os três novos perfis já existem no piloto com limites descritos em STATUS_DO_PROJETO.md. Ainda não há portão, cobranças bancárias, mensagens automáticas, IA ou hospedagem de produção conectados.
+
+## Verificação atual
+
+Em app, `npm test`: 44 testes. Os testes HTTP usam bases e contas sintéticas temporárias, incluindo reinício e preservação dos novos módulos. O servidor continua `node server.mjs`, sem instalação de dependências. Não execute dois servidores sobre a mesma base JSON. Para conferência visual use base temporária via VILAZUNI_DATA_DIR; nenhuma senha do usuário é criada pelo agente.

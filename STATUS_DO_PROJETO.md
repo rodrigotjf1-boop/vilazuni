@@ -2,6 +2,36 @@
 
 Atualização: 19/10/2026.
 
+## Estado atual — operação ampliada em 19/10/2026
+
+A etapa 2 está funcional como piloto local, e a etapa 3 já possui tarefas com fotos/revisão, ocorrências, consumíveis/estoque, manutenção preventiva, dependências/reservas, encomendas e avisos internos. O passeio 3D continua sendo prova de conceito ilustrativa. Esta entrega não implanta produção, PostgreSQL, HTTPS ou integrações externas.
+
+### Perfis e delegações
+
+O síndico convida subsíndico/administradora com validade obrigatória, justificativa e módulos explícitos: pessoas/vínculos, estadias/autorizações, tarefas/revisão, materiais, ocorrências privadas, preventiva, dependências/reservas e encomendas. Ser gestor delegado não dá acesso a módulos não concedidos, convites, suspensão de contas ou nova delegação. Somente o síndico atualiza as delegações (com controle de versão); a atualização encerra sessões antigas. Expiração e suspensão são verificadas em toda requisição. A delegação de ocorrências dá acesso aos relatos privados do condomínio e está identificada assim na interface. Não há verificação documental de mandato nem gestão de carteira de vários condomínios.
+
+Ocupante é convidado pelo síndico para um vínculo anual vigente e com prazo de acesso. Recebe identificação da sua casa, próprios relatos, reservas e encomendas destinadas à conta, sem fichas residenciais, proprietários, estadias de terceiros ou estoque. Encerrar o vínculo anual invalida sua sessão e novos logins; a data prevista de término continua sendo planejamento, não saída efetiva. Os demais perfis mantêm seus escopos existentes.
+
+### Manutenção preventiva
+
+Gestão com delegação de preventiva cria plano com equipamento/local, orientações, intervalo em dias, primeiro prazo e checklist. A geração manual de tarefa exige também acesso a tarefas; só é permitida quando o prazo chega e não há execução aberta do mesmo plano. Avança o próximo prazo pela frequência configurada, sem geração automática ou sugestão de periodicidade legal. Plano pode ser pausado/reativado com motivo. Se o responsável do plano estiver suspenso ou expirado, a execução é gerada sem atribuição para revisão pela gestão. Reatribuição reinicia checklist; revisão exige checklist completo e foto da execução atual. Execuções e materiais usados continuam no histórico da tarefa. Não há edição de frequência, agendador de fundo ou importação de normas nesta etapa.
+
+### Dependências e reservas
+
+Gestão configura espaços exclusivos, capacidade, horário no fuso Brasília, duração máxima e regras. Proprietário, imobiliária e ocupante solicitam pelas casas autorizadas; gestão de reservas pode operar no condomínio. Solicitação exige ciência das regras e aprovação posterior. Horários futuros no mesmo dia; solicitações pendentes já ocupam o horário. Sobreposição é recusada mesmo com pedidos simultâneos; horários contíguos são permitidos. Agenda alheia mostra só período ocupado, sem autor/casa/pessoas/histórico. Autor cancela a própria reserva; gestão aprova/recusa/cancela com motivo. Interdição cancela solicitações/reservas futuras afetadas com histórico; reabrir não as restaura. Não há taxa, recorrência de reservas ou controle de entrada física.
+
+### Encomendas e avisos
+
+Portaria ou gestão de encomendas registra recebimento, casa, descrição breve e local de guarda, com conta destinatária opcional. Só a conta destinatária vinculada e os operadores autorizados consultam a encomenda; coproprietário não recebe encomendas de outra conta. Sem conta, somente a operação acompanha. Retirada exige registro pelo operador, nome de quem retirou e observação após conferência presencial. Controle de versão impede retirada repetida. O registro não é assinatura digital nem verificação documental.
+
+Avisos internos individuais para alterações de tarefas, relatos, reservas e encomendas; sem conteúdo sensível na mensagem. Leitura e abertura conferem autorização atual, inclusive após reatribuição ou retirada de delegação. Há marcação de leitura e atualização manual. Nenhum push, e-mail, WhatsApp, resumo de IA ou mensagem externa foi ativado. Não há aviso retroativo ao conceder novos módulos.
+
+### Validação e continuidade
+
+44 testes aprovados, incluindo API, permissões por módulo, expiração/suspensão, encerramento de vínculo anual, concorrência em consumo/reserva/geração de tarefas/retirada, persistência e reinício. Fluxos conferidos em Chromium com contas e bases temporárias: convite/ativação delegada e menus por escopo, plano/checklist, solicitação/aprovação de reserva, recebimento/aviso privado/retirada. Menu adaptado à quantidade de módulos e à navegação móvel. Sem novas dependências de execução. Nenhuma conta ou dado pessoal real foi criado.
+
+Pendências seguintes: fornecedores/orçamentos/compras, documentos e vencimentos, financeiro, múltiplos vínculos por pessoa e troca formal de gestão; infraestrutura central e backups para produção. As seções abaixo preservam o histórico das entregas anteriores, com contagens de testes da época.
+
 ## Materiais e estoque — 19/10/2026
 
 Consumíveis cadastrados pela gestão com nome, unidade de medida, depósito/local e estoque mínimo. Saldo inicial zero; entradas exigem quantidade e origem/motivo. Gestão e zeladoria consultam saldo e indicação de reposição quando saldo menor ou igual ao mínimo. Zeladoria vê apenas os movimentos que registrou; demais perfis não recebem estoque.

@@ -2,6 +2,27 @@
 
 Versão 0.1 • regras propostas para validação do piloto.
 
+## Política vigente do piloto — 19/10/2026
+
+A tabela de fundação abaixo continua sendo a direção do produto. A implementação atual atende oito perfis; detalhes atuais prevalecem sobre os históricos de 18/10:
+
+| Módulo/ação | Política atual |
+|---|---|
+| Identidades e concessão de delegação | Exclusivamente síndico; não há convite para síndico ou autoelevação |
+| Subsíndico/administradora | Somente módulos concedidos, com motivo e validade; atualizar revoga sessões; sem delegação em cadeia |
+| Pessoas e estadias | Delegações independentes; permissão de pessoas não libera estadias nem vice-versa; ambas abrangem o condomínio |
+| Tarefas/manutenção | Tarefas do condomínio para gestão delegada em tarefas; zelador somente atribuições próprias; gerar preventiva requer ambos os módulos; checklist recomeça ao reatribuir |
+| Materiais | Gestão de materiais cadastra/recebe; consumo exige também acesso à tarefa; zelador somente tarefas próprias; histórico geral só gestão |
+| Relatos privados | Autor e gestão com módulo ocorrências; delegar este módulo libera os relatos do condomínio, explicitamente informado |
+| Ocupante | Vínculo anual vigente, prazo de acesso e uma casa; identificação da casa sem ficha de terceiros; encerramento do vínculo invalida login |
+| Reservas | Moradores/proprietários/imobiliárias solicitam dentro das casas autorizadas; gestão de dependências decide/interdita; terceiros veem apenas intervalos ocupados |
+| Encomendas | Portaria/gestão opera; destinatário com conta vê apenas as próprias encomendas e precisa manter vínculo à casa; copropriedade não amplia acesso |
+| Avisos internos | Individuais e filtrados pela autorização atual; leitura não altera avisos de terceiros; sem envio externo |
+
+A concessão manual do piloto não verifica mandato nem titularidade documental. Múltiplos vínculos por conta, substituição formal do síndico, recuperação de conta e MFA continuam pendentes.
+
+## Fundação e histórico
+
 Toda permissão exige identidade autenticada, vínculo ativo, condomínio correto, finalidade e vigência. Negação é o padrão. O cliente não escolhe seu papel. Dados disponíveis na ficha dependem da ação, não apenas da visibilidade da casa na lista.
 
 | Ação | Síndico | Subsíndico | Administradora habilitada | Proprietário | Imobiliária de locação | Ocupante | Zelador/portaria |

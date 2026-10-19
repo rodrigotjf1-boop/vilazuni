@@ -1,8 +1,9 @@
+import {can} from './permissions.mjs';
 import {api} from './auth-ui.mjs';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const qty=v=>Number(v).toLocaleString('pt-BR',{maximumFractionDigits:3});
 export function materialsPanel({getState,user,panel,refresh,toast}){
- if(!['sindico','zelador'].includes(user.role))return;const manager=user.role==='sindico';
+ if(!(can(user,'materials')||user.role==='zelador'))return;const manager=can(user,'materials');
  const items=()=>getState().materials||[];
  function submit(dock,handler){const form=dock.querySelector('form');form.onsubmit=async e=>{e.preventDefault();const b=form.querySelector('[type=submit]');b.disabled=true;try{await handler(Object.fromEntries(new FormData(form)));}catch(err){form.querySelector('.auth-error').textContent=err.message;b.disabled=false;}};}
  function list(){const dock=panel('Materiais para cuidar.','ESTOQUE',`<button id="mat-refresh" class="glass-secondary">Atualizar estoque</button>${manager?'<button id="mat-new" class="glass-primary">＋ Cadastrar material</button>':''}<div class="float-feed">${items().map(m=>`<button class="journey-card" data-material="${esc(m.id)}"><span class="float-pill">${m.balance<=m.minimum?'Reposição necessária':'Em estoque'}</span><h3>${esc(m.name)}</h3><p>${qty(m.balance)} ${esc(m.unit)} · ${esc(m.location)}</p><small>Mínimo: ${qty(m.minimum)} ${esc(m.unit)}</small></button>`).join('')||'<p class="quiet-state">Nenhum material cadastrado.</p>'}</div><p class="micro-note">Consumíveis do piloto. Compras, despesas, ferramentas emprestadas e pedidos automáticos ainda não estão integrados.</p>`);dock.querySelector('#mat-refresh').onclick=async()=>{try{await refresh();list();}catch(e){toast(e.message);}};dock.querySelector('#mat-new')?.addEventListener('click',create);dock.querySelectorAll('[data-material]').forEach(b=>b.onclick=()=>detail(b.dataset.material));}
