@@ -20,6 +20,10 @@ A tabela de fundação abaixo continua sendo a direção do produto. A implement
 | Compras e fornecedores | Preparação por módulo próprio; aprovador separado, com limite explícito; sem autoaprovação, mesmo para síndico; contatos do fornecedor apenas a quem prepara |
 | Recebimento de compra | Preparação e, para consumíveis, acesso a materiais; gravação única de estoque e compra; versão atual obrigatória |
 | Documentos privados | Somente contas com módulo de documentos; responsável precisa manter acesso; download de cada versão autenticado por condomínio; moradores não recebem arquivos ou prazos |
+| Consulta financeira | Leitura de contas/fundos, lançamentos, compromissos e relatórios; sem escrita/exportação explícita |
+| Operação financeira | Registro manual de receita/despesa, transferência entre contas, compromissos, baixa integral e estorno; sem controle de fundos/fechamento |
+| Controle financeiro | Cadastro/saldo inicial, realocação de fundos, ajustes e fechamento; reabertura só síndico |
+| Exportação financeira | Leitura e download de relatório JSON; não concede escrita |
 | Avisos internos | Individuais e filtrados pela autorização atual; leitura não altera avisos de terceiros; sem envio externo |
 
 A concessão manual do piloto não verifica mandato nem titularidade documental. Múltiplos vínculos por conta, substituição formal do síndico, recuperação de conta e MFA continuam pendentes.
@@ -95,3 +99,11 @@ Gestão cadastra materiais e registra entradas; gestão e zeladoria consultam sa
 Preparação de compras não concede aprovação nem acesso a arquivos; aprovação não concede edição de fornecedores, recebimento ou contatos do cadastro. O módulo de materiais é necessário para compras vinculadas a estoque; relacionar uma tarefa exige acesso a tarefas. Cada aprovador delegado tem limite em centavos, validado ao conceder/alterar e novamente ao aprovar. Mesmo o síndico não aprova compra que preparou ou proposta que registrou. Cotação única requer justificativa. Recebimento usa a proposta aprovada, valida versões de compra e estoque e não cria movimento financeiro.
 
 Documentos só são visíveis à gestão explicitamente autorizada no módulo. Cada leitura binária confere o acesso atual e a integridade, sem URL pública. A projeção de estado omite conteúdo base64 de todas as versões. Arquivamento não libera arquivos nem elimina histórico. Avisos de compras/documentos acompanham as mesmas permissões; prazos de documentos são derivados do dia atual de Brasília, não enviados externamente.
+
+### Base financeira — 19/10/2026
+
+As quatro delegações financeiras são independentes e limitadas ao condomínio da conta. Consulta/operação/controle/exportação conferem leitura financeira; as escritas continuam limitadas ao módulo correspondente. Demais perfis não recebem saldos ou compromissos por vínculo a casa. Acesso consultivo de moradores e prestação pública ainda dependem de fluxo próprio.
+
+Financeiro recebe somente a referência mínima da compra recebida necessária ao compromisso, sem obter contatos ou propostas privadas. Baixas são registros manuais, sem autorização ou execução bancária. Financeiro não amplia poderes de aprovação de compra. Exportação exige módulo explícito em cada solicitação HTTP.
+
+Fechamento usa revisão do financeiro e congela o relatório; só o síndico reabre o último mês fechado. Ajuste/reclassificação de fundos é controle; estorno exige a permissão da operação original. Cadastro de conta, transferências, baixa e estorno verificam versão e saldo; idempotência e referências impedem repetição. Registros nunca são apagados por estorno ou reabertura. Avisos continuam sujeitos ao acesso atual.

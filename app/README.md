@@ -32,7 +32,7 @@ O serviço atende somente em 127.0.0.1. Para distribuição ainda faltam Postgre
 
 ## Verificação
 
-`npm test`: 58 testes, incluindo integração HTTP com contas sintéticas temporárias, domínio, delegações, manutenção, reservas, encomendas, avisos e persistência após reinício. Cobre escopo de casas e condomínios, convite único, sessão, suspensão, expiração de delegação, troca de senha e campos mínimos por perfil. O teste HTTP exige conexão de loopback permitida. A tela inicial foi conferida no navegador; a senha da conta real deve ser criada pelo usuário.
+`npm test`: 72 testes, incluindo integração HTTP com contas sintéticas temporárias, domínio, delegações, manutenção, reservas, encomendas, avisos e persistência após reinício. Cobre escopo de casas e condomínios, convite único, sessão, suspensão, expiração de delegação, troca de senha e campos mínimos por perfil. O teste HTTP exige conexão de loopback permitida. A tela inicial foi conferida no navegador; a senha da conta real deve ser criada pelo usuário.
 
 
 ## Moradores e vínculos
@@ -52,13 +52,13 @@ Verificação atual: 17 testes aprovados, incluindo envio/leitura de foto pela A
 
 No menu “Ocorrências”, abra um relato com título, local, descrição e casa opcional autorizada. Cada conta acompanha apenas seus relatos; a gestão acompanha os do condomínio. A gestão atribui um responsável de gestão, inicia apuração, resolve/cancela com justificativa e pode reabrir. Comentários, decisões e atribuições preservam histórico e versão. Ao receber aviso de conflito, use “Atualizar ocorrências”.
 
-Não há relatos anônimos, anexos ou notificações nesta etapa. Não encaminhamos relatos privados automaticamente ao zelador. O autor vê todos os acompanhamentos da gestão no próprio relato. Testes atuais: 21 aprovados; interface nova ainda sem conferência visual em navegador.
+Não há relatos anônimos ou anexos nesta etapa; avisos internos foram adicionados na etapa seguinte. Não encaminhamos relatos privados automaticamente ao zelador. O autor vê todos os acompanhamentos da gestão no próprio relato. Verificação original desta etapa: 21 testes aprovados, com conferência visual ainda pendente naquela entrega.
 
 ## Materiais e estoque — 19/10/2026
 
 Menu “Materiais”: gestão cadastra consumíveis, unidade, depósito e mínimo, depois registra entradas com motivo. Gestão e zeladoria registram consumo escolhendo tarefa aberta; zeladoria só pode consumir em tarefas atribuídas à sua conta. Saldo e histórico da tarefa são atualizados juntos. Até três casas decimais; saldo insuficiente e versões desatualizadas são recusados. Use “Atualizar estoque” após conflito. O painel de tarefas mostra os materiais consumidos.
 
-Zeladoria consulta saldos e apenas os próprios movimentos. Não há compras, custos, estornos, ajustes de inventário ou empréstimos nesta entrega. Cancelar tarefa não devolve material automaticamente. Testes atuais: 25 aprovados.
+Zeladoria consulta saldos e apenas os próprios movimentos. Recebimentos de compras são integrados pelo menu Compras. Custos completos, estornos de estoque, ajustes de inventário e empréstimos continuam pendentes. Cancelar tarefa não devolve material automaticamente. Verificação original desta etapa: 25 testes aprovados.
 
 Fluxo de materiais conferido no Chromium com base temporária: cadastro, entrada, tarefa, consumo e exibição na tarefa, sem erros JavaScript. Consulta do painel também verificada em viewport móvel. Nenhuma conta real criada.
 
@@ -70,7 +70,7 @@ Fluxo de materiais conferido no Chromium com base temporária: cadastro, entrada
 - **Encomendas:** portaria/gestão registra recebimento e retirada após conferência presencial. Destinatário com conta acompanha apenas encomendas endereçadas à própria conta. Sem conta, acompanhamento apenas pela operação.
 - **Avisos:** mensagens internas individuais para alterações de tarefas, ocorrências, reservas e encomendas, com marcação de leitura. Use “Atualizar avisos”; nenhum serviço de mensagens externo está conectado.
 
-As regras/frequências dos espaços e equipamentos são configuradas pela gestão. Use dados fictícios neste piloto. Os fluxos acima foram conferidos em Chromium com bases temporárias; menus também verificados em tela móvel. Permanecem pendentes edição de planos/regras, compras/fornecedores, financeiro, múltiplos condomínios por conta e infraestrutura de produção.
+As regras/frequências dos espaços e equipamentos são configuradas pela gestão. Use dados fictícios neste piloto. Os fluxos acima foram conferidos em Chromium com bases temporárias; menus também verificados em tela móvel. Permanecem pendentes edição de planos/regras, evolução de compras e financeiro, múltiplos condomínios por conta e infraestrutura de produção.
 
 Prévias desta entrega com dados sintéticos: [manutenção preventiva](../previa-preventiva.png) e [reservas no celular](../previa-reservas-mobile.png).
 
@@ -94,6 +94,25 @@ O servidor confere formato, limite de tamanho e integridade SHA-256 no download.
 
 Os prazos são calculados pelo dia de Brasília e consultados em “Documentos” e “Avisos”, sem envio externo. Arquivos continuam na base JSON local; armazenamento privado de objetos e backups permanecem pendentes. Use somente PDFs sintéticos neste piloto.
 
-Verificação atual: 58 testes, incluindo concorrência, limites de aprovação, segregação de funções, recebimento com estoque, arquivos privados, controle de versões, integridade e reinício. Fluxos também conferidos no Chromium, com renovação/download em tela móvel.
+Verificação desta etapa, antes da base financeira: 58 testes, incluindo concorrência, limites de aprovação, segregação de funções, recebimento com estoque, arquivos privados, controle de versões, integridade e reinício. Fluxos também conferidos no Chromium, com renovação/download em tela móvel.
 
 Prévias desta etapa com dados sintéticos: [compra recebida](../previa-compras.png) e [documentos no celular](../previa-documentos-mobile.png).
+
+## Base financeira — 19/10/2026
+
+No menu de delegações, o síndico concede separadamente:
+
+- **Consulta financeira:** saldos, compromissos e relatórios, sem escrita.
+- **Lançamentos e compromissos:** receitas/despesas, transferências entre contas, contas a pagar e baixas manuais.
+- **Contas, fundos e fechamento:** cadastros/saldos iniciais, realocação entre fundos, ajustes e fechamento.
+- **Exportação financeira:** leitura e download de relatórios JSON, sem escrita.
+
+Comece em Financeiro → Contas e fundos. Cadastre fundos/finalidades e uma conta bancária ou caixa com saldo inicial, data e origem. Fundos são destinações do saldo das contas; não some os totais das duas visões. Ajustes e estornos preservam os registros anteriores. O piloto não permite saldo negativo ao fim do dia por conta/fundo, nem lançamento anterior ao saldo inicial, no futuro ou em período encerrado.
+
+Em Contas a pagar, registre compromissos manuais ou importe compras recebidas. A importação mantém o valor aprovado e data de recebimento e não duplica compromissos. Informe fundo, categoria e vencimento. Registrar saída manual exige conta, data, referência única e conferência; reduz o saldo somente após o registro. Estornar essa saída reabre o compromisso. Alterações de prazo/fundo/categoria, cancelamentos e reaberturas têm histórico e efeito no dia do registro.
+
+Consulte um mês em Relatório mensal. O relatório mostra contas/fundos, movimentos, compromissos na data de corte e pendências de compras. Receitas/despesas aparecem antes dos estornos, mostrados separadamente. Feche somente mês concluído, após conferir saldos e compromissos das compras recebidas. O fechamento bloqueia o período e anteriores; próximos meses devem seguir em sequência. Só o síndico reabre o último fechamento. Cada versão fechada mantém relatório e hash; históricos podem ser consultados mesmo após reabertura. Exportação JSON requer permissão própria.
+
+Não há transferência bancária, pagamento, conciliação, cobrança ou rateio automático. Os saldos são registros gerenciais manuais, sem validação bancária. Ainda faltam contas a receber, orçamento versus realizado, baixas parciais e integração com parceiro. Valores de teste são sintéticos. Até R$ 1.000.000,00 por registro. Verificação atual: 72 testes aprovados e fluxo conferido no Chromium, incluindo consulta em tela móvel.
+
+Prévias com valores sintéticos: [relatório mensal](../previa-financeiro.png) e [consulta no celular](../previa-financeiro-mobile.png).
