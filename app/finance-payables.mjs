@@ -1,6 +1,7 @@
 import {randomUUID} from 'node:crypto';
 import {localDay} from './residents.mjs';
 import {requireFinance,canReadFinance,text,date,amount,rows,bump,openDate,activeFund,post,ledger} from './finance-ledger.mjs';
+import {isOutstanding,settlementPosition,lastSettlementDate,syncSettlement} from './finance-settlements.mjs';
 const normalize=v=>v.normalize('NFKC').trim().toLocaleLowerCase('pt-BR');
 export function purchaseSources(s,u){
  if(!canReadFinance(u))return [];
@@ -21,28 +22,31 @@ export function importPurchase(s,u,input,now=Date.now()){
  return make(s,u,{...input,issuedOn:source.receivedOn},source,now);
 }
 function editable(s,u,input){requireFinance(u,'finance');const p=rows(s,'financialPayables',u.tenant).find(p=>p.id===input.id);if(!p)throw Error('Compromisso indisponível.');if(!Number.isInteger(input.version)||input.version!==p.version)throw Error('O compromisso mudou. Atualize antes de continuar.');return p;}
-export function payPayable(s,u,input,now=Date.now()){
- const p=editable(s,u,input);if(p.status!=='open')throw Error('Compromisso não está em aberto.');const on=openDate(s,u,input.date,now);if(on<p.issuedOn||on<p.events.at(-1).date||on<p.terms.at(-1).date)throw Error('Data anterior à emissão, reabertura ou última alteração do compromisso.');
+export function payPayable(s,u,input,now=Date.now()){return recordPayment(s,u,input,now,false);}
+export function payPayablePartial(s,u,input,now=Date.now()){return recordPayment(s,u,input,now,true);}
+function recordPayment(s,u,input,now,partial){
+ const p=editable(s,u,input),position=settlementPosition(s,u.tenant,'payable',p);if(!isOutstanding(position))throw Error('Compromisso não está em aberto.');const on=openDate(s,u,input.date,now);if(on<lastSettlementDate(s,u.tenant,'payable',p))throw Error('Data anterior à emissão, reabertura ou última alteração do compromisso.');
+ const value=partial?amount(input.amountCents):position.remainingCents;if(value>position.remainingCents)throw Error('Saída excede o saldo restante do compromisso.');
  const reference=text(input.reference,'Referência da saída'),reason=text(input.reason,'Conferência da saída manual',500);
- const entry=post(s,u,{operationId:input.operationId,kind:'expense',date:on,description:p.description,category:p.category,reference,reason,amountCents:p.amountCents,payableId:p.id,purchaseId:p.purchaseId,postings:[{accountId:input.accountId,fundId:p.fundId,amountCents:-p.amountCents}]},[{id:input.accountId,version:input.accountVersion}],now);
- p.status='paid';p.paymentEntryId=entry.id;p.version++;p.history.push({at:new Date(now).toISOString(),actor:u.name,action:'Saída manual registrada',entryId:entry.id,reason});return {payable:structuredClone(p),entry};
+ const entry=post(s,u,{operationId:input.operationId,kind:'expense',date:on,description:p.description,category:p.category,reference,reason,amountCents:value,payableId:p.id,purchaseId:p.purchaseId,postings:[{accountId:input.accountId,fundId:p.fundId,amountCents:-value}]},[{id:input.accountId,version:input.accountVersion}],now);
+ syncSettlement(s,u.tenant,'payable',p);p.version++;p.history.push({at:new Date(now).toISOString(),actor:u.name,action:'Saída manual registrada',amountCents:value,entryId:entry.id,reason});return {payable:structuredClone(p),entry};
 }
 export function changePayable(s,u,input,now=Date.now()){
  const p=editable(s,u,input),today=openDate(s,u,localDay(now),now),reason=text(input.reason,'Motivo',500);
+ if(settlementPosition(s,u.tenant,'payable',p).settledCents>0)throw Error('Estorne as baixas antes de cancelar o compromisso.');
  if(!['cancelled','open'].includes(input.status)||!(p.status==='open'&&input.status==='cancelled'||p.status==='cancelled'&&input.status==='open'))throw Error('Alteração de compromisso inválida.');
  if(input.status==='open')activeFund(s,u,p.fundId);
  p.status=input.status;p.version++;p.events.push({date:today,kind:input.status,reason});p.history.push({at:new Date(now).toISOString(),actor:u.name,action:input.status==='open'?'Compromisso reaberto':'Compromisso cancelado',reason});bump(s,u.tenant);return structuredClone(p);
 }
 export function editPayable(s,u,input,now=Date.now()){
- const p=editable(s,u,input);if(p.status!=='open')throw Error('Somente compromisso aberto pode ser atualizado.');const on=openDate(s,u,localDay(now),now),fund=activeFund(s,u,input.fundId),dueOn=date(input.dueOn),category=text(input.category,'Categoria'),reason=text(input.reason,'Motivo',500);
+ const p=editable(s,u,input);if(!isOutstanding(p))throw Error('Somente compromisso aberto pode ser atualizado.');const on=openDate(s,u,localDay(now),now),fund=activeFund(s,u,input.fundId),dueOn=date(input.dueOn),category=text(input.category,'Categoria'),reason=text(input.reason,'Motivo',500);
  if(dueOn<p.issuedOn)throw Error('Vencimento anterior à emissão.');
  const before={fundId:p.fundId,fundName:p.fundName,dueOn:p.dueOn,category:p.category};Object.assign(p,{fundId:fund.id,fundName:fund.name,dueOn,category,version:p.version+1});p.terms.push({date:on,fundId:fund.id,fundName:fund.name,dueOn,category});p.history.push({at:new Date(now).toISOString(),actor:u.name,action:'Compromisso atualizado',reason,before});bump(s,u.tenant);return structuredClone(p);
 }
 export function payablesAt(s,tenant,through){
- const entries=ledger(s,tenant).filter(e=>e.date<=through);
  return rows(s,'financialPayables',tenant).filter(p=>p.issuedOn<=through).map(p=>{
   const terms=p.terms.filter(t=>t.date<=through).at(-1),event=p.events.filter(e=>e.date<=through).at(-1);const cancelled=event?.kind==='cancelled';
-  const paidCents=-entries.filter(e=>e.payableId===p.id).reduce((sum,e)=>sum+e.postings.reduce((n,post)=>n+post.amountCents,0),0);
-  return {id:p.id,purchaseId:p.purchaseId,description:p.description,creditor:p.creditor,fundId:terms.fundId,amountCents:p.amountCents,dueOn:terms.dueOn,status:cancelled?'cancelled':paidCents===p.amountCents?'paid':'open',paidCents,statusReason:cancelled?event.reason||null:null};
+  const position=settlementPosition(s,tenant,'payable',p,through);
+  return {id:p.id,purchaseId:p.purchaseId,description:p.description,creditor:p.creditor,fundId:terms.fundId,amountCents:p.amountCents,dueOn:terms.dueOn,...position,paidCents:position.settledCents,statusReason:cancelled?event.reason||null:null};
  });
 }

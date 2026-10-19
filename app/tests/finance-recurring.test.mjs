@@ -1,0 +1,27 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';import {randomUUID} from 'node:crypto';
+import {createFund,createAccount,saveAssessment,approveAssessment,cancelAssessment,saveRecurringTemplate,toggleRecurringTemplate,prepareRecurringAssessment,generateAssessment,closeMonth,financeView} from '../finance.mjs';
+import {revision,balance} from '../finance-ledger.mjs';
+const now=Date.parse('2026-10-19T12:00:00-03:00'),root={id:'s',tenant:'a',role:'sindico',name:'Gestão'};
+function base(){const s={houses:[{id:'c01',number:'01',tenant:'a'},{id:'c02',number:'02',tenant:'a'}]},fund=createFund(s,root,{name:'Ordinário',purpose:'Operação corrente'},now);createAccount(s,root,{name:'Caixa teste',kind:'cash',fundId:fund.id,openingOn:'2026-09-01',openingCents:0,reason:'Caixa zerado'},now);let a=saveAssessment(s,root,{title:'Contribuição base',reference:'RAT-BASE',month:'2026-10',issuedOn:'2026-10-19',dueOn:'2026-10-31',fundId:fund.id,category:'Contribuições',basis:'Decisão sintética',reason:'Conferido',totalCents:10001,method:'weighted',lines:[{houseId:'c01',debtor:'Pagador um',weight:1},{houseId:'c02',debtor:'Pagador dois',weight:2}]},now);a=approveAssessment(s,root,{id:a.id,version:a.version,reason:'Conferido'},now);return {s,fund,a};}
+function model(b,patch={}){return {name:'Modelo mensal',referencePrefix:'MENSAL',sourceAssessmentId:b.a.id,sourceVersion:b.a.version,startMonth:'2026-10',endMonth:'2027-12',dueDay:31,reason:'Distribuição recorrente conferida',...patch};}
+function prepare(b,t,month='2026-11',patch={}){return prepareRecurringAssessment(b.s,root,{id:t.id,version:t.version,month,issuedOn:'2026-10-19',operationId:randomUUID(),reason:'Competência conferida',...patch},now);}
+
+test('modelo prepara rascunho único por competência, ajusta dia curto e exige aprovação antes da emissão',()=>{
+ const b=base(),t=saveRecurringTemplate(b.s,root,model(b),now),result=prepare(b,t,'2027-02');assert.equal(result.assessment.dueOn,'2027-02-28');assert.equal(result.assessment.status,'draft');assert.equal(result.assessment.recurringTemplateId,t.id);assert.deepEqual(result.assessment.lines.map(l=>l.amountCents),[3334,6667]);assert.equal(b.s.financialReceivables,undefined);assert.equal(balance(b.s,'a'),0);assert.throws(()=>generateAssessment(b.s,root,{id:result.assessment.id,version:1,operationId:randomUUID(),reason:'Tentar'},now),/aprovado/);
+ cancelAssessment(b.s,root,{id:result.assessment.id,version:1,reason:'Mês cancelado'},now);const before=structuredClone(b.s);assert.throws(()=>prepare(b,result.template,'2027-02'),/já preparada/);assert.deepEqual(b.s,before);
+});
+test('pausa, vigência, versão e prefixo impedem preparação indevida ou repetida',()=>{
+ const b=base(),t=saveRecurringTemplate(b.s,root,model(b),now);assert.throws(()=>prepare(b,t,'2026-09'),/vigência/);assert.throws(()=>prepare(b,t,'2028-01'),/vigência/);assert.throws(()=>prepare(b,t,['2026-11']),/válida/);let paused=toggleRecurringTemplate(b.s,root,{id:t.id,version:1,active:false,reason:'Pausa conferida'},now);assert.throws(()=>prepare(b,paused),/Reative/);paused=toggleRecurringTemplate(b.s,root,{id:t.id,version:paused.version,active:true,reason:'Retomar'},now);assert.throws(()=>prepare(b,t),/mudou/);prepare(b,paused);
+ assert.throws(()=>saveRecurringTemplate(b.s,root,model(b,{referencePrefix:' mensal '}),now),/já registrado/);assert.throws(()=>saveRecurringTemplate(b.s,root,model(b,{id:t.id,version:b.s.financialRecurringTemplates[0].version,referencePrefix:'OUTRO'}),now),/prefixo/);
+});
+test('revisões do modelo preservam histórico e não alteram competências já preparadas',()=>{
+ const b=base(),t=saveRecurringTemplate(b.s,root,model(b),now),first=prepare(b,t);const revised=saveRecurringTemplate(b.s,root,model(b,{id:t.id,version:first.template.version,name:'Nome revisado',dueDay:10}),now);assert.equal(revised.history.at(-1).before.dueDay,31);assert.equal(b.s.financialAssessments.find(a=>a.id===first.assessment.id).dueOn,'2026-11-30');const second=prepare(b,revised,'2026-12');assert.equal(second.assessment.dueOn,'2026-12-10');assert.equal(second.assessment.recurringTemplateName,'Nome revisado');assert.equal(first.assessment.recurringTemplateVersion,1);
+});
+test('unidades inativas e referência já usada recusam preparação sem consumir a competência',()=>{
+ const b=base(),t=saveRecurringTemplate(b.s,root,model(b),now);b.s.houses[0].active=false;const before=structuredClone(b.s);assert.throws(()=>prepare(b,t),/unidades ativas/);assert.deepEqual(b.s,before);
+ const other=base(),m=saveRecurringTemplate(other.s,root,model(other),now);saveAssessment(other.s,root,{...other.a,reference:'MENSAL · 2026-11',reason:'Conferido em teste',id:undefined,version:undefined},now);const saved=structuredClone(other.s);assert.throws(()=>prepare(other,m),/já registrada/);assert.deepEqual(other.s,saved);
+});
+test('competência encerrada não pode ser preparada e modelos permanecem isolados por módulo/condomínio',()=>{
+ const b=base(),t=saveRecurringTemplate(b.s,root,model(b,{startMonth:'2026-09'}),now);closeMonth(b.s,root,{month:'2026-09',revision:revision(b.s,'a'),reason:'Conferido'},now);assert.throws(()=>prepare(b,t,'2026-09'),/encerrad/);
+ for(const u of [{...root,role:'administradora',delegations:['finance']},{...root,role:'subsindico',delegations:['financeRead']},{...root,tenant:'b'}])assert.throws(()=>saveRecurringTemplate(b.s,u,model(b),now));assert.deepEqual(financeView(b.s,{...root,tenant:'b'},now).recurringTemplates,[]);
+});
