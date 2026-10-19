@@ -32,7 +32,7 @@ O serviço atende somente em 127.0.0.1. Para distribuição ainda faltam Postgre
 
 ## Verificação
 
-`npm test`: 72 testes, incluindo integração HTTP com contas sintéticas temporárias, domínio, delegações, manutenção, reservas, encomendas, avisos e persistência após reinício. Cobre escopo de casas e condomínios, convite único, sessão, suspensão, expiração de delegação, troca de senha e campos mínimos por perfil. O teste HTTP exige conexão de loopback permitida. A tela inicial foi conferida no navegador; a senha da conta real deve ser criada pelo usuário.
+`npm test`: 86 testes, incluindo integração HTTP com contas sintéticas temporárias, domínio, delegações, manutenção, reservas, encomendas, avisos e persistência após reinício. Cobre escopo de casas e condomínios, convite único, sessão, suspensão, expiração de delegação, troca de senha e campos mínimos por perfil. O teste HTTP exige conexão de loopback permitida. A tela inicial foi conferida no navegador; a senha da conta real deve ser criada pelo usuário.
 
 
 ## Moradores e vínculos
@@ -102,17 +102,23 @@ Prévias desta etapa com dados sintéticos: [compra recebida](../previa-compras.
 
 No menu de delegações, o síndico concede separadamente:
 
-- **Consulta financeira:** saldos, compromissos e relatórios, sem escrita.
-- **Lançamentos e compromissos:** receitas/despesas, transferências entre contas, contas a pagar e baixas manuais.
-- **Contas, fundos e fechamento:** cadastros/saldos iniciais, realocação entre fundos, ajustes e fechamento.
+- **Consulta financeira:** saldos, contas a pagar/receber, orçamento e relatórios, sem escrita.
+- **Lançamentos, contas a pagar e receber:** receitas/despesas, transferências entre contas, contas a pagar/receber e baixas manuais.
+- **Contas, fundos, orçamento e fechamento:** cadastros/saldos iniciais, realocação entre fundos, ajustes, previsões orçamentárias e fechamento.
 - **Exportação financeira:** leitura e download de relatórios JSON, sem escrita.
 
 Comece em Financeiro → Contas e fundos. Cadastre fundos/finalidades e uma conta bancária ou caixa com saldo inicial, data e origem. Fundos são destinações do saldo das contas; não some os totais das duas visões. Ajustes e estornos preservam os registros anteriores. O piloto não permite saldo negativo ao fim do dia por conta/fundo, nem lançamento anterior ao saldo inicial, no futuro ou em período encerrado.
 
 Em Contas a pagar, registre compromissos manuais ou importe compras recebidas. A importação mantém o valor aprovado e data de recebimento e não duplica compromissos. Informe fundo, categoria e vencimento. Registrar saída manual exige conta, data, referência única e conferência; reduz o saldo somente após o registro. Estornar essa saída reabre o compromisso. Alterações de prazo/fundo/categoria, cancelamentos e reaberturas têm histórico e efeito no dia do registro.
 
-Consulte um mês em Relatório mensal. O relatório mostra contas/fundos, movimentos, compromissos na data de corte e pendências de compras. Receitas/despesas aparecem antes dos estornos, mostrados separadamente. Feche somente mês concluído, após conferir saldos e compromissos das compras recebidas. O fechamento bloqueia o período e anteriores; próximos meses devem seguir em sequência. Só o síndico reabre o último fechamento. Cada versão fechada mantém relatório e hash; históricos podem ser consultados mesmo após reabertura. Exportação JSON requer permissão própria.
+Em Contas a receber, cadastre pagador, referência única para o pagador, valor, emissão, vencimento, categoria e fundo. O cadastro não altera o saldo; Registrar entrada manual registra receita integral conferida na conta escolhida. Não confirma o banco ou envia cobrança. Cancelamento, reabertura e revisão de vencimento/fundo/categoria mantêm histórico; valor e identificação originais são fixos. Estornar uma entrada reabre o recebível e exige saldo disponível. A nova baixa, a pagar ou receber, não pode anteceder o estorno.
 
-Não há transferência bancária, pagamento, conciliação, cobrança ou rateio automático. Os saldos são registros gerenciais manuais, sem validação bancária. Ainda faltam contas a receber, orçamento versus realizado, baixas parciais e integração com parceiro. Valores de teste são sintéticos. Até R$ 1.000.000,00 por registro. Verificação atual: 72 testes aprovados e fluxo conferido no Chromium, incluindo consulta em tela móvel.
+Em Orçamento, escolha o mês e cadastre previsões de receita/despesa por fundo e categoria com permissão de controle. Cada combinação é única; revisões mantêm valores/justificativas anteriores e zero retira a previsão sem apagar o registro. Pode planejar meses futuros e revisar qualquer mês aberto, inclusive após terminar. Comparar com o realizado abre o relatório mensal: categorias são comparadas ignorando maiúsculas/minúsculas; categorias sem previsão também aparecem. Realizado usa caixa líquido de estornos na data do estorno, podendo ficar negativo. Não inclui saldos iniciais, ajustes, transferências ou contas ainda não baixadas. Diferença = realizado − previsto; positiva em despesa indica gasto acima da previsão.
+
+Consulte um mês em Relatório mensal. O relatório mostra contas/fundos, movimentos, contas a pagar/receber na data de corte, orçamento versus realizado e pendências de compras. Receitas/despesas aparecem antes dos estornos, mostrados separadamente. Feche somente mês concluído, após conferir saldos e compromissos das compras recebidas. O fechamento bloqueia o período e anteriores; próximos meses devem seguir em sequência. Só o síndico reabre o último fechamento. Cada versão fechada mantém relatório, revisão orçamentária e hash; fechamentos anteriores aos novos módulos continuam sem campos retroativos; históricos podem ser consultados mesmo após reabertura. Exportação JSON requer permissão própria.
+
+Não há transferência bancária, pagamento, conciliação, cobrança ou rateio automático. Os saldos são registros gerenciais manuais, sem validação bancária. Ainda faltam rateios por unidade, baixas parciais/acordos e integração com parceiro. Valores de teste são sintéticos. Até R$ 1.000.000,00 por registro. Verificação atual: 86 testes aprovados e fluxo conferido no Chromium, incluindo consulta em tela móvel.
 
 Prévias com valores sintéticos: [relatório mensal](../previa-financeiro.png) e [consulta no celular](../previa-financeiro-mobile.png).
+
+Prévias desta continuação: [orçamento no relatório](../previa-orcamento.png) e [recebível no celular](../previa-recebiveis-mobile.png).
