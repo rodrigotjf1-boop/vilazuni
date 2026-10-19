@@ -57,3 +57,7 @@ Somente síndico cadastra/atualiza/encerra proprietários. Proprietários e imob
 - Zelador: consulta e executa apenas tarefas atribuídas à própria conta; envia fotos e solicita revisão. Não aprova a própria execução.
 - Proprietário, imobiliária e portaria: sem acesso às tarefas ou fotos de zeladoria nesta etapa.
 - Fotos: autorização conferida no servidor em cada leitura, sem URL pública. Reatribuição remove o acesso do responsável anterior e mantém as evidências no histórico da gestão e do novo responsável.
+
+### Ocorrências implementadas — 19/10/2026
+
+Os cinco perfis disponíveis abrem relatos identificados. Leitura e comentários limitados ao autor e à gestão do mesmo condomínio. Outros proprietários da unidade e operadores não recebem relatos de terceiros. Casa opcional validada pelo escopo no servidor; portaria e zeladoria abrem relatos de local sem vínculo residencial. Somente gestão atribui (a outra conta de gestão ativa ou a si), altera andamento, encerra ou reabre com justificativa. Registros encerrados não aceitam comentários até reabertura. Todas as alterações exigem versão atual e têm histórico compartilhado com o autor. Não há anônimo nem notas internas ocultas nesta etapa.

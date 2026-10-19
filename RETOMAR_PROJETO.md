@@ -2,9 +2,9 @@
 
 Este repositório é a fonte de recuperação do código e do planejamento. A conversa do aplicativo não substitui os arquivos nem o histórico Git.
 
-## Ponto atual — 18/10/2026
+## Ponto atual — 19/10/2026
 
-Piloto local do Condomínio Chandra: cenário 3D com 14 sobrados, painéis flutuantes, interiores ilustrativos, autenticação e permissões no servidor, estadias, moradores/coproprietários/locação anual e tarefas da zeladoria com fotos e revisão pela gestão. Consulte STATUS_DO_PROJETO.md, PLANO_DO_PROJETO.md e fundacao/PERMISSOES.md antes de continuar.
+Piloto local do Condomínio Chandra: cenário 3D com 14 sobrados, painéis flutuantes, interiores ilustrativos, autenticação e permissões no servidor, estadias, moradores/coproprietários/locação anual e tarefas da zeladoria com fotos e revisão pela gestão e ocorrências privadas com atribuição, acompanhamento e encerramento justificado. Consulte STATUS_DO_PROJETO.md, PLANO_DO_PROJETO.md e fundacao/PERMISSOES.md antes de continuar.
 
 Disposição aprovada: à direita da entrada casas 01–07; à esquerda 08–14. Churrasqueira junto à casa 14, antes do salão de festas. Festas à esquerda, jogos à direita e piscina no patamar superior. Preservar a navegação visual e os painéis sobre o cenário.
 
@@ -28,4 +28,4 @@ Código, testes, documentos e prévias do protótipo. A base `app/.data/`, crede
 
 Ao concluir cada etapa, atualizar STATUS_DO_PROJETO.md, executar os testes relevantes e salvar um commit. Enviar ao repositório autorizado quando solicitado ou autorizado na sessão. Alterações futuras só ficam no GitHub depois de enviadas; o repositório não é uma sincronização automática de toda a pasta.
 
-Próximas frentes previstas: ocorrências e materiais; expansão dos perfis (subsíndico, administradora e inquilino); infraestrutura central, backups e preparação para distribuição. Ainda não há portão, cobranças bancárias, mensagens automáticas, IA ou hospedagem de produção conectados.
+Próximas frentes previstas: materiais e estoque vinculados às tarefas; expansão dos perfis (subsíndico, administradora e inquilino); infraestrutura central, backups e preparação para distribuição. Ainda não há portão, cobranças bancárias, mensagens automáticas, IA ou hospedagem de produção conectados.

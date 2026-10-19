@@ -1,8 +1,18 @@
 # Vilazuni — estado de desenvolvimento
 
-Atualização: 18/10/2026.
+Atualização: 19/10/2026.
 
-## Etapa atual: proprietários e locações residenciais
+## Ocorrências privadas — 19/10/2026
+
+Etapa 3 (operação) avançou com o módulo de ocorrências no menu do cenário. Todos os cinco perfis autenticados podem abrir relatos e acompanhar os próprios registros. Somente o autor e a gestão do mesmo condomínio recebem o relato e seu histórico; ser proprietário da casa relacionada não concede acesso a relatos de outras pessoas.
+
+Abertura com título, local, descrição e casa opcional dentro do escopo autorizado. Gestão atribui a uma conta de gestão ativa, inicia apuração, resolve ou cancela com justificativa e pode reabrir. Autor e gestão adicionam acompanhamentos enquanto o registro está aberto. Toda mudança exige a versão atual e preserva autor, data, ação e mensagem no histórico. Relatos identificados; não há denúncia anônima, anexos, notificações ou encaminhamento automático à zeladoria. Responsável operacional de zeladoria continua no módulo separado de tarefas.
+
+Verificação: 21 testes aprovados, incluindo ciclo de ocorrência pela API, privacidade entre contas/condomínios, restrições de casas, atribuição, transições, justificativas e conflito de versões. Servidor real validado por HTTP com entrega da página/módulos, gravação em base temporária e reinício preservando a base e invalidando sessão. A interface nova ainda precisa de conferência visual em navegador. Nenhuma conta ou dado real foi criado.
+
+Próxima frente recomendada: materiais e estoque ligados às tarefas; permanecem pendentes os demais módulos da etapa 3 e a infraestrutura de produção.
+
+## Etapa anterior: proprietários e locações residenciais
 
 Cadastros de proprietários/copropietários e locações anuais/residenciais ligados às casas, com contato, moradores, veículos, início, término previsto e saída efetiva. A interface funciona em etapas sobre o interior 3D, no atalho “Moradores e vínculos”. Estadias por temporada continuam em fluxo próprio.
 
