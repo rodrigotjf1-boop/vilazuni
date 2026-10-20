@@ -3,6 +3,7 @@ import {localDay} from './residents.mjs';
 import {requireFinance,text,date,rows,bump,openDate,activeFund} from './finance-ledger.mjs';
 import {createReceivable} from './finance-receivables.mjs';
 import {isOutstanding,settlementPosition,syncSettlement} from './finance-settlements.mjs';
+import {collectionHeld,payerLink,requireUnbilledDate} from './finance-collection-policy.mjs';
 const normalize=v=>v.normalize('NFKC').trim().toLocaleLowerCase('pt-BR');
 const audit=(u,action,reason,now)=>({at:new Date(now).toISOString(),actor:u.name,actorId:u.id,action,reason});
 function record(s,u,input,module){
@@ -13,7 +14,8 @@ function source(s,u,id,version){
  const r=rows(s,'financialReceivables',u.tenant).find(r=>r.id===id);if(!r)throw Error('Conta de origem indisponível.');
  if(!Number.isInteger(version)||version!==r.version)throw Error('A origem mudou. Cancele a proposta e prepare outra com o saldo atual.');
  const position=settlementPosition(s,u.tenant,'receivable',r);
- if(!isOutstanding(position)||r.agreementId)throw Error('Acordo exige saldo aberto de conta original, sem outro acordo ativo.');activeFund(s,u,r.fundId);return {r,position};
+ if(collectionHeld(s,u.tenant,r.id))throw Error('Resolva a suspensão ou contestação antes de renegociar a origem.');
+ if(!isOutstanding(position)||r.agreementId||r.feeSourceId)throw Error('Acordo exige saldo aberto de conta original, sem outro acordo ativo ou encargo derivado.');activeFund(s,u,r.fundId);return {r,position};
 }
 function schedule(first,count,total,reference){
  const day=Number(first.slice(8)),base=Math.floor(total/count),extra=total%count;
@@ -40,6 +42,7 @@ export function approveAgreement(s,u,input,now=Date.now()){
 }
 export function activateAgreement(s,u,input,now=Date.now()){
  const a=record(s,u,input,'finance');if(a.status!=='approved')throw Error('Ative somente acordo aprovado e ainda não gerado.');const today=openDate(s,u,localDay(now),now),{r,position}=source(s,u,a.sourceId,a.sourceVersion),reason=text(input.reason,'Conferência da ativação',500);
+ requireUnbilledDate(s,u.tenant,r.id,today);
  if(position.remainingCents!==a.principalCents||a.firstDueOn<today)throw Error('Saldo ou vencimentos mudaram. Prepare uma nova proposta.');
  if(typeof input.operationId!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(input.operationId))throw Error('Identificador da operação inválido.');
  if(rows(s,'financialAgreements',u.tenant).some(x=>x.activation?.operationId===input.operationId))throw Error('Ativação já registrada.');
@@ -47,10 +50,11 @@ export function activateAgreement(s,u,input,now=Date.now()){
  for(const installment of agreement.installments){
   const child=createReceivable(next,u,{description:'Acordo '+a.reference+' · parcela '+installment.number,debtor:a.debtor,reference:installment.reference,amountCents:installment.amountCents,fundId:a.fundId,category:a.category,issuedOn:today,dueOn:installment.dueOn},now);
   const saved=next.financialReceivables.find(x=>x.id===child.id);Object.assign(saved,{agreementId:a.id,installmentNumber:installment.number,sourceReceivableId:r.id,assessmentId:r.assessmentId||null,houseId:r.houseId||null,houseNumber:r.houseNumber||null,competence:r.competence||null});installment.receivableId=child.id;
+  const link=payerLink(next,u.tenant,r.id);if(link?.payerUserId){next.financialPayerLinks??=[];next.financialPayerLinks.push({id:randomUUID(),tenant:u.tenant,receivableId:child.id,payerUserId:link.payerUserId,payerName:link.payerName,version:1,history:[audit(u,'Pagador explícito preservado da origem do acordo',reason,now)]});}
  }
  original.events.push({date:today,kind:'renegotiated',agreementId:a.id,reason});original.version++;syncSettlement(next,u.tenant,'receivable',original);original.history.push(audit(u,'Saldo transferido para o acordo '+a.reference,reason,now));
  agreement.status='active';agreement.version++;agreement.activatedOn=today;agreement.activation={by:u.id,byName:u.name,at:new Date(now).toISOString(),operationId:input.operationId,reason};agreement.history.push(audit(u,'Parcelas geradas e saldo de origem transferido',reason,now));bump(next,u.tenant);
- s.financialReceivables=next.financialReceivables;s.financialAgreements=next.financialAgreements;s.financialRevisions=next.financialRevisions;return structuredClone(agreement);
+ s.financialReceivables=next.financialReceivables;s.financialPayerLinks=next.financialPayerLinks||s.financialPayerLinks;s.financialAgreements=next.financialAgreements;s.financialRevisions=next.financialRevisions;return structuredClone(agreement);
 }
 export function cancelAgreement(s,u,input,now=Date.now()){
  const a=record(s,u,input,'financeClose');if(a.status==='cancelled')throw Error('Acordo já cancelado.');const today=openDate(s,u,localDay(now),now),reason=text(input.reason,'Motivo do cancelamento',500);
@@ -58,12 +62,14 @@ export function cancelAgreement(s,u,input,now=Date.now()){
  if(a.status==='active'){
   const children=a.installments.map(i=>rows(next,'financialReceivables',u.tenant).find(r=>r.id===i.receivableId));
   if(children.some(r=>!r||settlementPosition(next,u.tenant,'receivable',r).settledCents!==0))throw Error('Estorne todas as baixas das parcelas antes de cancelar o acordo.');
+  if(rows(next,'financialFeeAccruals',u.tenant).some(f=>f.status==='active'&&children.some(r=>r.id===f.sourceId)))throw Error('Cancele as apurações de encargos das parcelas antes de cancelar o acordo.');
   const original=rows(next,'financialReceivables',u.tenant).find(r=>r.id===a.sourceId);if(original?.activeAgreementId!==a.id)throw Error('Origem do acordo inconsistente. Confira o histórico.');
   for(const r of children){r.events.push({date:today,kind:'cancelled',reason});r.version++;syncSettlement(next,u.tenant,'receivable',r);r.history.push(audit(u,'Parcela cancelada com o acordo',reason,now));}
+  for(const q of rows(next,'financialManualRequests',u.tenant).filter(q=>!q.cancelledOn&&children.some(r=>r.id===q.receivableId))){q.cancelledOn=today;q.version++;q.history.push(audit(u,'Aviso cancelado com a parcela do acordo',reason,now));}
   original.events.push({date:today,kind:'open',reason});original.version++;syncSettlement(next,u.tenant,'receivable',original);original.history.push(audit(u,'Acordo cancelado; saldo de origem restaurado',reason,now));
  }
  agreement.status='cancelled';agreement.cancelledOn=today;agreement.version++;agreement.history.push(audit(u,'Acordo cancelado',reason,now));bump(next,u.tenant);
- s.financialReceivables=next.financialReceivables||s.financialReceivables;s.financialAgreements=next.financialAgreements;s.financialRevisions=next.financialRevisions;return structuredClone(agreement);
+ s.financialReceivables=next.financialReceivables||s.financialReceivables;s.financialManualRequests=next.financialManualRequests||s.financialManualRequests;s.financialAgreements=next.financialAgreements;s.financialRevisions=next.financialRevisions;return structuredClone(agreement);
 }
 export function agreementView(s,tenant,a,through='9999-12-31'){
  const active=a.activatedOn&&a.activatedOn<=through,cancelled=a.cancelledOn&&a.cancelledOn<=through;

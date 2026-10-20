@@ -1,3 +1,4 @@
+import {myChargesPanel} from './my-charges-ui.mjs';
 import {financePanel} from './finance-ui.mjs';
 import {purchasesPanel} from './purchases-ui.mjs';
 import {documentsPanel} from './documents-ui.mjs';
@@ -38,6 +39,7 @@ function openPanel(type,houseId=null){
  if(type==='stays'){const list=stays().filter(s=>!houseId||s.houseId===houseId);const dock=panel('Quem chega. Quem fica.','ESTADIAS'+(houseId?' · CASA '+houses().find(h=>h.id===houseId)?.number:''),`${canCreate()?'<button class="glass-primary" id="float-new">＋ Receber uma estadia</button>':''}<div class="float-feed">${list.map(s=>`<button class="journey-card" data-stay="${s.id}"><div><span>CASA ${houses().find(h=>h.id===s.houseId)?.number} · ${esc(s.source||'Autorização')}</span>${pill(s.status)}</div><h3>${esc(s.responsible)}</h3><p>${fmt(s.start)} → ${fmt(s.end)}</p><small>${s.people.length} pessoas · ${s.vehicles.length} veículos <b>Explorar ↗</b></small></button>`).join('')||empty('Nenhuma estadia neste espaço.')}</div>`,{back:houseId?()=>openHouse(houseId):null});dock.querySelector('#float-new')?.addEventListener('click',()=>wizard(houseId));dock.querySelectorAll('[data-stay]').forEach(b=>b.onclick=()=>stayDetail(b.dataset.stay,houseId));return;}
  if(type==='parking'){panel('Um lugar para chegar.','ESTACIONAMENTO',`<div class="float-feed">${houses().filter(h=>!houseId||h.id===houseId).map(h=>`<article class="floating-note"><span class="micro-label">CASA ${h.number}</span><h3>${h.parking} vaga${h.parking===1?'':'s'}</h3><p>${esc(h.parkingType)}</p>${pill('Disponibilidade não confirmada')}</article>`).join('')}</div><p class="micro-note">Veículo cadastrado não garante vaga disponível.</p>`,{back:houseId?()=>openHouse(houseId):null});return;}
  if(type==='incidents')return incidentsPanel({getState:()=>state,user:sessionUser,panel,refresh:refreshState,toast});
+ if(type==='myCharges')return myChargesPanel({getState:()=>state,panel,refresh:refreshState,toast});
  if(type==='finance')return financePanel({getState:()=>state,user:sessionUser,panel,refresh:refreshState,toast});
  if(type==='purchases')return purchasesPanel({getState:()=>state,user:sessionUser,panel,refresh:refreshState,toast});
  if(type==='documents')return documentsPanel({getState:()=>state,user:sessionUser,panel,refresh:refreshState,toast});
