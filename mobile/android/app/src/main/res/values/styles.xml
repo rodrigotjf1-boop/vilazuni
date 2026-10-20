@@ -1,0 +1,1 @@
+<resources><color name="brand">#102C27</color><style name="AppTheme" parent="android:style/Theme.Material.Light.NoActionBar"><item name="android:windowLightStatusBar">false</item><item name="android:statusBarColor">@color/brand</item><item name="android:navigationBarColor">@color/brand</item><item name="android:windowBackground">@color/brand</item></style></resources>

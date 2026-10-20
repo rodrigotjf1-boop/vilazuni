@@ -1,0 +1,49 @@
+name: Pacotes móveis
+on:
+  workflow_dispatch:
+    inputs:
+      origin:
+        description: Origem HTTPS do ambiente de avaliação (sem barra final)
+        required: true
+        default: https://example.invalid
+  pull_request:
+    paths: ['mobile/**', '.github/workflows/mobile.yml']
+permissions:
+  contents: read
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+      - run: gradle --no-daemon --console=plain assembleDebug
+        working-directory: mobile/android
+        env:
+          VILAZUNI_ORIGIN: ${{ inputs.origin || 'https://example.invalid' }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vilazuni-android-avaliacao
+          path: mobile/android/app/build/outputs/apk/debug/*.apk
+          retention-days: 7
+  ios:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - run: brew install xcodegen
+      - run: xcodegen generate
+        working-directory: mobile/ios
+      - run: xcodebuild -project Vilazuni.xcodeproj -scheme Vilazuni -sdk iphonesimulator -configuration Debug -derivedDataPath build CODE_SIGNING_ALLOWED=NO VILAZUNI_ORIGIN="$VILAZUNI_ORIGIN" build
+        working-directory: mobile/ios
+        env:
+          VILAZUNI_ORIGIN: ${{ inputs.origin || 'https://example.invalid' }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vilazuni-ios-simulador
+          path: mobile/ios/build/Build/Products/Debug-iphonesimulator/*.app
+          retention-days: 7

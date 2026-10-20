@@ -14,3 +14,14 @@ app/.data/
 *.dmp
 *.pem
 *.key
+
+mobile/android/.gradle/
+mobile/android/**/build/
+mobile/android/local.properties
+mobile/ios/build/
+mobile/ios/*.xcodeproj/
+*.p8
+*.p12
+*.jks
+*.keystore
+*.mobileprovision

@@ -1,0 +1,12 @@
+{$VILAZUNI_DOMAIN} {
+ encode zstd gzip
+ header {
+  Strict-Transport-Security "max-age=31536000"
+  Referrer-Policy "same-origin"
+  Permissions-Policy "camera=(), microphone=(), geolocation=()"
+  -Server
+ }
+ reverse_proxy app:4173 {
+  header_up X-Vilazuni-Client-IP {remote_host}
+ }
+}

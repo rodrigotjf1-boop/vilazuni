@@ -1,6 +1,6 @@
 # Vilazuni — piloto local com login
 
-Requer Node.js 20 ou superior. Sem dependências externas.
+Requer Node.js 20 ou superior e `npm ci` nesta pasta. Dependências e integridades estão fixadas no lockfile. Estado atual da versão 0.2.0: [STATUS_DO_PROJETO](../STATUS_DO_PROJETO.md); implantação: [deploy](../deploy/README.md).
 
 ## Abrir e configurar
 
@@ -22,17 +22,17 @@ Subsíndico e administradora recebem somente módulos delegados explicitamente p
 
 Operações autenticadas são persistidas pelo servidor em `.data/store.json` (fora do Git). A variável VILAZUNI_DATA_DIR permite configurar outro diretório. O caminho padrão está dentro do workspace, que pode ser sincronizado pelo OneDrive. Não executar múltiplos servidores sobre a mesma base. Dados antigos do navegador não são importados automaticamente nem apagados.
 
-Senhas são armazenadas com scrypt e salt; convites com hash. Sessões ficam em memória e expiram em oito horas ou após trinta minutos sem consultas. Reiniciar o servidor exige novo login. Suspender a conta invalida suas sessões; alterar a senha encerra as anteriores. Recuperação de senha esquecida ainda não está implementada; não existe senha mestra.
+Senhas são armazenadas com scrypt e salt; convites com hash. Sessões ficam em memória e expiram em oito horas ou após trinta minutos sem consultas. Reiniciar o servidor exige novo login. Suspender a conta invalida suas sessões; alterar a senha encerra as anteriores. Recuperação opcional por e-mail e MFA TOTP estão implementados e exigem configuração segura do servidor; não existe senha mestra.
 
 ## Experiência e limites
 
 Tour WebGL com 14 sobrados, áreas comuns e interiores ilustrativos em dois pavimentos. Consultas e cadastros abrem sobre o cenário. As operações usam o horário atual; o cenário e os dados operacionais são de exemplo. Login real local não significa ambiente de produção: não inserir dados reais de moradores antes de implantar a base central.
 
-O serviço atende somente em 127.0.0.1. Para distribuição ainda faltam PostgreSQL com migrações e isolamento no banco, HTTPS e cookies Secure, recuperação verificada de conta, MFA da gestão, múltiplos vínculos, backups e revisão de segurança. Não há integração com portão, pagamentos, mensagens ou IA. A configuração inicial local não verifica mandato de síndico.
+Por padrão local, o serviço atende em 127.0.0.1. A versão 0.2.0 acrescenta PostgreSQL/RLS, HTTPS via gateway, MFA, recuperação, vários vínculos, anexos privados e backup cifrado. Adaptadores de IA, Telegram, push e equipamentos ficam opcionais e desativados sem configuração. Pagamentos continuam manuais. A configuração inicial não verifica mandato de síndico; leia os critérios de ativação antes do uso real.
 
 ## Verificação
 
-`npm test`: 186 testes, incluindo integração HTTP com contas sintéticas temporárias, domínio, delegações, manutenção, reservas, encomendas, avisos e persistência após reinício. Cobre escopo de casas e condomínios, convite único, sessão, suspensão, expiração de delegação, troca de senha e campos mínimos por perfil. O teste HTTP exige conexão de loopback permitida. A tela inicial foi conferida no navegador; a senha da conta real deve ser criada pelo usuário.
+`npm test`: 215 testes (três PostgreSQL exigem configuração da base local descartável), incluindo integração HTTP com contas sintéticas temporárias, domínio, delegações, manutenção, reservas, encomendas, avisos e persistência após reinício. Cobre escopo de casas e condomínios, convite único, sessão, suspensão, expiração de delegação, troca de senha e campos mínimos por perfil. O teste HTTP exige conexão de loopback permitida. A tela inicial foi conferida no navegador; a senha da conta real deve ser criada pelo usuário.
 
 
 ## Moradores e vínculos
@@ -179,14 +179,10 @@ Arraste para olhar; pinça/rolagem/+ e − ajustam zoom. Passear aceita toque ou
 
 Prévias sintéticas: [mapa](../previa-passeio-mapa.png), [dependência](../previa-passeio-dependencia.png), [ficha móvel](../previa-passeio-ficha-mobile.png), [toque](../previa-passeio-toque-mobile.png) e [sem WebGL](../previa-passeio-sem-webgl.png).
 
-## Fontes, consultas e enquetes — etapa 6 iniciada em 20/10/2026
+## Assistência, governança e distribuição — 0.2.0
 
-Menu **Consultar**: busca local por palavras em textos publicados e vigentes, com trechos literais, origem, revisão e data. Não há modelo generativo conectado. Todos os perfis autenticados consultam as fontes liberadas para todas as contas; escolher público comunitário restringe a consulta mesmo para o síndico.
+Consulte [etapa 6](../fundacao/ETAPA_6_FONTES_E_GOVERNANCA.md) e [etapas 7–8](../fundacao/ETAPAS_7_8_DISTRIBUICAO.md) para fluxos, delegações, configuração e limites atuais. Novos menus: Assembleias, Assistência, Alertas, Canais, Portaria física, Celular, Privacidade e Condomínio.
 
-Gestão com **Fontes revisadas e resumos internos** (`knowledge`) prepara fontes com origem, texto, público e vigência; revisa/confirma antes de publicar. Rascunho não entra na consulta, e nova revisão preserva a anterior até publicar. Retirar/expirar fonte interrompe sua consulta e oculta resumos que a citam. PDFs privados de Documentos continuam em módulo separado.
+No modo local, dados sintéticos e arquivo JSON continuam disponíveis. Produção exige PostgreSQL, diretório de anexos privado persistente, chaves externas, HTTPS e MFA da gestão; a base nova começa sem dados fictícios. A implantação não é feita automaticamente ao iniciar o piloto.
 
-**Resumos internos**: conferir prévia e salvar manualmente. Comunidade recebe somente fontes expressamente liberadas; indicadores de tarefas/estoque/preventiva/vencimentos exigem os módulos correspondentes na preparação e em cada leitura. Até dez fontes por resumo. Prévia não grava; confirmação revalida dados/versão, e repetição idêntica não duplica o registro. A data é a de geração, em Brasília; preparado não significa enviado a grupo.
-
-Menu **Enquetes**: síndico ou delegação **Enquetes consultivas** (`governance`) prepara pergunta, contexto, duas a seis opções, público e prazo. Uma resposta definitiva por conta, independente do número de casas; participantes veem os totais ao encerrar. Respostas identificadas internamente; API não retorna lista de escolhas individuais. Não há quórum, voto por unidade, procuração ou efeito de assembleia.
-
-Novas delegações não são concedidas automaticamente a contas existentes. 21 testes novos; suíte completa com 186 aprovados. Fluxos conferidos em Chromium desktop/móvel com bases e contas temporárias. Operação, capacidade, pendências de canal/modelo/documentos e assembleia: [etapa 6](../fundacao/ETAPA_6_FONTES_E_GOVERNANCA.md).
+`npm run test:browser` executa uma jornada sintética em Chromium. Instale o navegador com `npx playwright-core install chromium` ou informe `CHROMIUM_PATH`. Para testes de PostgreSQL, veja `scripts/prepare-pg-test.mjs`; nunca use banco com dados reais. Scripts operacionais: `npm run db:migrate`, `npm run db:import-json -- <store.json>`, `npm run backup -- create|restore <arquivo>`.

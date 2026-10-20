@@ -1,81 +1,49 @@
-# Etapa 6 — fontes, consultas e enquetes do piloto
+# Etapa 6 — assistência, comunicação e governança
 
-Atualização: 20/10/2026, horário de Brasília. Primeira entrega da etapa 6 no piloto local. As etapas 4 (cobrança manual) e 5 (passeio 3D ilustrativo) continuam concluídas nos respectivos escopos.
+Atualização: 20/10/2026, Brasília. Implementação do ciclo técnico 0.2.0 concluída para avaliação controlada. A ativação externa exige configuração de provedor/canal e revisão dos documentos reais do Chandra, em Arraial do Cabo/RJ.
 
-## Entrega e limites
+## Fontes e respostas
 
-| Frente | Estado nesta entrega |
-|---|---|
-| Fontes de consulta | Texto transcrito pela gestão, origem/trecho, público, vigência, revisões e publicação após conferência registrada |
-| Consulta fundamentada | Busca local por palavras, sem diferenciar acentos, em fontes publicadas e vigentes. Retorna até cinco trechos literais com referência, revisão, hash e data da consulta |
-| Resumos internos | Prévia sem gravação; confirmação manual por dia/público/escopo, sem duplicar uma versão idêntica. Contagens privadas dependem dos módulos autorizados |
-| Enquetes consultivas | Pergunta/opções/público/prazo fixos, uma resposta por conta, encerramento/cancelamento justificado e resultados agregados |
-| Modelo de IA | Pendente de escolha do fornecedor, avaliação de precisão/privacidade/custo e configuração no servidor. A busca local não é um modelo generativo nem uma interpretação jurídica |
-| Canal externo | Canal, grupos, participantes, suporte oficial e horários ainda pendentes. Não há bot, envio, agendamento ou confirmação de entrega externa |
-| Assembleias formais | Pendentes de regime jurídico, convenção, representação, quóruns por matéria, convocação, regras de voto e validação aplicável. Enquete não é deliberação |
-| Ações assistidas e alertas | Consulta não executa operações. Acompanhamento com comandos, alertas com triagem e ações limitadas continuam na etapa 6 |
+Consultar → Fontes permite transcrever texto, referência, vigência, público e motivo; salvar cria rascunho, publicar exige revisão humana. Nova revisão preserva a anterior até a publicação; retirada/expiração interrompe consultas. PDFs privados não são publicados automaticamente.
 
-## Fontes e consulta
+Públicos distintos: **Gestão de fontes**, **Todos os usuários do condomínio** e **Liberado para grupos externos**. Comunidade inclui operadores e imobiliárias autorizados. Somente a última opção pode sair pelo Telegram, mesmo quando quem preparou é o síndico.
 
-O síndico pode operar as fontes. Subsíndico/administradora precisam da nova delegação **Fontes revisadas e resumos internos** (`knowledge`). Delegações existentes não recebem esse módulo automaticamente. Esta delegação não dá acesso aos PDFs de Documentos, ao financeiro ou às fichas de pessoas.
+A busca local retorna até cinco trechos e funciona sem fornecedor de IA. A síntese opcional utiliza o endpoint oficial OpenAI Responses, modelo configurado no servidor, `store:false`, saída estruturada, limite de resposta e timeout. Não é pesquisa jurídica ou comprovação automática de verdade. A chave nunca vai ao navegador. Perguntas não são gravadas; a medição guarda apenas usuário/condomínio/dia/tentativas, com retenção de 32 dias. Há cem tentativas por pessoa/dia, uma chamada simultânea por contexto e quatro globais. Configure também orçamento e limites na conta do provedor.
 
-Em **Consultar → Fontes → Preparar fonte**, informar título, documento e trecho de origem, texto conferido, público, vigência e motivo. O padrão é **Gestão de fontes**, restrito a `knowledge`. **Todos os usuários do condomínio** inclui todas as contas autorizadas do condomínio, inclusive operadores e imobiliárias; conferir o conteúdo antes de escolher esse público.
+A preparação filtra fontes antes da chamada. A conclusão revalida sessão, credenciais, condomínio e conteúdo das fontes; alteração durante a chamada descarta a resposta. Referências inexistentes e saídas inválidas geram retorno aos trechos autorizados. A interface apresenta síntese como IA e permite conferir a origem. A chamada externa não bloqueia a fila de operações do condomínio.
 
-Salvar cria rascunho. Publicar exige confirmação da revisão humana, motivo e vigência atual. A publicação registra autor e data; não comprova autenticidade do documento nem substitui validação jurídica. PDFs privados não são extraídos, importados ou tornados públicos por essa operação. Usar somente material sintético no ambiente local até preparar a infraestrutura para dados reais.
+Antes de habilitar o provedor em produção, avaliar com os documentos reais: perguntas respondíveis, ausência/contradição de fontes, revisões retiradas, perguntas fora de escopo e tentativas de ampliar público ou inserir instruções no texto. Os testes locais usam fornecedor simulado; não medem a precisão de um modelo contratado. `AI_ENABLED=false` é o padrão.
 
-Nova revisão em rascunho preserva a publicação anterior. Publicar substitui a revisão usada nas próximas consultas; retirar a fonte interrompe sua consulta. Reativar conserva a publicação e o histórico, sujeito à vigência. O último dia de vigência é inclusivo, no fuso de Brasília. Somente a gestão de fontes consulta revisões antigas, rascunhos e histórico administrativo.
+## Ações assistidas e alertas
 
-Em **Consultar fontes**, informar uma pergunta e escolher **Meu acesso** ou **Todos os usuários do condomínio**. O segundo público filtra fontes restritas mesmo quando o solicitante é o síndico. A busca mostra trechos, não uma resposta sintetizada: conferir o contexto na fonte. Sem correspondência, informa a ausência e orienta consultar a gestão. Mensagens e documentos são tratados como dados; conteúdo não altera permissões nem dispara ações.
+Assistência prepara criação de tarefa sem gravar. A confirmação usa proposta opaca, vinculada à pessoa/condomínio, com validade de cinco minutos e uso único; permissões e versões são conferidas novamente. API também permite preparar início/pedido de revisão de tarefa pelo fluxo existente. Não há aprovação automática de execução, operação financeira ou comando físico por IA.
 
-Perguntas e resultados de busca não são persistidos. Consultas e prévias não escrevem na base. Não há chamada a modelo, pesquisa externa ou envio de conteúdo a fornecedor nesta entrega.
+Alertas objetivos cobrem tarefa vencida, estoque abaixo do mínimo, preventiva devida e prazo de documento. Preparar novamente não duplica o mesmo sinal/dia/versão. A gestão só prepara módulos aos quais tem acesso.
 
-## Resumos por público
+Triagem de ocorrência exige comunicação e ocorrências privadas. O operador redige mensagem própria, confere o público e indica destinatários relacionados à unidade ou operadores habilitados. Não é enviada cópia do relato original. A pessoa pode esclarecer; somente gestão habilitada muda apuração para conferido/encerrado. Alegação não se torna infração automaticamente. Avisos internos e push revalidam o acesso ao recurso.
 
-Em **Consultar → Resumos internos**, gestão com `knowledge` escolhe o público, confere a prévia e salva. A versão comunitária inclui somente fontes expressamente publicadas para todas as contas; não inclui indicadores operacionais, nomes, hóspedes, placas, cobranças ou denúncias vindos desses módulos.
+## Telegram opcional
 
-A versão de gestão inclui fontes restritas permitidas e os seguintes indicadores, somente com a delegação correspondente:
+Canais registra grupo exato, bot oficial, horário de Brasília, habilitação e confirmação do público. Um grupo pertence a um condomínio. Bot API oficial, sem captura de sessões pessoais ou automação de WhatsApp. Credenciais ficam no servidor; webhook exige segredo próprio e grupo cadastrado. Somente `/perguntar@nome_do_bot pergunta` ou menção inicial explícita produz resposta; conversa comum é ignorada. Atualizações repetidas não duplicam mensagens; há limite horário por grupo.
 
-- Tarefas: quantidade aberta e em atraso, sem nomes ou descrições.
-- Materiais: quantidade de materiais abaixo do mínimo.
-- Preventiva: planos ativos cujo prazo de geração chegou.
-- Documentos: quantidade de alertas de vencimento, sem títulos ou PDFs.
+Resumo diário inclui apenas fontes liberadas externamente, sem nomes, placas, cobranças, indicadores privados ou ocorrências provenientes dos outros módulos. Fila persistente registra pendente, em despacho, enviado, falhou ou incerto. A disponibilidade/público/revisão são revalidados antes de despachar. Fonte retirada ou grupo alterado invalida a mensagem preparada. Telegram aceitar o envio não comprova leitura. Timeout ou reinício durante despacho não dispara repetição automática; conferir o grupo antes de nova solicitação.
 
-Até dez fontes são incluídas, pela ordem de cadastro, com seu primeiro parágrafo limitado a 300 caracteres. O resumo não substitui a consulta completa das fontes. Não inclui automaticamente regras de dependências, dados financeiros, ocorrências ou reservas. Qualquer texto liberado à comunidade continua dependendo da revisão humana de publicação da fonte.
+O processo verifica agendamentos a cada 30 segundos, em uma única instância da aplicação. Sem `TELEGRAM_ENABLED=true`, token e webhook configurados, não há envio. A escolha final do canal e grupo real permanece para ativação; nenhuma mensagem externa foi enviada neste desenvolvimento.
 
-Cada resumo preserva dia, público, módulos necessários, fontes/revisões/hashes, indicadores e instante de geração. Confirmação revalida a prévia e a versão existente; alterações concorrentes exigem nova prévia. Repetir um conteúdo idêntico com a versão atual reutiliza o mesmo registro. Atualizar o conteúdo cria nova revisão no mesmo registro diário, conservando o retrato anterior na base para auditoria restrita. A interface mostra somente a revisão atual.
+## Assembleias e mandatos
 
-Leitura revalida condomínio, público e todos os módulos usados no resumo privado. Retirar, expirar ou substituir uma fonte citada oculta o resumo anterior inteiro; preparar nova prévia para publicar um resumo atual. O retrato de indicadores conserva sua data de geração, não é atualizado silenciosamente na leitura. Retirar delegação ou suspender a conta interrompe os acessos correspondentes.
+Nova delegação `assemblies`. Uma assembleia guarda regime jurídico informado, referência de convocação/convenção, período e até vinte matérias. Cada matéria exige fração de instalação, fração de aprovação, comparação (igual/maior ou estritamente maior), base de aprovação (todas as unidades, presentes ao abrir ou votos sim/não) e fundamento. Não há quórum jurídico presumido.
 
-**Preparado no aplicativo** é o estado do registro; não equivale a envio, leitura ou ciência em grupo. Não há rotina de fundo nem calendário externo.
+Todas as unidades ativas entram na relação congelada, inclusive as sem representante. Pesos são inteiros na mesma escala explicitamente informada. Um representante por unidade; coproprietários não multiplicam o voto. Uma conta pode representar várias unidades mediante poderes conferidos e vigentes até o fim da assembleia. A conferência registra referência da titularidade/procuração, validade, pessoa e motivo; o aplicativo não autentica por si só esses documentos.
 
-## Enquetes de opinião
+Publicar exige pesos de todas as unidades e revisão das regras. Abertura respeita o período. Representantes declaram participação; a presença é autodeclarada no aplicativo, sem prova automática de presença física. Uma matéria por vez, com elegibilidade congelada na abertura. Voto definitivo por unidade, sem duplicação; suspensão/expiração bloqueia novas ações. Apuração usa aritmética inteira, não arredondamento de porcentagens; falta de instalação não vira aprovação.
 
-Em **Enquetes**, o síndico ou gestão com a nova delegação **Enquetes consultivas** (`governance`) publica pergunta, contexto, duas a seis opções, público, prazo e motivo. Essa delegação não concede acesso a fontes restritas, documentos ou cadastros de moradores.
+Encerramento exige matérias apuradas/canceladas e ata revisada por humano. Snapshot conserva representação, presenças, votos e resultado. SHA-256 verifica integridade; não equivale a assinatura digital, registro cartorial ou certificação jurídica. Participante vê própria representação/votos e ata, sem procurações ou votos individuais alheios. Gestão autorizada exporta a apuração completa.
 
-Públicos: **Proprietários e ocupantes**, ou **Todas as contas autorizadas**. Imobiliária, portaria, zeladoria e gestão só participam quando o segundo público é escolhido. Gestão de enquetes pode acompanhar resultados do seu condomínio mesmo sem pertencer ao público participante.
+Transição de gestão exige proposta do síndico vigente, fundamento, prazo do novo mandato e aceitação pela conta indicada. Aceitar desativa o vínculo antigo e revoga sessões dos dois envolvidos, preservando os demais condomínios e o histórico. Convite comum não cria outro síndico.
 
-Uma conta registra uma opinião, mesmo que possua várias casas. Contas distintas de coproprietários registram opiniões distintas. Não há peso por fração, mandato, procuração, quórum ou validação de titularidade para assembleia. A interface e a API identificam expressamente esse caráter consultivo.
+Enquetes continuam separadas: uma opinião por conta, sem representação por unidade ou efeito deliberativo. Respostas individuais não são expostas pela API nem na exportação de cliente.
 
-Resposta não pode ser alterada; repetição idêntica não duplica a opinião. As opções ficam fixas depois da publicação. Gestão acompanha os totais durante a consulta; participantes recebem os totais ao encerrar por prazo ou decisão. Cancelamento conserva respostas e histórico. A consulta pode durar até noventa dias.
+## Limites e ativação
 
-Respostas são identificadas internamente pela conta, com data. A interface não promete anonimato: mostra somente os totais e a própria escolha; nenhum perfil recebe a relação de respostas individuais pela API. Permissão e público são conferidos em cada leitura/envio, e a fila de gravação resolve disputas entre resposta e encerramento.
-
-## Validação e capacidade do piloto
-
-`npm test --prefix app`: 186 testes aprovados, incluindo 21 novos de fontes, resumos, enquetes e API. Cobrem isolamento entre condomínios/perfis, vigência de Brasília, ausência de evidência, conteúdo tratado como texto, versões, concorrência, revogação, persistência/reinício e consultas/prévias sem gravação.
-
-Conferência em Chromium desktop e emulação móvel com toque: rascunho/publicação/revisão, consulta com referência, público completo, resumos e retirada de fonte, enquete/resposta/encerramento, delegações e navegação após consultas atrasadas. Conferência em 320 pixels para o painel. A homologação em aparelhos físicos continua no preparo para uso real.
-
-Limites por condomínio: cem fontes, vinte revisões por fonte, 12.000 caracteres por texto e 1 MiB de textos somando revisões; 366 registros de resumo no total, cada um identificado por dia/público/escopo, com até dez revisões por registro; duzentas enquetes. A base JSON local continua sendo a persistência do piloto. Retenção, exportação, descarte e políticas de arquivo de produção permanecem pendentes.
-
-Não foi contratado modelo, canal ou serviço novo. Não há tarifa de modelo/mensagem nesta entrega local; custos de implantação, hospedagem e suporte permanecem próprios. Antes da integração, estimar volume × contexto × preço vigente do modelo, além de mensagens, armazenamento e revisão, com limites de consumo e cotações datadas.
-
-Prévias sintéticas: [consulta](../previa-consulta-fontes.png), [consulta no celular](../previa-consulta-fontes-mobile.png), [resumos](../previa-resumos-internos.png) e [enquete no celular](../previa-enquete-consultiva-mobile.png).
-
-## Decisões para continuar a etapa 6
-
-Município/UF informado pelo usuário em 20/10/2026: **Arraial do Cabo/RJ**. Ainda faltam regime jurídico do Chandra e identificação dos documentos aprovados; canal pretendido, grupos/públicos e horários dos resumos. Essas respostas permanecem pendentes. Enquanto essas definições não forem concluídas, o piloto permanece interno e usa fontes sintéticas. A localização não determina automaticamente o regime jurídico, as regras condominiais ou os quóruns de assembleia.
-
-Depois: validar suporte oficial do canal e identificação dos participantes; escolher modelo, política de dados, orçamento e configuração segura no servidor; montar avaliação de respostas corretas, ausência de fontes, fontes contraditórias e tentativas de ampliar acesso. Só então habilitar síntese generativa e envios. Credenciais devem ser configuradas em ambiente seguro, nunca copiadas para código ou conversa.
-
-Assembleias exigem ainda representação por unidade, copropriedade, procurações e validade de poderes, quóruns por matéria e regras de convocação/voto/ata conferidas. Nenhuma dessas condições foi presumida a partir das enquetes. A etapa 6 continua aberta nessas frentes; não avançar o roadmap para a etapa 7 como se estivessem concluídas.
+Financeiro permanece manual por decisão do usuário. Município não determina regime jurídico, convenção, pesos ou quóruns. Antes do uso deliberativo real, a gestão deve validar esses documentos, convocação e regras aplicáveis. Provedores e canais estão preparados em código e testados com dados sintéticos; contratação, conta, precisão com documentos reais, entrega em grupo e validade formal dependem da ativação operacional.

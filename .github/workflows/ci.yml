@@ -1,0 +1,42 @@
+name: Validação
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  application:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-bookworm
+        env:
+          POSTGRES_DB: vilazuni_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: synthetic-ci-only
+        ports: ['5432:5432']
+        options: --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - run: npm ci --ignore-scripts
+        working-directory: app
+      - run: node app/scripts/prepare-pg-test.mjs
+        env:
+          PG_ADMIN_TEST_URL: postgresql://postgres:synthetic-ci-only@127.0.0.1:5432/vilazuni_test
+          VILAZUNI_PG_TEST_CONFIG: ${{ runner.temp }}/vilazuni-pg-test.json
+      - run: npm test --prefix app
+        env:
+          VILAZUNI_PG_TEST_CONFIG: ${{ runner.temp }}/vilazuni-pg-test.json
+      - run: npx playwright-core install --with-deps chromium
+        working-directory: app
+      - run: npm run test:browser
+        working-directory: app
+      - run: npm audit --omit=dev --audit-level=high
+        working-directory: app
+      - run: docker build -f deploy/Dockerfile -t vilazuni:ci .
