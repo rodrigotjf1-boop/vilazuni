@@ -16,7 +16,7 @@ Os convites valem 48 horas, são de uso único e devem ser entregues manualmente
 - Portaria: dados mínimos das autorizações aprovadas; sem contatos particulares ou proprietários.
 - Zeladoria: tarefas; sem fichas residenciais ou de hóspedes.
 
-Subsíndico, administradora e ocupante ainda não possuem fluxo próprio. O convite não concede cargos de gestão.
+Subsíndico e administradora recebem somente módulos delegados explicitamente pelo síndico, com prazo e justificativa. Ocupante recebe convite ligado a um vínculo anual vigente, com validade obrigatória e escopo mínimo. Use “Delegações e ocupantes” no menu da conta do síndico. Convites comuns não concedem cargos de gestão.
 
 ## Dados e sessões
 
@@ -32,7 +32,7 @@ O serviço atende somente em 127.0.0.1. Para distribuição ainda faltam Postgre
 
 ## Verificação
 
-`npm test`: oito testes, incluindo integração HTTP com contas sintéticas temporárias e testes de domínio. Cobre escopo de casas e condomínios, convite único, sessão, suspensão, expiração de delegação, troca de senha e campos mínimos por perfil. O teste HTTP exige conexão de loopback permitida. A tela inicial foi conferida no navegador; a senha da conta real deve ser criada pelo usuário.
+`npm test`: 58 testes, incluindo integração HTTP com contas sintéticas temporárias, domínio, delegações, manutenção, reservas, encomendas, avisos e persistência após reinício. Cobre escopo de casas e condomínios, convite único, sessão, suspensão, expiração de delegação, troca de senha e campos mínimos por perfil. O teste HTTP exige conexão de loopback permitida. A tela inicial foi conferida no navegador; a senha da conta real deve ser criada pelo usuário.
 
 
 ## Moradores e vínculos
@@ -47,3 +47,53 @@ Implementado no piloto local: criação de tarefa com local, orientações, praz
 As fotos são servidas por rota autenticada, restrita à gestão do condomínio e ao zelador responsável. A interface reduz imagens para até 1600 pixels e converte em JPEG. Limites do piloto: oito fotos por tarefa, 2 MB por arquivo recebido e limite global de armazenamento próximo de 64 MB. Os arquivos ainda ficam na base JSON local; armazenamento de objetos, retenção e backups de produção continuam pendentes. A validação do servidor verifica formato e tamanho, sem análise de conteúdo ou antivírus.
 
 Verificação atual: 17 testes aprovados, incluindo envio/leitura de foto pela API, negação de acesso sem sessão e por proprietário, controle de versão, atribuição e revisão. Criação e início de tarefa também conferidos pela interface em base temporária com dados fictícios. Prévia: `previa-zeladoria.png` na raiz do projeto. Nenhuma conta do usuário foi criada.
+
+## Ocorrências privadas — 19/10/2026
+
+No menu “Ocorrências”, abra um relato com título, local, descrição e casa opcional autorizada. Cada conta acompanha apenas seus relatos; a gestão acompanha os do condomínio. A gestão atribui um responsável de gestão, inicia apuração, resolve/cancela com justificativa e pode reabrir. Comentários, decisões e atribuições preservam histórico e versão. Ao receber aviso de conflito, use “Atualizar ocorrências”.
+
+Não há relatos anônimos, anexos ou notificações nesta etapa. Não encaminhamos relatos privados automaticamente ao zelador. O autor vê todos os acompanhamentos da gestão no próprio relato. Testes atuais: 21 aprovados; interface nova ainda sem conferência visual em navegador.
+
+## Materiais e estoque — 19/10/2026
+
+Menu “Materiais”: gestão cadastra consumíveis, unidade, depósito e mínimo, depois registra entradas com motivo. Gestão e zeladoria registram consumo escolhendo tarefa aberta; zeladoria só pode consumir em tarefas atribuídas à sua conta. Saldo e histórico da tarefa são atualizados juntos. Até três casas decimais; saldo insuficiente e versões desatualizadas são recusados. Use “Atualizar estoque” após conflito. O painel de tarefas mostra os materiais consumidos.
+
+Zeladoria consulta saldos e apenas os próprios movimentos. Não há compras, custos, estornos, ajustes de inventário ou empréstimos nesta entrega. Cancelar tarefa não devolve material automaticamente. Testes atuais: 25 aprovados.
+
+Fluxo de materiais conferido no Chromium com base temporária: cadastro, entrada, tarefa, consumo e exibição na tarefa, sem erros JavaScript. Consulta do painel também verificada em viewport móvel. Nenhuma conta real criada.
+
+## Novas operações — 19/10/2026
+
+- **Delegações e ocupantes:** no menu da conta do síndico, convide com perfil, validade, módulos e justificativa; para ocupante selecione vínculo anual vigente. Atualizar delegação encerra sessões da conta. Encerrar o vínculo anual encerra o acesso do ocupante. Delegados não administram identidades nem repassam permissões.
+- **Preventiva:** configure local/equipamento, intervalo em dias, primeiro prazo e checklist. Gere a execução quando devida e acompanhe em Tarefas. Há somente uma execução aberta por plano. Checklist completo e foto são exigidos para revisão. Geração manual, sem agendador.
+- **Reservas:** configure dependência, capacidade, horário de Brasília, duração máxima e regras. Solicitações passam por aprovação e já reservam o horário pendente. Agenda de terceiros oculta dados pessoais. Interdição cancela agendamentos futuros com motivo; reabrir não restaura as reservas.
+- **Encomendas:** portaria/gestão registra recebimento e retirada após conferência presencial. Destinatário com conta acompanha apenas encomendas endereçadas à própria conta. Sem conta, acompanhamento apenas pela operação.
+- **Avisos:** mensagens internas individuais para alterações de tarefas, ocorrências, reservas e encomendas, com marcação de leitura. Use “Atualizar avisos”; nenhum serviço de mensagens externo está conectado.
+
+As regras/frequências dos espaços e equipamentos são configuradas pela gestão. Use dados fictícios neste piloto. Os fluxos acima foram conferidos em Chromium com bases temporárias; menus também verificados em tela móvel. Permanecem pendentes edição de planos/regras, compras/fornecedores, financeiro, múltiplos condomínios por conta e infraestrutura de produção.
+
+Prévias desta entrega com dados sintéticos: [manutenção preventiva](../previa-preventiva.png) e [reservas no celular](../previa-reservas-mobile.png).
+
+## Fornecedores e compras — 19/10/2026
+
+O menu “Compras” separa preparação e aprovação. O síndico concede os módulos “Fornecedores e compras” e “Aprovação de compras” no menu de delegações; para aprovadores delegados, informe limite por compra em reais. A aprovação exige outra pessoa, diferente de quem preparou e registrou o orçamento selecionado, inclusive para o síndico.
+
+1. Cadastre fornecedores, contatos e categorias. Edição e inativação exigem motivo e preservam histórico; aprovadores sem preparação não recebem os contatos.
+2. Prepare uma compra com especificação, quantidade e unidade. Selecione material de estoque e tarefa quando autorizado.
+3. Registre propostas com total incluindo frete/tributos, validade, entrega e condições. A última por fornecedor entra na comparação; versões anteriores permanecem disponíveis.
+4. Envie para análise. A segunda pessoa aprova uma proposta válida dentro do limite ou recusa com motivo; cotação única exige justificativa própria.
+5. Confira o recebimento integral, com referência e observação. Para material, é necessário acesso ao estoque: a entrada e a compra são gravadas juntas. Repetições e versões antigas são recusadas.
+
+Não há pedidos enviados, pagamentos ou despesas financeiras automáticas. Nesta entrega, cada compra tem uma especificação e um recebimento integral; ainda faltam itens múltiplos, recebimentos parciais, devoluções e garantias estruturadas. Limite de proposta: R$ 1.000.000,00. Nenhum fornecedor real foi contatado.
+
+## Documentos e vencimentos — 19/10/2026
+
+No menu “Documentos”, contas com o módulo “Documentos privados” cadastram título, categoria, responsável, vencimento opcional, antecedência de alerta e PDF. As versões anteriores permanecem disponíveis por download autenticado; novas versões exigem motivo. Arquivar conserva os arquivos e suspende alertas, sem excluir histórico.
+
+O servidor confere formato, limite de tamanho e integridade SHA-256 no download. PDF de até 2 MB, dez versões por documento e 32 MB totais no piloto. Arquivos são baixados como anexo; não há link público, visualização incorporada, antivírus ou assinatura digital. Vencimentos e regras são definidos pela gestão.
+
+Os prazos são calculados pelo dia de Brasília e consultados em “Documentos” e “Avisos”, sem envio externo. Arquivos continuam na base JSON local; armazenamento privado de objetos e backups permanecem pendentes. Use somente PDFs sintéticos neste piloto.
+
+Verificação atual: 58 testes, incluindo concorrência, limites de aprovação, segregação de funções, recebimento com estoque, arquivos privados, controle de versões, integridade e reinício. Fluxos também conferidos no Chromium, com renovação/download em tela móvel.
+
+Prévias desta etapa com dados sintéticos: [compra recebida](../previa-compras.png) e [documentos no celular](../previa-documentos-mobile.png).

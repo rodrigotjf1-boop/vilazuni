@@ -1,8 +1,74 @@
 # Vilazuni — estado de desenvolvimento
 
-Atualização: 18/10/2026.
+Atualização: 19/10/2026.
 
-## Etapa atual: proprietários e locações residenciais
+## Estado atual — operação ampliada em 19/10/2026
+
+A etapa 2 está funcional como piloto local, e a etapa 3 já possui tarefas com fotos/revisão, ocorrências, consumíveis/estoque, manutenção preventiva, dependências/reservas, encomendas, fornecedores/compras, documentos com vencimentos e avisos internos. O passeio 3D continua sendo prova de conceito ilustrativa. Esta entrega não implanta produção, PostgreSQL, HTTPS ou integrações externas.
+
+### Perfis e delegações
+
+O síndico convida subsíndico/administradora com validade obrigatória, justificativa e módulos explícitos: pessoas/vínculos, estadias/autorizações, tarefas/revisão, materiais, ocorrências privadas, preventiva, dependências/reservas, encomendas, preparação de compras, aprovação de compras com limite e documentos privados. Ser gestor delegado não dá acesso a módulos não concedidos, convites, suspensão de contas ou nova delegação. Somente o síndico atualiza as delegações (com controle de versão); a atualização encerra sessões antigas. Expiração e suspensão são verificadas em toda requisição. A delegação de ocorrências dá acesso aos relatos privados do condomínio e está identificada assim na interface. Não há verificação documental de mandato nem gestão de carteira de vários condomínios.
+
+Ocupante é convidado pelo síndico para um vínculo anual vigente e com prazo de acesso. Recebe identificação da sua casa, próprios relatos, reservas e encomendas destinadas à conta, sem fichas residenciais, proprietários, estadias de terceiros ou estoque. Encerrar o vínculo anual invalida sua sessão e novos logins; a data prevista de término continua sendo planejamento, não saída efetiva. Os demais perfis mantêm seus escopos existentes.
+
+### Manutenção preventiva
+
+Gestão com delegação de preventiva cria plano com equipamento/local, orientações, intervalo em dias, primeiro prazo e checklist. A geração manual de tarefa exige também acesso a tarefas; só é permitida quando o prazo chega e não há execução aberta do mesmo plano. Avança o próximo prazo pela frequência configurada, sem geração automática ou sugestão de periodicidade legal. Plano pode ser pausado/reativado com motivo. Se o responsável do plano estiver suspenso ou expirado, a execução é gerada sem atribuição para revisão pela gestão. Reatribuição reinicia checklist; revisão exige checklist completo e foto da execução atual. Execuções e materiais usados continuam no histórico da tarefa. Não há edição de frequência, agendador de fundo ou importação de normas nesta etapa.
+
+### Dependências e reservas
+
+Gestão configura espaços exclusivos, capacidade, horário no fuso Brasília, duração máxima e regras. Proprietário, imobiliária e ocupante solicitam pelas casas autorizadas; gestão de reservas pode operar no condomínio. Solicitação exige ciência das regras e aprovação posterior. Horários futuros no mesmo dia; solicitações pendentes já ocupam o horário. Sobreposição é recusada mesmo com pedidos simultâneos; horários contíguos são permitidos. Agenda alheia mostra só período ocupado, sem autor/casa/pessoas/histórico. Autor cancela a própria reserva; gestão aprova/recusa/cancela com motivo. Interdição cancela solicitações/reservas futuras afetadas com histórico; reabrir não as restaura. Não há taxa, recorrência de reservas ou controle de entrada física.
+
+### Encomendas e avisos
+
+Portaria ou gestão de encomendas registra recebimento, casa, descrição breve e local de guarda, com conta destinatária opcional. Só a conta destinatária vinculada e os operadores autorizados consultam a encomenda; coproprietário não recebe encomendas de outra conta. Sem conta, somente a operação acompanha. Retirada exige registro pelo operador, nome de quem retirou e observação após conferência presencial. Controle de versão impede retirada repetida. O registro não é assinatura digital nem verificação documental.
+
+Avisos internos individuais para alterações de tarefas, relatos, reservas e encomendas; sem conteúdo sensível na mensagem. Leitura e abertura conferem autorização atual, inclusive após reatribuição ou retirada de delegação. Há marcação de leitura e atualização manual. Nenhum push, e-mail, WhatsApp, resumo de IA ou mensagem externa foi ativado. Não há aviso retroativo ao conceder novos módulos.
+
+### Fornecedores, orçamentos e compras
+
+Cadastro de fornecedores com contato, categoria, edição justificada, inativação/reativação e histórico. Orçamentos preservam a identificação do fornecedor da época; aprovadores sem acesso a compras não recebem contatos ou histórico cadastral. Compras são privadas aos módulos de preparação e aprovação, separados na delegação.
+
+Cada compra tem uma especificação, quantidade/unidade e vínculo opcional a material e tarefa. Propostas registram valor total em centavos (incluindo frete/tributos), validade, prazo de entrega e condições. A última proposta por fornecedor entra na comparação; versões anteriores permanecem no histórico. Fluxo: rascunho → análise → aprovação/recusa → recebimento integral, com reabertura justificada da recusa e cancelamento antes do recebimento.
+
+Aprovação exige pessoa diferente de quem preparou a compra e registrou a proposta escolhida, mesmo para síndico. Aprovadores delegados precisam de limite explícito por compra, aplicado no servidor e revogado/reavaliado ao alterar a delegação. Proposta vencida, fornecedor inativo, versão antiga e valor acima do limite são recusados. Cotação única exige justificativa específica. Orçamento aprovado é congelado na decisão.
+
+Recebimento de consumível exige também acesso a materiais e confere a versão do saldo. Compra, recibo e entrada no estoque são persistidos juntos, uma vez por compra. Referência já usada em recebimento do mesmo fornecedor é recusada. Uma compra sem material registra recebimento sem movimentar estoque. Não há pedido enviado ao fornecedor, pagamento, despesa financeira automática, itens múltiplos, recebimento parcial, devolução, contrato de fornecimento ou garantias estruturadas nesta etapa. Cada proposta pode ter até R$ 1.000.000,00 no piloto.
+
+### Documentos privados e vencimentos
+
+Gestão com módulo de documentos registra título, categoria, responsável ativo, vencimento opcional, antecedência de alerta e PDF. Arquivos ficam fora das projeções de estado: somente metadados são retornados. Download autenticado por condomínio e módulo, como anexo, sem URL pública e com conferência SHA-256 do conteúdo armazenado. Validação de formato e tamanho não equivale à análise de conteúdo/antivírus ou assinatura digital.
+
+Novas versões exigem motivo, preservam arquivos/dados anteriores e atualizam responsável/vencimento. Arquivar conserva versões e retira o documento da lista de prazos; reativar exige motivo. Limites do piloto: PDF de 2 MB, dez versões por documento, 32 MB totais incluindo arquivados. PDF ainda é persistido na base JSON; armazenamento de objetos e backups de produção permanecem pendentes.
+
+Alertas de documentos são calculados no servidor pelo dia de Brasília, usando a versão atual, e aparecem em Documentos e Avisos. Não dependem de agendador, e-mail ou mensagens externas; atualizar o painel consulta o prazo atual. Moradores, portaria, zeladoria e gestores sem esse módulo não recebem documentos nem alertas. Datas são informadas pela gestão; não há validação de exigências legais.
+
+### Validação e continuidade
+
+58 testes aprovados, incluindo API, permissões por módulo, expiração/suspensão, encerramento de vínculo anual, concorrência em consumo/reserva/geração de tarefas/retirada, persistência e reinício. Fluxos conferidos em Chromium com contas e bases temporárias: convite/ativação delegada e menus por escopo, plano/checklist, solicitação/aprovação de reserva, recebimento/aviso privado/retirada. Menu adaptado à quantidade de módulos e à navegação móvel. Também foram conferidos em Chromium: cadastro/edição de fornecedores, comparação de propostas, aprovação por segunda conta dentro do limite, recebimento no estoque, upload/download de PDF com bytes idênticos, renovação e preservação da versão anterior. Sem novas dependências de execução. Nenhuma conta ou dado pessoal real foi criado.
+
+Pendências seguintes: financeiro, evoluções de compras (itens múltiplos/recebimento parcial/devoluções), múltiplos vínculos por pessoa e troca formal de gestão; infraestrutura central e backups para produção. As seções abaixo preservam o histórico das entregas anteriores, com contagens de testes da época.
+
+## Materiais e estoque — 19/10/2026
+
+Consumíveis cadastrados pela gestão com nome, unidade de medida, depósito/local e estoque mínimo. Saldo inicial zero; entradas exigem quantidade e origem/motivo. Gestão e zeladoria consultam saldo e indicação de reposição quando saldo menor ou igual ao mínimo. Zeladoria vê apenas os movimentos que registrou; demais perfis não recebem estoque.
+
+Consumo exige tarefa no mesmo condomínio, em estado a fazer/em execução, e atribuição à própria conta para zeladoria. Gestão pode consumir nas tarefas abertas do condomínio. Atualiza saldo, movimento e histórico/consumos da tarefa na mesma gravação. Quantidades até três casas decimais; saldo negativo, tarefa desatualizada e estoque desatualizado são recusados. Movimento não é apagado nem reverte automaticamente ao cancelar uma tarefa. Sem ajuste de inventário, estorno, empréstimo, compras ou integração financeira nesta entrega.
+
+Verificação: 25 testes aprovados, incluindo integração HTTP, duas retiradas simultâneas sobre a mesma versão com apenas uma efetivada, saldo insuficiente, quantidades inválidas, isolamento, autorização e persistência no arquivo local. Fluxo conferido em Chromium: cadastro, entrada, criação de tarefa, seleção explícita da tarefa, consumo e exibição na tarefa; sem erros JavaScript. Consulta do painel também conferida em viewport móvel (390 × 844), com base temporária e dados sintéticos. Próximas frentes: perfis/delegações, manutenção preventiva e reservas; infraestrutura central ainda necessária para produção.
+
+## Ocorrências privadas — 19/10/2026
+
+Etapa 3 (operação) avançou com o módulo de ocorrências no menu do cenário. Todos os cinco perfis autenticados podem abrir relatos e acompanhar os próprios registros. Somente o autor e a gestão do mesmo condomínio recebem o relato e seu histórico; ser proprietário da casa relacionada não concede acesso a relatos de outras pessoas.
+
+Abertura com título, local, descrição e casa opcional dentro do escopo autorizado. Gestão atribui a uma conta de gestão ativa, inicia apuração, resolve ou cancela com justificativa e pode reabrir. Autor e gestão adicionam acompanhamentos enquanto o registro está aberto. Toda mudança exige a versão atual e preserva autor, data, ação e mensagem no histórico. Relatos identificados; não há denúncia anônima, anexos, notificações ou encaminhamento automático à zeladoria. Responsável operacional de zeladoria continua no módulo separado de tarefas.
+
+Verificação: 21 testes aprovados, incluindo ciclo de ocorrência pela API, privacidade entre contas/condomínios, restrições de casas, atribuição, transições, justificativas e conflito de versões. Servidor real validado por HTTP com entrega da página/módulos, gravação em base temporária e reinício preservando a base e invalidando sessão. A interface nova ainda precisa de conferência visual em navegador. Nenhuma conta ou dado real foi criado.
+
+A frente seguinte de materiais e estoque foi implementada (ver seção acima); permanecem pendentes os demais módulos da etapa 3 e a infraestrutura de produção.
+
+## Etapa anterior: proprietários e locações residenciais
 
 Cadastros de proprietários/copropietários e locações anuais/residenciais ligados às casas, com contato, moradores, veículos, início, término previsto e saída efetiva. A interface funciona em etapas sobre o interior 3D, no atalho “Moradores e vínculos”. Estadias por temporada continuam em fluxo próprio.
 

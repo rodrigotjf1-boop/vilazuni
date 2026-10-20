@@ -2,6 +2,30 @@
 
 Versão 0.1 • regras propostas para validação do piloto.
 
+## Política vigente do piloto — 19/10/2026
+
+A tabela de fundação abaixo continua sendo a direção do produto. A implementação atual atende oito perfis; detalhes atuais prevalecem sobre os históricos de 18/10:
+
+| Módulo/ação | Política atual |
+|---|---|
+| Identidades e concessão de delegação | Exclusivamente síndico; não há convite para síndico ou autoelevação |
+| Subsíndico/administradora | Somente módulos concedidos, com motivo e validade; atualizar revoga sessões; sem delegação em cadeia |
+| Pessoas e estadias | Delegações independentes; permissão de pessoas não libera estadias nem vice-versa; ambas abrangem o condomínio |
+| Tarefas/manutenção | Tarefas do condomínio para gestão delegada em tarefas; zelador somente atribuições próprias; gerar preventiva requer ambos os módulos; checklist recomeça ao reatribuir |
+| Materiais | Gestão de materiais cadastra/recebe; consumo exige também acesso à tarefa; zelador somente tarefas próprias; histórico geral só gestão |
+| Relatos privados | Autor e gestão com módulo ocorrências; delegar este módulo libera os relatos do condomínio, explicitamente informado |
+| Ocupante | Vínculo anual vigente, prazo de acesso e uma casa; identificação da casa sem ficha de terceiros; encerramento do vínculo invalida login |
+| Reservas | Moradores/proprietários/imobiliárias solicitam dentro das casas autorizadas; gestão de dependências decide/interdita; terceiros veem apenas intervalos ocupados |
+| Encomendas | Portaria/gestão opera; destinatário com conta vê apenas as próprias encomendas e precisa manter vínculo à casa; copropriedade não amplia acesso |
+| Compras e fornecedores | Preparação por módulo próprio; aprovador separado, com limite explícito; sem autoaprovação, mesmo para síndico; contatos do fornecedor apenas a quem prepara |
+| Recebimento de compra | Preparação e, para consumíveis, acesso a materiais; gravação única de estoque e compra; versão atual obrigatória |
+| Documentos privados | Somente contas com módulo de documentos; responsável precisa manter acesso; download de cada versão autenticado por condomínio; moradores não recebem arquivos ou prazos |
+| Avisos internos | Individuais e filtrados pela autorização atual; leitura não altera avisos de terceiros; sem envio externo |
+
+A concessão manual do piloto não verifica mandato nem titularidade documental. Múltiplos vínculos por conta, substituição formal do síndico, recuperação de conta e MFA continuam pendentes.
+
+## Fundação e histórico
+
 Toda permissão exige identidade autenticada, vínculo ativo, condomínio correto, finalidade e vigência. Negação é o padrão. O cliente não escolhe seu papel. Dados disponíveis na ficha dependem da ação, não apenas da visibilidade da casa na lista.
 
 | Ação | Síndico | Subsíndico | Administradora habilitada | Proprietário | Imobiliária de locação | Ocupante | Zelador/portaria |
@@ -57,3 +81,17 @@ Somente síndico cadastra/atualiza/encerra proprietários. Proprietários e imob
 - Zelador: consulta e executa apenas tarefas atribuídas à própria conta; envia fotos e solicita revisão. Não aprova a própria execução.
 - Proprietário, imobiliária e portaria: sem acesso às tarefas ou fotos de zeladoria nesta etapa.
 - Fotos: autorização conferida no servidor em cada leitura, sem URL pública. Reatribuição remove o acesso do responsável anterior e mantém as evidências no histórico da gestão e do novo responsável.
+
+### Ocorrências implementadas — 19/10/2026
+
+Os cinco perfis disponíveis abrem relatos identificados. Leitura e comentários limitados ao autor e à gestão do mesmo condomínio. Outros proprietários da unidade e operadores não recebem relatos de terceiros. Casa opcional validada pelo escopo no servidor; portaria e zeladoria abrem relatos de local sem vínculo residencial. Somente gestão atribui (a outra conta de gestão ativa ou a si), altera andamento, encerra ou reabre com justificativa. Registros encerrados não aceitam comentários até reabertura. Todas as alterações exigem versão atual e têm histórico compartilhado com o autor. Não há anônimo nem notas internas ocultas nesta etapa.
+
+### Materiais e estoque — 19/10/2026
+
+Gestão cadastra materiais e registra entradas; gestão e zeladoria consultam saldo/local/mínimo do próprio condomínio. Somente gestão consulta todos os movimentos; zeladoria recebe apenas os movimentos registrados por sua conta. Consumo exige tarefa aberta (a fazer/em execução) no mesmo condomínio; zeladoria precisa ser o responsável atual. Gestão pode registrar consumo nas tarefas abertas do condomínio. Demais perfis recebem lista vazia e não podem escrever. Cada consumo confere versões de material e tarefa e grava ambos atomicamente na persistência local. Histórico de consumo da tarefa acompanha as regras existentes de acesso/reatribuição da tarefa.
+
+### Compras e documentos — 19/10/2026
+
+Preparação de compras não concede aprovação nem acesso a arquivos; aprovação não concede edição de fornecedores, recebimento ou contatos do cadastro. O módulo de materiais é necessário para compras vinculadas a estoque; relacionar uma tarefa exige acesso a tarefas. Cada aprovador delegado tem limite em centavos, validado ao conceder/alterar e novamente ao aprovar. Mesmo o síndico não aprova compra que preparou ou proposta que registrou. Cotação única requer justificativa. Recebimento usa a proposta aprovada, valida versões de compra e estoque e não cria movimento financeiro.
+
+Documentos só são visíveis à gestão explicitamente autorizada no módulo. Cada leitura binária confere o acesso atual e a integridade, sem URL pública. A projeção de estado omite conteúdo base64 de todas as versões. Arquivamento não libera arquivos nem elimina histórico. Avisos de compras/documentos acompanham as mesmas permissões; prazos de documentos são derivados do dia atual de Brasília, não enviados externamente.
