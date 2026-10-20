@@ -18,7 +18,7 @@ Entrega técnica não equivale à validação jurídica, publicação em lojas o
 ## Validação reproduzível
 
 - `npm ci --prefix app --ignore-scripts` instala versões e integridades do lockfile.
-- `npm test --prefix app`: 214 testes, incluindo PostgreSQL quando `VILAZUNI_PG_TEST_CONFIG` aponta para a base local descartável. Sem essa configuração, três testes PostgreSQL são explicitamente pulados.
+- `npm test --prefix app`: 215 testes, incluindo PostgreSQL quando `VILAZUNI_PG_TEST_CONFIG` aponta para a base local descartável. Sem essa configuração, três testes PostgreSQL são explicitamente pulados.
 - `npm run test:browser --prefix app`: fluxo sintético em Chromium desktop/móvel. Requer navegador Playwright instalado ou `CHROMIUM_PATH`.
 - `npm audit --prefix app --omit=dev`: auditoria das dependências de execução.
 - Workflows de validação e pacotes móveis estão em `.github/workflows/`. Android e iOS compilaram no GitHub Actions após liberar a execução pública; os pacotes de avaliação não são assinaturas de distribuição nem lançamento nas lojas.

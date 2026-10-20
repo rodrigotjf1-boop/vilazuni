@@ -14,6 +14,8 @@ Requer Docker Engine/Compose, DNS apontando para o servidor e portas 80/443 disp
 
 `001_storage.sql` e o script de inicialização criam tabelas/RLS e o papel `vilazuni_app` sem SUPERUSER/BYPASSRLS no primeiro volume vazio. Para banco existente, aplicar migrações com papel administrativo separado (`MIGRATION_DATABASE_URL`, `npm run db:migrate --prefix app`) e conceder somente USAGE no schema e SELECT/INSERT/UPDATE nas tabelas de execução. A aplicação recusa papel privilegiado e não faz fallback para JSON se PostgreSQL falhar.
 
+O gateway sobrescreve `X-Vilazuni-Client-IP`; a composição habilita `TRUST_PROXY=true` somente para a aplicação na rede privada. Isso preserva o limite de autenticação por cliente, em vez de compartilhar a mesma cota de todas as pessoas no endereço do gateway. Não expor a porta da aplicação diretamente nem habilitar confiança em proxy fora dessa topologia.
+
 Instâncias atuais: **uma aplicação** e processos de fundo internos. Sessões em memória exigem novo login após reinício. Não escalar réplicas sem implementar sessão compartilhada e coordenação de trabalhadores. Atualizações concorrentes do banco retornam conflito e precisam de nova leitura, não de repetição cega.
 
 ## Backups e recuperação

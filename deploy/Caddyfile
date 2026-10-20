@@ -6,5 +6,7 @@
   Permissions-Policy "camera=(), microphone=(), geolocation=()"
   -Server
  }
- reverse_proxy app:4173
+ reverse_proxy app:4173 {
+  header_up X-Vilazuni-Client-IP {remote_host}
+ }
 }

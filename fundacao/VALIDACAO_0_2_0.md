@@ -4,7 +4,7 @@
 
 | Verificação | Resultado |
 |---|---|
-| Suíte Node.js + PostgreSQL 17 real | 214 aprovados, sem falhas ou skips com configuração PostgreSQL de teste |
+| Suíte Node.js + PostgreSQL 17 real | 215 aprovados, sem falhas ou skips com configuração PostgreSQL de teste |
 | RLS | Sem contexto não retorna partições; contexto de um condomínio não retorna outro; papel sem SUPERUSER/BYPASSRLS |
 | Concorrência | Gravação obsoleta retorna conflito; tarefa/reserva/financeiro mantêm as verificações anteriores |
 | Identidade | Conta com dois vínculos, troca de contexto e convite com senha existente; suspensão/senha revogam sessões de outra instância |
