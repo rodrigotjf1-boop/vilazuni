@@ -32,7 +32,7 @@ O serviço atende somente em 127.0.0.1. Para distribuição ainda faltam Postgre
 
 ## Verificação
 
-`npm test`: 151 testes, incluindo integração HTTP com contas sintéticas temporárias, domínio, delegações, manutenção, reservas, encomendas, avisos e persistência após reinício. Cobre escopo de casas e condomínios, convite único, sessão, suspensão, expiração de delegação, troca de senha e campos mínimos por perfil. O teste HTTP exige conexão de loopback permitida. A tela inicial foi conferida no navegador; a senha da conta real deve ser criada pelo usuário.
+`npm test`: 165 testes, incluindo integração HTTP com contas sintéticas temporárias, domínio, delegações, manutenção, reservas, encomendas, avisos e persistência após reinício. Cobre escopo de casas e condomínios, convite único, sessão, suspensão, expiração de delegação, troca de senha e campos mínimos por perfil. O teste HTTP exige conexão de loopback permitida. A tela inicial foi conferida no navegador; a senha da conta real deve ser criada pelo usuário.
 
 
 ## Moradores e vínculos
@@ -137,7 +137,7 @@ Abra cada movimento e selecione explicitamente um lançamento existente com mesm
 
 O relatório mostra cobertura por conta bancária; o mês só fica conferido com cobertura integral e sem diferenças/ressalvas. Fechar mês ainda aceita conciliação incompleta e preserva essas pendências no relatório/exportação. Para corrigir extratos de mês fechado, solicite reabertura ao síndico. Fechamentos anteriores mantêm conteúdo/hash. Estornar não desfaz a conferência do lançamento original; o lançamento inverso precisa de conferência própria. O hash identifica o conteúdo UTF-8 recebido, incluindo BOM; o CSV original não é armazenado, apenas dados normalizados e histórico. Consulta/operação/exportação financeira leem extratos, mas só controle pode importar, vincular ou cancelar.
 
-Não há transferência bancária, pagamento, cobrança bancária ou emissão recorrente automática. Os saldos e extratos são informados manualmente, sem autenticação bancária. A etapa 4 está concluída para o piloto de cobrança manual por decisão do usuário; parceiro/retornos autenticados ficam adiados. OFX, formatos específicos de bancos, divisão/agregação de movimentos e evoluções de acordos/rateios continuam pendentes. Valores de teste são sintéticos. Até R$ 1.000.000,00 por movimento. Verificação atual: 151 testes aprovados e fluxo conferido no Chromium, incluindo consulta em tela móvel.
+Não há transferência bancária, pagamento, cobrança bancária ou emissão recorrente automática. Os saldos e extratos são informados manualmente, sem autenticação bancária. A etapa 4 está concluída para o piloto de cobrança manual por decisão do usuário; parceiro/retornos autenticados ficam adiados. OFX, formatos específicos de bancos, divisão/agregação de movimentos e evoluções de acordos/rateios continuam pendentes. Valores de teste são sintéticos. Até R$ 1.000.000,00 por movimento. Verificação atual: 165 testes aprovados e fluxo conferido no Chromium, incluindo consulta em tela móvel.
 
 Prévias com valores sintéticos: [relatório mensal](../previa-financeiro.png) e [consulta no celular](../previa-financeiro-mobile.png).
 
@@ -163,4 +163,18 @@ Em Encargos aprovados, controle propõe referência, fundamento, vigência e per
 
 Calcular encargo mostra prévia sem gravação. Confirmar cria recebível separado com memória, principal preservado e nenhum efeito no caixa. Novos períodos começam após a última apuração ativa; multa não se repete e não há juros sobre encargos. Alteração de termos limita o início ao dia da alteração. Limites: 3.660 dias e R$ 1.000.000,00 por apuração. Cancelamento exige tratar avisos/baixas e apurações posteriores; memória e histórico permanecem. Para mudar a base por baixa, estorno, revisão ou ativação de acordo em dia já apurado, revise/cancele antes a apuração. Calcular até ontem permite registrar novos fatos de hoje sem mudar o período apurado. Sem correção por índice, descontos, consolidação de origens ou outros métodos de cálculo. Relatório/exportação congelam os novos dados na data de corte, conservando hashes anteriores.
 
-Validação: 151 testes aprovados; fluxos conferidos no Chromium, incluindo portal móvel, isolamento, segunda aprovação, informação de pagamento sem baixa, lembrete único, baixa parcial, revogação e fechamento/exportação. Prévias sintéticas: [aviso manual](../previa-cobranca-manual.png), [pagador no celular](../previa-minhas-cobrancas-mobile.png) e [memória](../previa-memoria-encargos.png).
+Validação: 165 testes aprovados; fluxos conferidos no Chromium, incluindo portal móvel, isolamento, segunda aprovação, informação de pagamento sem baixa, lembrete único, baixa parcial, revogação e fechamento/exportação. Prévias sintéticas: [aviso manual](../previa-cobranca-manual.png), [pagador no celular](../previa-minhas-cobrancas-mobile.png) e [memória](../previa-memoria-encargos.png).
+
+## Passeio virtual contextual — 19/10/2026
+
+Etapa 5 concluída no piloto 3D ilustrativo, sem reconstrução/captura real. Ver [critérios, medições e plano de captura](../fundacao/ETAPA_5_PASSEIO_VIRTUAL.md). Layout aprovado preservado: 01–07 à direita, 08–14 à esquerda, churrasqueira junto à 14, festas/jogos no primeiro patamar e piscina acima.
+
+Explorar ou Mapa oferece busca, tipo/acesso e ficha. Exterior não concede dados residenciais: ficha e cada atalho são revalidados no servidor. Casas autorizadas abrem moradores/vínculos, estadias, novo cadastro na casa correta e vagas; portaria usa autorizações por casa sem entrar no interior. Ocupante não recebe fichas pessoais/estadias. Gestão delegada fica nos seus módulos.
+
+Gestão de dependências usa Vincular ou retirar dependência no marcador. Associação explícita, versionada e única, sem inferir nomes. Dependências sem marcador permanecem na lista. Ficha abre cadastro/agenda do registro correto e consulta interdição atual; reservar continua sujeito ao servidor.
+
+Arraste para olhar; pinça/rolagem/+ e − ajustam zoom. Passear aceita toque ou setas/WASD e limita alameda/escadas antes da piscina/casas. Soltar/cancelar toque/perder foco interrompe caminhada. Interior permite térreo/superior e atalhos autorizados. Mapa/lista são alternativas sem movimento; preferência de mapa evita iniciar WebGL. Falta/perda gráfica preserva fichas e operações pela alternativa 2D. Escape/fechar retornam foco; movimento reduzido é respeitado.
+
+165 testes aprovados e Chromium: computador, toque em 390×844, alternativa 2D em 320×568, teclado, revogação, falta/perda de WebGL e regressão financeira. Cena por demanda, cerca de 248 KiB de scripts e buffer de 2.018.880 bytes, sem requisições externas. Aparelho físico, imagens reais e produção continuam pendentes; sem nova dependência ou serviço contratado.
+
+Prévias sintéticas: [mapa](../previa-passeio-mapa.png), [dependência](../previa-passeio-dependencia.png), [ficha móvel](../previa-passeio-ficha-mobile.png), [toque](../previa-passeio-toque-mobile.png) e [sem WebGL](../previa-passeio-sem-webgl.png).
