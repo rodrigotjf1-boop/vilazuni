@@ -32,7 +32,7 @@ O serviço atende somente em 127.0.0.1. Para distribuição ainda faltam Postgre
 
 ## Verificação
 
-`npm test`: 165 testes, incluindo integração HTTP com contas sintéticas temporárias, domínio, delegações, manutenção, reservas, encomendas, avisos e persistência após reinício. Cobre escopo de casas e condomínios, convite único, sessão, suspensão, expiração de delegação, troca de senha e campos mínimos por perfil. O teste HTTP exige conexão de loopback permitida. A tela inicial foi conferida no navegador; a senha da conta real deve ser criada pelo usuário.
+`npm test`: 186 testes, incluindo integração HTTP com contas sintéticas temporárias, domínio, delegações, manutenção, reservas, encomendas, avisos e persistência após reinício. Cobre escopo de casas e condomínios, convite único, sessão, suspensão, expiração de delegação, troca de senha e campos mínimos por perfil. O teste HTTP exige conexão de loopback permitida. A tela inicial foi conferida no navegador; a senha da conta real deve ser criada pelo usuário.
 
 
 ## Moradores e vínculos
@@ -178,3 +178,15 @@ Arraste para olhar; pinça/rolagem/+ e − ajustam zoom. Passear aceita toque ou
 165 testes aprovados e Chromium: computador, toque em 390×844, alternativa 2D em 320×568, teclado, revogação, falta/perda de WebGL e regressão financeira. Cena por demanda, cerca de 248 KiB de scripts e buffer de 2.018.880 bytes, sem requisições externas. Aparelho físico, imagens reais e produção continuam pendentes; sem nova dependência ou serviço contratado.
 
 Prévias sintéticas: [mapa](../previa-passeio-mapa.png), [dependência](../previa-passeio-dependencia.png), [ficha móvel](../previa-passeio-ficha-mobile.png), [toque](../previa-passeio-toque-mobile.png) e [sem WebGL](../previa-passeio-sem-webgl.png).
+
+## Fontes, consultas e enquetes — etapa 6 iniciada em 20/10/2026
+
+Menu **Consultar**: busca local por palavras em textos publicados e vigentes, com trechos literais, origem, revisão e data. Não há modelo generativo conectado. Todos os perfis autenticados consultam as fontes liberadas para todas as contas; escolher público comunitário restringe a consulta mesmo para o síndico.
+
+Gestão com **Fontes revisadas e resumos internos** (`knowledge`) prepara fontes com origem, texto, público e vigência; revisa/confirma antes de publicar. Rascunho não entra na consulta, e nova revisão preserva a anterior até publicar. Retirar/expirar fonte interrompe sua consulta e oculta resumos que a citam. PDFs privados de Documentos continuam em módulo separado.
+
+**Resumos internos**: conferir prévia e salvar manualmente. Comunidade recebe somente fontes expressamente liberadas; indicadores de tarefas/estoque/preventiva/vencimentos exigem os módulos correspondentes na preparação e em cada leitura. Até dez fontes por resumo. Prévia não grava; confirmação revalida dados/versão, e repetição idêntica não duplica o registro. A data é a de geração, em Brasília; preparado não significa enviado a grupo.
+
+Menu **Enquetes**: síndico ou delegação **Enquetes consultivas** (`governance`) prepara pergunta, contexto, duas a seis opções, público e prazo. Uma resposta definitiva por conta, independente do número de casas; participantes veem os totais ao encerrar. Respostas identificadas internamente; API não retorna lista de escolhas individuais. Não há quórum, voto por unidade, procuração ou efeito de assembleia.
+
+Novas delegações não são concedidas automaticamente a contas existentes. 21 testes novos; suíte completa com 186 aprovados. Fluxos conferidos em Chromium desktop/móvel com bases e contas temporárias. Operação, capacidade, pendências de canal/modelo/documentos e assembleia: [etapa 6](../fundacao/ETAPA_6_FONTES_E_GOVERNANCA.md).
