@@ -7,12 +7,14 @@ import {receivablesAt} from './finance-receivables.mjs';
 import {budgetComparison} from './finance-budget.mjs';
 import {financialUnits,unissuedAssessments,assessmentsAt} from './finance-assessments.mjs';
 import {agreementView,agreementsAt} from './finance-agreements.mjs';
+import {statementView,reconciliationMonth} from './finance-reconciliation.mjs';
 import {isOutstanding,settlementView,lastSettlementDate,syncSettlement} from './finance-settlements.mjs';
 export {createFund,createAccount,toggleFinancial,createEntry,transfer} from './finance-ledger.mjs';
 export {createPayable,importPurchase,payPayable,payPayablePartial,changePayable,editPayable} from './finance-payables.mjs';
 export {createReceivable,receiveReceivable,receiveReceivablePartial,changeReceivable,editReceivable} from './finance-receivables.mjs';
 export {createAgreement,approveAgreement,activateAgreement,cancelAgreement} from './finance-agreements.mjs';
 export {saveRecurringTemplate,toggleRecurringTemplate,prepareRecurringAssessment} from './finance-recurring.mjs';
+export {importStatement,changeStatementRow,cancelStatement} from './finance-reconciliation.mjs';
 export {saveBudget} from './finance-budget.mjs';
 export {saveAssessment,approveAssessment,cancelAssessment,generateAssessment} from './finance-assessments.mjs';
 export function financeView(s,u,now=Date.now()){
@@ -20,7 +22,7 @@ export function financeView(s,u,now=Date.now()){
  const accounts=rows(s,'financialAccounts',u.tenant).map(a=>({...structuredClone(a),balanceCents:balance(s,u.tenant,a.id)}));
  const funds=rows(s,'financialFunds',u.tenant).map(f=>({...structuredClone(f),balanceCents:balance(s,u.tenant,null,f.id)}));
  const allocations=accounts.flatMap(a=>funds.map(f=>({accountId:a.id,fundId:f.id,balanceCents:balance(s,u.tenant,a.id,f.id)})));
- return {revision:revision(s,u.tenant),lastClosedMonth:lastClosedMonth(s,u.tenant),accounts,funds,allocations,entries:structuredClone(ledger(s,u.tenant)),payables:rows(s,'financialPayables',u.tenant).map(r=>settlementView(s,u.tenant,'payable',r)),receivables:rows(s,'financialReceivables',u.tenant).map(r=>settlementView(s,u.tenant,'receivable',r)),budgets:structuredClone(rows(s,'financialBudgets',u.tenant)),agreements:rows(s,'financialAgreements',u.tenant).map(a=>agreementView(s,u.tenant,a)),recurringTemplates:structuredClone(rows(s,'financialRecurringTemplates',u.tenant)),units:financialUnits(s,u),assessments:structuredClone(rows(s,'financialAssessments',u.tenant)),purchaseSources:purchaseSources(s,u),closures:rows(s,'financialClosures',u.tenant).map(({report,...c})=>structuredClone(c)),totalCents:balance(s,u.tenant),today:localDay(now)};
+ return {statements:rows(s,'financialStatements',u.tenant).map(t=>statementView(s,u.tenant,t,true)),revision:revision(s,u.tenant),lastClosedMonth:lastClosedMonth(s,u.tenant),accounts,funds,allocations,entries:structuredClone(ledger(s,u.tenant)),payables:rows(s,'financialPayables',u.tenant).map(r=>settlementView(s,u.tenant,'payable',r)),receivables:rows(s,'financialReceivables',u.tenant).map(r=>settlementView(s,u.tenant,'receivable',r)),budgets:structuredClone(rows(s,'financialBudgets',u.tenant)),agreements:rows(s,'financialAgreements',u.tenant).map(a=>agreementView(s,u.tenant,a)),recurringTemplates:structuredClone(rows(s,'financialRecurringTemplates',u.tenant)),units:financialUnits(s,u),assessments:structuredClone(rows(s,'financialAssessments',u.tenant)),purchaseSources:purchaseSources(s,u),closures:rows(s,'financialClosures',u.tenant).map(({report,...c})=>structuredClone(c)),totalCents:balance(s,u.tenant),today:localDay(now)};
 }
 export function reverseEntry(s,u,input,now=Date.now()){
  const original=rows(s,'financialEntries',u.tenant).find(e=>e.id===input.id);
@@ -58,7 +60,7 @@ export function buildReport(s,u,month){
  const commitments=payablesAt(s,u.tenant,through),outstanding=commitments.filter(isOutstanding);
  const unregisteredPurchases=purchaseSources(s,u).filter(p=>p.receivedOn<=through&&!rows(s,'financialPayables',u.tenant).some(x=>x.purchaseId===p.id&&x.issuedOn<=through));
  const receivables=receivablesAt(s,u.tenant,through),receivableOutstanding=receivables.filter(isOutstanding),budget=budgetComparison(s,u.tenant,month);
- return {month,from,through,revision:revision(s,u.tenant),summary,accounts:accounts.map(a=>aggregate('accountId',{id:a.id,name:a.name})),funds:funds.map(f=>aggregate('fundId',{id:f.id,name:f.name})),allocations,entries:structuredClone(entries.filter(e=>e.date>=from)),outstanding,commitments,unregisteredPurchases,receivables,receivableOutstanding,budget,agreements:agreementsAt(s,u.tenant,through),assessments:assessmentsAt(s,u.tenant,through,receivables),unissuedAssessments:unissuedAssessments(s,u.tenant,through)};
+ return {month,from,through,revision:revision(s,u.tenant),summary,accounts:accounts.map(a=>aggregate('accountId',{id:a.id,name:a.name})),funds:funds.map(f=>aggregate('fundId',{id:f.id,name:f.name})),allocations,entries:structuredClone(entries.filter(e=>e.date>=from)),outstanding,commitments,unregisteredPurchases,receivables,receivableOutstanding,budget,reconciliation:reconciliationMonth(s,u.tenant,month,from,through),agreements:agreementsAt(s,u.tenant,through),assessments:assessmentsAt(s,u.tenant,through,receivables),unissuedAssessments:unissuedAssessments(s,u.tenant,through)};
 }
 export function financialReport(s,u,month){
  if(!canReadFinance(u))throw Object.assign(Error('Relatório financeiro indisponível.'),{status:403});

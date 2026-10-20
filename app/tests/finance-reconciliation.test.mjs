@@ -1,0 +1,58 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';import {randomUUID} from 'node:crypto';
+import {createFund,createAccount,toggleFinancial,createEntry,transfer,financeView,financialReport,financialClosureReport,closeMonth,reopenMonth,reverseEntry,importStatement,changeStatementRow,cancelStatement} from '../finance.mjs';
+import {previewStatement} from '../finance-reconciliation.mjs';import {parseStatementCSV} from '../finance-statements.mjs';import {revision,balance} from '../finance-ledger.mjs';
+const now=Date.parse('2026-10-19T12:00:00-03:00'),root={id:'s',name:'Gestão',tenant:'a',role:'sindico'};
+function base(){const s={},fund=createFund(s,root,{name:'Ordinário',purpose:'Operação corrente'},now),account=createAccount(s,root,{name:'Banco teste',kind:'bank',openingCents:10000,openingOn:'2026-09-01',fundId:fund.id,reason:'Saldo conferido'},now);return {s,fund,account};}
+function entry(b,patch={}){return createEntry(b.s,root,{operationId:randomUUID(),accountId:b.account.id,accountVersion:b.s.financialAccounts[0].version,fundId:b.fund.id,kind:'income',amountCents:5000,date:'2026-09-10',description:'Receita teste',category:'Contribuições',reference:'REC-001',reason:'Conferido',...patch},now);}
+const csv='id;data;descricao;valor\nREC-001;2026-09-10;Receita teste;50,00\nDESP-001;2026-09-11;Despesa teste;-20,00\n';
+const input=(b,patch={})=>({accountId:b.account.id,fileName:'extrato.csv',from:'2026-09-01',through:'2026-09-30',openingCents:10000,closingCents:13000,content:csv,reason:'Arquivo conferido',operationId:randomUUID(),...patch});
+function imported(b,patch={}){const data=input(b,patch),p=previewStatement(b.s,root,data,now);return importStatement(b.s,root,{...data,revision:p.revision,accountVersion:p.accountVersion},now);}
+function row(b,t,index,action,patch={}){return changeStatementRow(b.s,root,{id:t.id,version:b.s.financialStatements.find(x=>x.id===t.id).version,rowId:t.rows[index].id,action,reason:'Conferência documentada',...patch},now);}
+
+test('CSV lê BOM, CRLF, aspas e centavos assinados e recusa formatos ambíguos ou grandes',()=>{
+ const p=parseStatementCSV('\ufeffid;data;descricao;valor\r\nA;2026-09-10;"PIX; descrição ""teste""";+1,25\r\nB;2026-09-11;"duas\nlinhas";-0,75\r\n');assert.deepEqual(p.rows.map(r=>r.amountCents),[125,-75]);assert.equal(p.rows[0].description,'PIX; descrição "teste"');assert.equal(p.sha256.length,64);
+ for(const value of ['0,00','1.000,00','1.25','1,234','1000000,01'])assert.throws(()=>parseStatementCSV('id;data;descricao;valor\nA;2026-09-10;Teste;'+value));
+ for(const content of ['id,data,descricao,valor\nA,2026-09-10,Teste,1.00','id;id;descricao;valor','id;data;descricao;valor\nA;2026-02-30;Teste;1,00','id;data;descricao;valor\nA;2026-09-10;"sem fim;1,00','x'.repeat(204801),'id;data;descricao;valor\n'+Array.from({length:501},(_,i)=>i+';2026-09-10;Teste;1,00').join('\n')])assert.throws(()=>parseStatementCSV(content));
+});
+test('prévia não altera estado e importação preserva caixa, saldo e identificadores originais',()=>{
+ const b=base();entry(b);entry(b,{kind:'expense',amountCents:2000,date:'2026-09-11',reference:'DESP-001'});const before=structuredClone(b.s),p=previewStatement(b.s,root,input(b),now);assert.deepEqual(b.s,before);assert.equal(p.registeredOpeningCents,10000);assert.equal(p.registeredClosingCents,13000);assert.equal(p.rows[0].suggestions[0].referenceMatches,true);const t=imported(b);assert.equal(balance(b.s,'a'),13000);assert.ok(t.rows.every(r=>r.status==='pending'&&r.entryId===null));assert.equal(t.rows[0].externalId,'REC-001');assert.equal(t.content,undefined);
+});
+test('saldos incompatíveis, intervalo inválido, IDs repetidos e versões antigas falham sem gravação parcial',()=>{
+ const b=base(),before=structuredClone(b.s);for(const patch of [{closingCents:13001},{from:'2026-08-31'},{through:'2026-10-01'},{through:'2026-10-20'},{openingCents:'10000'},{content:csv+'REC-001;2026-09-12;Repetida;1,00\n',closingCents:13100}])assert.throws(()=>imported(b,patch));assert.deepEqual(b.s,before);
+ const p=previewStatement(b.s,root,input(b),now);entry(b);const saved=structuredClone(b.s);assert.throws(()=>importStatement(b.s,root,{...input(b),revision:p.revision,accountVersion:p.accountVersion},now),/mudou/);assert.deepEqual(b.s,saved);
+});
+test('duplicidade e sobreposição só permitem substituição depois de cancelar o extrato',()=>{
+ const b=base(),t=imported(b);assert.throws(()=>imported(b),/já importado/);assert.throws(()=>imported(b,{content:csv.replace('Receita teste','Outra descrição')}),/sobreposto/);
+ const before=structuredClone(b.s);assert.throws(()=>imported(b,{from:'2026-10-01',through:'2026-10-19',content:'id;data;descricao;valor\nREC-001;2026-10-01;Outra;1,00',openingCents:10000,closingCents:10100}),/Identificador bancário/);assert.deepEqual(b.s,before);
+ cancelStatement(b.s,root,{id:t.id,version:1,reason:'Arquivo substituído'},now);const next=imported(b);assert.notEqual(next.id,t.id);assert.equal(b.s.financialStatements[0].status,'cancelled');assert.equal(b.s.financialStatements.length,2);
+});
+test('vínculo exige mesma conta, valor com sinal, versão e lançamento ainda não utilizado',()=>{
+ const b=base(),e=entry(b),t=imported(b,{content:'id;data;descricao;valor\nA;2026-09-10;Receita um;50,00\nB;2026-09-10;Receita dois;50,00',closingCents:20000});const before=structuredClone(b.s);
+ assert.throws(()=>row(b,t,0,'match',{entryId:e.id,entryVersion:0}),/mudou/);assert.throws(()=>row(b,t,0,'match',{entryId:'outra',entryVersion:1}),/mesmo valor/);assert.deepEqual(b.s,before);
+ row(b,t,0,'match',{entryId:e.id,entryVersion:1});assert.throws(()=>row(b,t,1,'match',{entryId:e.id,entryVersion:1}),/já vinculado/);assert.throws(()=>cancelStatement(b.s,root,{id:t.id,version:b.s.financialStatements[0].version,reason:'Excluir'},now),/Desfaça todos/);row(b,t,0,'reset');row(b,t,1,'match',{entryId:e.id,entryVersion:1});assert.equal(balance(b.s,'a'),15000);
+});
+test('conferência completa compara saldos e cobertura, enquanto ignorar mantém ressalva',()=>{
+ const b=base(),income=entry(b),expense=entry(b,{kind:'expense',amountCents:2000,date:'2026-09-11',reference:'DESP-001'}),t=imported(b);row(b,t,0,'match',{entryId:income.id,entryVersion:1});row(b,t,1,'ignore');let r=financialReport(b.s,root,'2026-09').report.reconciliation.accounts[0];assert.equal(r.coverageComplete,true);assert.equal(r.complete,false);assert.equal(r.statements[0].ignoredCount,1);assert.equal(r.statements[0].unmatchedEntries.length,1);
+ row(b,t,1,'reset');row(b,t,1,'match',{entryId:expense.id,entryVersion:1});r=financialReport(b.s,root,'2026-09').report.reconciliation.accounts[0];assert.equal(r.complete,true);assert.equal(r.statements[0].closingDifferenceCents,0);assert.equal(balance(b.s,'a'),13000);
+});
+test('transferência concilia os dois lados sem duplicar receita e realocação entre fundos não sugere movimento bancário',()=>{
+ const b=base(),other=createAccount(b.s,root,{name:'Segundo banco',kind:'bank',openingCents:0,openingOn:'2026-09-01',fundId:b.fund.id,reason:'Conta zerada'},now),e=transfer(b.s,root,{kind:'transfer',accountId:b.account.id,accountVersion:1,targetAccountId:other.id,targetAccountVersion:1,fundId:b.fund.id,date:'2026-09-10',amountCents:1000,description:'Transferência teste',reference:'TRANSF-001',reason:'Conferido',operationId:randomUUID()},now);
+ const reserve=createFund(b.s,root,{name:'Reserva',purpose:'Reserva teste'},now);transfer(b.s,root,{kind:'fundTransfer',accountId:b.account.id,accountVersion:b.s.financialAccounts[0].version,fundId:b.fund.id,targetFundId:reserve.id,date:'2026-09-10',amountCents:1000,description:'Realocação teste',reference:'REALOC-001',reason:'Conferido',operationId:randomUUID()},now);
+ const first=imported(b,{content:'id;data;descricao;valor\nT;2026-09-10;Transferência;-10,00',closingCents:9000}),second=imported(b,{accountId:other.id,content:'id;data;descricao;valor\nT;2026-09-10;Transferência;10,00',openingCents:0,closingCents:1000});row(b,first,0,'match',{entryId:e.id,entryVersion:1});row(b,second,0,'match',{entryId:e.id,entryVersion:1});assert.ok(financialReport(b.s,root,'2026-09').report.reconciliation.accounts.every(a=>a.complete));assert.equal(financialReport(b.s,root,'2026-09').report.summary.incomeCents,0);
+});
+test('conta zerada com movimento pendente ou ignorado só é inativada após resolver ou cancelar extrato',()=>{
+ const b=base();entry(b,{kind:'expense',amountCents:10000,reference:'ENCERRA-001'});const t=imported(b,{content:'id;data;descricao;valor\nENCERRA-001;2026-09-10;Saída;-100,00',closingCents:0}),toggle={kind:'account',id:b.account.id,version:b.s.financialAccounts[0].version,active:false,reason:'Encerramento teste'};
+ assert.throws(()=>toggleFinancial(b.s,root,toggle,now),/pendentes ou ressalvas/);row(b,t,0,'ignore');assert.throws(()=>toggleFinancial(b.s,root,toggle,now),/pendentes ou ressalvas/);cancelStatement(b.s,root,{id:t.id,version:b.s.financialStatements[0].version,reason:'Cancelar antes de encerrar'},now);assert.equal(toggleFinancial(b.s,root,toggle,now).active,false);assert.equal(financeView(b.s,root,now).statements[0].status,'cancelled');
+});
+test('datas fora do intervalo e lacunas de cobertura mantêm conferência pendente mesmo com valor vinculado',()=>{
+ const b=base(),e=entry(b,{date:'2026-10-01'}),t=imported(b,{content:'id;data;descricao;valor\nA;2026-09-30;Receita;50,00',closingCents:15000});row(b,t,0,'match',{entryId:e.id,entryVersion:1});const r=financialReport(b.s,root,'2026-09').report.reconciliation.accounts[0];assert.equal(r.complete,false);assert.equal(r.statements[0].outsidePeriodCount,1);assert.equal(r.statements[0].closingDifferenceCents,5000);
+ const empty=base();imported(empty,{from:'2026-09-02',content:'id;data;descricao;valor\n',closingCents:10000});const gap=financialReport(empty.s,root,'2026-09').report.reconciliation.accounts[0];assert.equal(gap.statements[0].complete,true);assert.equal(gap.coverageComplete,false);
+});
+test('fechamento congela conferência e bloqueia correção até reabertura, preservando hash anterior',()=>{
+ const b=base(),income=entry(b),expense=entry(b,{kind:'expense',amountCents:2000,date:'2026-09-11',reference:'DESP-001'}),t=imported(b);row(b,t,0,'match',{entryId:income.id,entryVersion:1});row(b,t,1,'match',{entryId:expense.id,entryVersion:1});const c=closeMonth(b.s,root,{month:'2026-09',revision:revision(b.s,'a'),reason:'Conferido'},now);
+ assert.throws(()=>row(b,t,0,'reset'),/Período encerrado/);reverseEntry(b.s,root,{id:income.id,version:1,date:'2026-10-19',reference:'ESTORNO-001',reason:'Devolução conferida',operationId:randomUUID(),accountVersions:[{id:b.account.id,version:b.s.financialAccounts[0].version}]},now);assert.equal(financialReport(b.s,root,'2026-09').sha256,c.sha256);
+ reopenMonth(b.s,root,{id:c.id,version:1,revision:revision(b.s,'a'),reason:'Revisão'},now);row(b,t,0,'reset');assert.equal(financialClosureReport(b.s,root,c.id).report.reconciliation.accounts[0].complete,true);assert.equal(financialClosureReport(b.s,root,c.id).sha256,c.sha256);
+});
+test('controle importa/confere e consulta/operação/outros condomínios não escrevem ou obtêm extratos alheios',()=>{
+ const b=base();for(const u of [{...root,role:'subsindico',delegations:['financeRead']},{...root,role:'administradora',delegations:['finance']},{...root,tenant:'b'}])assert.throws(()=>previewStatement(b.s,u,input(b),now));const t=imported(b);assert.deepEqual(financeView(b.s,{...root,tenant:'b'},now).statements,[]);assert.equal(financeView(b.s,{tenant:'a',role:'proprietario'},now),null);assert.throws(()=>changeStatementRow(b.s,{...root,tenant:'b'},{id:t.id,version:1,rowId:t.rows[0].id,action:'ignore',reason:'Teste'},now));
+});
