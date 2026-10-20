@@ -66,7 +66,7 @@ Desenvolvimento, homologação e produção separados. Backups de banco e arquiv
 
 ## 6. Base de regras e proteção de dados
 
-Confirmar município/UF e regime jurídico do Chandra antes de transformar regras em configuração. Reunir convenção, regimento e atas relevantes; estudar Código Civil, legislação locatícia, assembleias eletrônicas e LGPD, com validação jurídica quando necessária. A especificação inicial contém fontes oficiais e pontos de atenção.
+Município/UF informado pelo usuário em 20/10/2026: Arraial do Cabo/RJ. Confirmar o regime jurídico do Chandra antes de transformar regras em configuração. Reunir convenção, regimento e atas relevantes; estudar Código Civil, legislação locatícia, assembleias eletrônicas e LGPD, com validação jurídica quando necessária. A especificação inicial contém fontes oficiais e pontos de atenção.
 
 Definir finalidade e base legal dos tratamentos, responsáveis por dados, retenção por categoria, acesso de fornecedores, atendimento a titulares e resposta a incidentes. Região brasileira do banco não garante localização de todo tratamento. Dados fictícios no piloto de desenvolvimento; documentos reais somente em ambiente apropriado.
 
