@@ -8,3 +8,13 @@
 .diagnostics
 previa-*.png
 marca/
+**/*.key
+**/*.pem
+**/*.p8
+**/*.p12
+**/*.jks
+**/*.keystore
+**/*.mobileprovision
+**/*.dmp
+**/.backups
+**/.diagnostics
