@@ -32,7 +32,7 @@ O serviço atende somente em 127.0.0.1. Para distribuição ainda faltam Postgre
 
 ## Verificação
 
-`npm test`: 119 testes, incluindo integração HTTP com contas sintéticas temporárias, domínio, delegações, manutenção, reservas, encomendas, avisos e persistência após reinício. Cobre escopo de casas e condomínios, convite único, sessão, suspensão, expiração de delegação, troca de senha e campos mínimos por perfil. O teste HTTP exige conexão de loopback permitida. A tela inicial foi conferida no navegador; a senha da conta real deve ser criada pelo usuário.
+`npm test`: 133 testes, incluindo integração HTTP com contas sintéticas temporárias, domínio, delegações, manutenção, reservas, encomendas, avisos e persistência após reinício. Cobre escopo de casas e condomínios, convite único, sessão, suspensão, expiração de delegação, troca de senha e campos mínimos por perfil. O teste HTTP exige conexão de loopback permitida. A tela inicial foi conferida no navegador; a senha da conta real deve ser criada pelo usuário.
 
 
 ## Moradores e vínculos
@@ -104,7 +104,7 @@ No menu de delegações, o síndico concede separadamente:
 
 - **Consulta financeira:** saldos, contas a pagar/receber, orçamento e relatórios, sem escrita.
 - **Lançamentos, contas a pagar e receber:** receitas/despesas, transferências entre contas, contas a pagar/receber, geração de rateios aprovados e baixas manuais integrais/parciais; proposta e ativação de acordos.
-- **Contas, orçamento, rateios, modelos, acordos e fechamento:** cadastros/saldos iniciais, realocação entre fundos, ajustes, previsões orçamentárias, preparação/aprovação de rateios, modelos recorrentes, aprovação/cancelamento de acordos e fechamento.
+- **Controle financeiro:** cadastros/saldos iniciais, realocação entre fundos, ajustes, previsões orçamentárias, preparação/aprovação de rateios, modelos recorrentes, aprovação/cancelamento de acordos, conciliação de extratos e fechamento.
 - **Exportação financeira:** leitura e download de relatórios JSON, sem escrita.
 
 Comece em Financeiro → Contas e fundos. Cadastre fundos/finalidades e uma conta bancária ou caixa com saldo inicial, data e origem. Fundos são destinações do saldo das contas; não some os totais das duas visões. Ajustes e estornos preservam os registros anteriores. O piloto não permite saldo negativo ao fim do dia por conta/fundo, nem lançamento anterior ao saldo inicial, no futuro ou em período encerrado.
@@ -131,7 +131,13 @@ Em Rateios recorrentes, controle cria modelo a partir de rateio aprovado/gerado 
 
 Consulte um mês em Relatório mensal. O relatório mostra contas/fundos, movimentos, contas a pagar/receber na data de corte, orçamento versus realizado, distribuição dos rateios, acordos/parcelas na data de corte e pendências de compras/rateios aprovados ainda não gerados. Receitas/despesas aparecem antes dos estornos, mostrados separadamente. Feche somente mês concluído, após conferir saldos, compromissos das compras recebidas e gerar/cancelar os rateios aprovados com emissão no período. O fechamento bloqueia o período e anteriores; próximos meses devem seguir em sequência. Só o síndico reabre o último fechamento. Cada versão fechada mantém relatório, revisão orçamentária e hash; fechamentos anteriores aos novos módulos continuam sem campos retroativos; históricos podem ser consultados mesmo após reabertura. Exportação JSON requer permissão própria.
 
-Não há transferência bancária, pagamento, conciliação, cobrança externa ou emissão recorrente automática. Os saldos são registros gerenciais manuais, sem validação bancária. Ainda faltam conciliação por extrato, cobrança com parceiro e evoluções de acordos/rateios. Valores de teste são sintéticos. Até R$ 1.000.000,00 por registro. Verificação atual: 119 testes aprovados e fluxo conferido no Chromium, incluindo consulta em tela móvel.
+Em Conciliação por extrato, controle financeiro seleciona conta bancária, intervalo de um único mês aberto e saldos antes/depois dos movimentos. Envie CSV UTF-8 de até 200 KiB/500 movimentos, conforme [modelo sintético](modelo-extrato.csv): `id;data;descricao;valor`, data `AAAA-MM-DD`, valor com vírgula e duas casas, sem milhar; saídas negativas e ID estável/único na conta. Aceita BOM, CRLF e campos entre aspas. A prévia não grava; confira valores e confirme a importação com justificativa. Saldo inicial mais movimentos deve ser igual ao saldo final informado. O saldo inicial cadastrado é considerado antes dos movimentos da própria data. Intervalos ativos não podem se sobrepor.
+
+Abra cada movimento e selecione explicitamente um lançamento existente com mesma conta, valor e sinal. Registre entradas/saídas pelos fluxos apropriados antes de vincular: importação e conferência não alteram caixa ou recebíveis. Cada lançamento aceita um vínculo por conta; transferências têm dois lados e realocação entre fundos não precisa de par bancário. Datas diferentes, lançamentos sem par, diferenças de saldo e movimentos ignorados permanecem visíveis. Ignorar exige motivo e mantém ressalva. Desfazer preserva histórico; cancelar exige desfazer todos os vínculos e permite substituir o intervalo sem apagar os dados anteriores. Conta com movimentos pendentes/ignorados em extrato ativo não pode ser inativada.
+
+O relatório mostra cobertura por conta bancária; o mês só fica conferido com cobertura integral e sem diferenças/ressalvas. Fechar mês ainda aceita conciliação incompleta e preserva essas pendências no relatório/exportação. Para corrigir extratos de mês fechado, solicite reabertura ao síndico. Fechamentos anteriores mantêm conteúdo/hash. Estornar não desfaz a conferência do lançamento original; o lançamento inverso precisa de conferência própria. O hash identifica o conteúdo UTF-8 recebido, incluindo BOM; o CSV original não é armazenado, apenas dados normalizados e histórico. Consulta/operação/exportação financeira leem extratos, mas só controle pode importar, vincular ou cancelar.
+
+Não há transferência bancária, pagamento, cobrança externa ou emissão recorrente automática. Os saldos e extratos são informados manualmente, sem autenticação bancária. Ainda faltam parceiro de cobrança/retornos autenticados, OFX e formatos específicos de bancos, divisão/agregação de movimentos e evoluções de acordos/rateios. Valores de teste são sintéticos. Até R$ 1.000.000,00 por movimento. Verificação atual: 133 testes aprovados e fluxo conferido no Chromium, incluindo consulta em tela móvel.
 
 Prévias com valores sintéticos: [relatório mensal](../previa-financeiro.png) e [consulta no celular](../previa-financeiro-mobile.png).
 
@@ -140,3 +146,5 @@ Prévias desta continuação: [orçamento no relatório](../previa-orcamento.png
 Prévias dos rateios com valores sintéticos: [distribuição por unidade](../previa-rateios.png) e [consulta no celular](../previa-rateios-mobile.png).
 
 Prévias destas três etapas: [baixa parcial](../previa-baixas-parciais.png), [acordo e parcelas](../previa-acordos.png) e [recorrência no celular](../previa-recorrencia-mobile.png).
+
+Prévias da conciliação: [extrato conferido](../previa-conciliacao.png) e [consulta no celular](../previa-conciliacao-mobile.png).
