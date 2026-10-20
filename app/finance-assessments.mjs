@@ -84,6 +84,6 @@ export function unissuedAssessments(s,tenant,through){
 export function assessmentsAt(s,tenant,through,receivables){
  return rows(s,'financialAssessments',tenant).filter(a=>a.status==='generated'&&a.issuedOn<=through).map(a=>{
   const lines=a.lines.map(l=>{const r=receivables.find(r=>r.id===l.receivableId);return {...structuredClone(l),status:r?.status||'open',receivedCents:r?.receivedCents||0};});
-  return {id:a.id,title:a.title,reference:a.reference,month:a.month,issuedOn:a.issuedOn,dueOn:a.dueOn,fundId:a.fundId,fundName:a.fundName,category:a.category,basis:a.basis,totalCents:a.totalCents,method:a.method,approval:structuredClone(a.approval),lines};
+  return {id:a.id,title:a.title,reference:a.reference,month:a.month,issuedOn:a.issuedOn,dueOn:a.dueOn,fundId:a.fundId,fundName:a.fundName,category:a.category,basis:a.basis,recurringTemplateId:a.recurringTemplateId||null,recurringTemplateName:a.recurringTemplateName||null,totalCents:a.totalCents,method:a.method,approval:structuredClone(a.approval),lines};
  });
 }

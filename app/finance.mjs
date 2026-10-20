@@ -6,9 +6,13 @@ import {purchaseSources,payablesAt} from './finance-payables.mjs';
 import {receivablesAt} from './finance-receivables.mjs';
 import {budgetComparison} from './finance-budget.mjs';
 import {financialUnits,unissuedAssessments,assessmentsAt} from './finance-assessments.mjs';
+import {agreementView,agreementsAt} from './finance-agreements.mjs';
+import {isOutstanding,settlementView,lastSettlementDate,syncSettlement} from './finance-settlements.mjs';
 export {createFund,createAccount,toggleFinancial,createEntry,transfer} from './finance-ledger.mjs';
-export {createPayable,importPurchase,payPayable,changePayable,editPayable} from './finance-payables.mjs';
-export {createReceivable,receiveReceivable,changeReceivable,editReceivable} from './finance-receivables.mjs';
+export {createPayable,importPurchase,payPayable,payPayablePartial,changePayable,editPayable} from './finance-payables.mjs';
+export {createReceivable,receiveReceivable,receiveReceivablePartial,changeReceivable,editReceivable} from './finance-receivables.mjs';
+export {createAgreement,approveAgreement,activateAgreement,cancelAgreement} from './finance-agreements.mjs';
+export {saveRecurringTemplate,toggleRecurringTemplate,prepareRecurringAssessment} from './finance-recurring.mjs';
 export {saveBudget} from './finance-budget.mjs';
 export {saveAssessment,approveAssessment,cancelAssessment,generateAssessment} from './finance-assessments.mjs';
 export function financeView(s,u,now=Date.now()){
@@ -16,7 +20,7 @@ export function financeView(s,u,now=Date.now()){
  const accounts=rows(s,'financialAccounts',u.tenant).map(a=>({...structuredClone(a),balanceCents:balance(s,u.tenant,a.id)}));
  const funds=rows(s,'financialFunds',u.tenant).map(f=>({...structuredClone(f),balanceCents:balance(s,u.tenant,null,f.id)}));
  const allocations=accounts.flatMap(a=>funds.map(f=>({accountId:a.id,fundId:f.id,balanceCents:balance(s,u.tenant,a.id,f.id)})));
- return {revision:revision(s,u.tenant),lastClosedMonth:lastClosedMonth(s,u.tenant),accounts,funds,allocations,entries:structuredClone(ledger(s,u.tenant)),payables:structuredClone(rows(s,'financialPayables',u.tenant)),receivables:structuredClone(rows(s,'financialReceivables',u.tenant)),budgets:structuredClone(rows(s,'financialBudgets',u.tenant)),units:financialUnits(s,u),assessments:structuredClone(rows(s,'financialAssessments',u.tenant)),purchaseSources:purchaseSources(s,u),closures:rows(s,'financialClosures',u.tenant).map(({report,...c})=>structuredClone(c)),totalCents:balance(s,u.tenant),today:localDay(now)};
+ return {revision:revision(s,u.tenant),lastClosedMonth:lastClosedMonth(s,u.tenant),accounts,funds,allocations,entries:structuredClone(ledger(s,u.tenant)),payables:rows(s,'financialPayables',u.tenant).map(r=>settlementView(s,u.tenant,'payable',r)),receivables:rows(s,'financialReceivables',u.tenant).map(r=>settlementView(s,u.tenant,'receivable',r)),budgets:structuredClone(rows(s,'financialBudgets',u.tenant)),agreements:rows(s,'financialAgreements',u.tenant).map(a=>agreementView(s,u.tenant,a)),recurringTemplates:structuredClone(rows(s,'financialRecurringTemplates',u.tenant)),units:financialUnits(s,u),assessments:structuredClone(rows(s,'financialAssessments',u.tenant)),purchaseSources:purchaseSources(s,u),closures:rows(s,'financialClosures',u.tenant).map(({report,...c})=>structuredClone(c)),totalCents:balance(s,u.tenant),today:localDay(now)};
 }
 export function reverseEntry(s,u,input,now=Date.now()){
  const original=rows(s,'financialEntries',u.tenant).find(e=>e.id===input.id);
@@ -24,10 +28,11 @@ export function reverseEntry(s,u,input,now=Date.now()){
  requireFinance(u,['fundTransfer','adjustment'].includes(original.kind)?'financeClose':'finance');
  if(!Number.isInteger(input.version)||input.version!==original.version||original.reversalId)throw Error('Lançamento já estornado ou versão desatualizada.');
  const on=openDate(s,u,input.date,now);if(on<original.date)throw Error('Estorno anterior ao lançamento original.');const reason=text(input.reason,'Motivo do estorno',500),reference=text(input.reference,'Referência do estorno');
+ for(const kind of ['payable','receivable'])if(original[kind+'Id']){const r=rows(s,kind==='payable'?'financialPayables':'financialReceivables',u.tenant).find(r=>r.id===original[kind+'Id']);if(r.activeAgreementId)throw Error('Cancele o acordo após estornar suas parcelas antes de alterar a origem.');if(on<lastSettlementDate(s,u.tenant,kind,r))throw Error('Estorno anterior à última alteração ou baixa da conta vinculada.');}
  const reversal=post(s,u,{operationId:input.operationId,kind:'reversal',date:on,description:'Estorno · '+original.description,category:'Estorno',reference,reason,amountCents:original.amountCents,reversalOf:original.id,payableId:original.payableId||null,receivableId:original.receivableId||null,purchaseId:original.purchaseId||null,postings:original.postings.map(p=>({...p,amountCents:-p.amountCents}))},input.accountVersions,now);
  original.reversalId=reversal.id;original.version++;
- if(original.payableId){const p=rows(s,'financialPayables',u.tenant).find(p=>p.id===original.payableId);p.status='open';p.paymentEntryId=null;p.version++;p.events.push({date:on,kind:'open',reason});p.history.push({at:new Date(now).toISOString(),actor:u.name,action:'Saída estornada; compromisso reaberto',entryId:reversal.id,reason});}
- if(original.receivableId){const r=rows(s,'financialReceivables',u.tenant).find(r=>r.id===original.receivableId);r.status='open';r.receiptEntryId=null;r.version++;r.events.push({date:on,kind:'open',reason});r.history.push({at:new Date(now).toISOString(),actor:u.name,action:'Entrada estornada; conta a receber reaberta',entryId:reversal.id,reason});}
+ if(original.payableId){const p=rows(s,'financialPayables',u.tenant).find(p=>p.id===original.payableId);p.version++;p.events.push({date:on,kind:'open',reason});syncSettlement(s,u.tenant,'payable',p);p.history.push({at:new Date(now).toISOString(),actor:u.name,action:'Saída estornada; saldo a pagar reaberto',entryId:reversal.id,reason});}
+ if(original.receivableId){const r=rows(s,'financialReceivables',u.tenant).find(r=>r.id===original.receivableId);r.version++;r.events.push({date:on,kind:'open',reason});syncSettlement(s,u.tenant,'receivable',r);r.history.push({at:new Date(now).toISOString(),actor:u.name,action:'Entrada estornada; saldo a receber reaberto',entryId:reversal.id,reason});}
  return reversal;
 }
 function monthRange(value){
@@ -50,10 +55,10 @@ export function buildReport(s,u,month){
  }
  function aggregate(key,record){return {...record,...allocations.filter(r=>r[key]===record.id).reduce((sum,r)=>{for(const k of Object.keys(sum))sum[k]+=r[k];return sum;},totals())};}
  const summary=allocations.reduce((sum,r)=>{for(const k of Object.keys(sum))sum[k]+=r[k];return sum;},totals());
- const commitments=payablesAt(s,u.tenant,through),outstanding=commitments.filter(p=>p.status==='open');
+ const commitments=payablesAt(s,u.tenant,through),outstanding=commitments.filter(isOutstanding);
  const unregisteredPurchases=purchaseSources(s,u).filter(p=>p.receivedOn<=through&&!rows(s,'financialPayables',u.tenant).some(x=>x.purchaseId===p.id&&x.issuedOn<=through));
- const receivables=receivablesAt(s,u.tenant,through),receivableOutstanding=receivables.filter(r=>r.status==='open'),budget=budgetComparison(s,u.tenant,month);
- return {month,from,through,revision:revision(s,u.tenant),summary,accounts:accounts.map(a=>aggregate('accountId',{id:a.id,name:a.name})),funds:funds.map(f=>aggregate('fundId',{id:f.id,name:f.name})),allocations,entries:structuredClone(entries.filter(e=>e.date>=from)),outstanding,commitments,unregisteredPurchases,receivables,receivableOutstanding,budget,assessments:assessmentsAt(s,u.tenant,through,receivables),unissuedAssessments:unissuedAssessments(s,u.tenant,through)};
+ const receivables=receivablesAt(s,u.tenant,through),receivableOutstanding=receivables.filter(isOutstanding),budget=budgetComparison(s,u.tenant,month);
+ return {month,from,through,revision:revision(s,u.tenant),summary,accounts:accounts.map(a=>aggregate('accountId',{id:a.id,name:a.name})),funds:funds.map(f=>aggregate('fundId',{id:f.id,name:f.name})),allocations,entries:structuredClone(entries.filter(e=>e.date>=from)),outstanding,commitments,unregisteredPurchases,receivables,receivableOutstanding,budget,agreements:agreementsAt(s,u.tenant,through),assessments:assessmentsAt(s,u.tenant,through,receivables),unissuedAssessments:unissuedAssessments(s,u.tenant,through)};
 }
 export function financialReport(s,u,month){
  if(!canReadFinance(u))throw Object.assign(Error('Relatório financeiro indisponível.'),{status:403});
