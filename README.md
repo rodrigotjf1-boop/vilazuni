@@ -15,6 +15,10 @@ Plataforma de gestão e convivência para múltiplos condomínios. Piloto: **Con
 
 ## Demonstração local
 
-Há uma versão executável em [app](app/README.md). Para abrir no Windows, executar `Iniciar Vilazuni.cmd` e visitar o endereço informado. O primeiro acesso solicita a criação da conta local de gestão; depois, a gestão emite convites pelo botão com seu nome. Login e permissões são verificados no servidor. Casas e operações continuam com dados fictícios; hospedagem, recuperação de conta e banco de produção ainda não estão implantados. Não inserir dados reais de moradores nesta etapa.
+Há uma versão executável em [app](app/README.md). Para abrir no Windows, executar `Iniciar Vilazuni.cmd` e visitar o endereço informado. O primeiro acesso solicita a criação da conta local de gestão; depois, a gestão emite convites pelo botão com seu nome. Login e permissões são verificados no servidor. Casas e operações continuam com dados fictícios; a versão 0.2.0 inclui preparo de PostgreSQL, MFA, recuperação e implantação; hospedagem pública ainda não foi contratada ou ativada. Não inserir dados reais de moradores nesta etapa.
 
 [Estado de desenvolvimento e limitações](STATUS_DO_PROJETO.md).
+
+## Entrega 0.2.0
+
+As etapas técnicas 6–8 incluem assistência/governança, PWA e projetos móveis, teste controlado de equipamentos e distribuição para vários condomínios. Veja [estado atual](STATUS_DO_PROJETO.md), [implantação](deploy/README.md) e [aplicativos](mobile/README.md). Credenciais, domínio, distribuição assinada e homologação real pertencem à ativação operacional posterior.

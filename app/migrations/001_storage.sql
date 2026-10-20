@@ -1,0 +1,10 @@
+BEGIN;
+CREATE TABLE IF NOT EXISTS vilazuni_schema_versions(version integer PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS vilazuni_control(id integer PRIMARY KEY CHECK(id=1), revision bigint NOT NULL CHECK(revision>0), payload jsonb NOT NULL);
+CREATE TABLE IF NOT EXISTS vilazuni_tenants(tenant text PRIMARY KEY, payload jsonb NOT NULL);
+ALTER TABLE vilazuni_tenants ENABLE ROW LEVEL SECURITY;
+ALTER TABLE vilazuni_tenants FORCE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS tenant_scope ON vilazuni_tenants;
+CREATE POLICY tenant_scope ON vilazuni_tenants USING (tenant = current_setting('vilazuni.tenant', true)) WITH CHECK (tenant = current_setting('vilazuni.tenant', true));
+INSERT INTO vilazuni_schema_versions(version) VALUES(1) ON CONFLICT DO NOTHING;
+COMMIT;

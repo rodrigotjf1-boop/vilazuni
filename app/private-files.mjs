@@ -1,0 +1,9 @@
+import fs from 'node:fs/promises';import path from 'node:path';import {createHash,randomUUID} from 'node:crypto';
+const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
+function attachments(db){return [...(db.state.documents||[]).flatMap(d=>d.versions.map(file=>({tenant:d.tenant,file}))),...(db.state.tasks||[]).flatMap(t=>(t.photos||[]).map(file=>({tenant:t.tenant,file})))];}
+export function privateFileStorage(storage,directory){
+ const root=path.resolve(directory);function location(tenant,sha){if(typeof tenant!=='string'||!/^[a-f\d]{64}$/.test(sha))throw Error('Referência privada inválida.');return path.join(root,hash(Buffer.from(tenant)),sha);}
+ return {kind:storage.kind,async load(){return hydratePrivateDatabase(await storage.load(),root);},async save(db){const next=structuredClone(db);for(const {tenant,file} of attachments(next)){if(!file.data)continue;const bytes=Buffer.from(file.data,'base64'),sha=hash(bytes);if(file.sha256&&sha!==file.sha256)throw Error('Integridade do anexo não confirmada.');const target=location(tenant,sha);await fs.mkdir(path.dirname(target),{recursive:true,mode:0o700});try{await fs.access(target);}catch{const tmp=target+'.'+randomUUID();await fs.writeFile(tmp,bytes,{mode:0o600,flag:'wx'});await fs.rename(tmp,target);}file.sha256=sha;file.blob=sha;delete file.data;}return storage.save(next);},close:()=>storage.close()};
+}
+
+export async function hydratePrivateDatabase(db,directory){const root=path.resolve(directory);for(const {tenant,file} of attachments(db)){if(!file.blob)continue;if(!/^[a-f\d]{64}$/.test(file.blob)||typeof tenant!=='string')throw Error('Referência de arquivo inválida.');const bytes=await fs.readFile(path.join(root,hash(Buffer.from(tenant)),file.blob));if(hash(bytes)!==file.sha256)throw Error('Integridade do arquivo privado não confirmada.');file.data=bytes.toString('base64');delete file.blob;}return db;}

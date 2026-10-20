@@ -66,7 +66,7 @@ O cadastro de cargos e delegações não autoriza ninguém a ampliar seus própr
 
 O piloto aplica autenticação e autorização no servidor para cinco perfis: síndico, proprietário, imobiliária de locação, portaria e zeladoria. Os demais perfis da matriz continuam planejados. Convites de usuários comuns são emitidos exclusivamente pelo síndico; nenhum convite concede cargo de gestão. Imobiliária exige casas explícitas e data de término. O vínculo é verificado a cada requisição; suspensão invalida sessões e não existe autoampliação de escopo.
 
-As credenciais são configuradas pelas próprias pessoas no aplicativo. A conta inicial somente pode ser criada uma vez na base local. Não há recuperação de senha por e-mail nesta etapa: a troca autenticada exige a senha atual. Convites não são enviados automaticamente. Uma conta pertence a um condomínio neste piloto; múltiplos vínculos ainda não estão implementados.
+As credenciais são configuradas pelas próprias pessoas no aplicativo. A conta inicial somente pode ser criada uma vez na base local. A versão 0.2.0 acrescenta recuperação opcional por e-mail, MFA e múltiplos vínculos por identidade. Convites não são enviados automaticamente. A troca de contexto e cada operação revalidam o vínculo atual.
 
 Sessões: token opaco de 32 bytes, cookie HttpOnly/SameSite=Strict, prazo absoluto de oito horas e ociosidade de trinta minutos verificados no servidor. Reiniciar o servidor encerra sessões. Alterar a senha encerra as sessões anteriores. Operações de escrita exigem origem local exata; tentativas de autenticação são limitadas. Dados de domínio e senhas não são disponibilizados pela rota de arquivos estáticos. Senhas usam scrypt com salt individual; códigos de convite são persistidos como hash. A API local não substitui PostgreSQL, RLS, HTTPS e revisão de segurança necessários à distribuição.
 
@@ -145,4 +145,4 @@ Resumo comunitário usa somente fontes liberadas para todas as contas. Resumo pr
 
 Gestão com `governance` publica e encerra/cancela enquetes consultivas no condomínio. Público é definido na publicação: proprietários/ocupantes, ou todas as contas. Uma resposta por conta, sem voto por unidade/quórum. Gestão consulta totais durante a coleta; participantes somente ao encerrar. Nenhum perfil recebe pela API a relação de respostas individuais. Resposta guarda conta e data na base; não prometer anonimato. Permissão, prazo e opção são reavaliados em cada envio, inclusive concorrente ao encerramento.
 
-Canal externo, modelo generativo, envio de resumos, ações assistidas e assembleias com representação formal não estão habilitados por essas delegações. Ver [etapa 6](ETAPA_6_FONTES_E_GOVERNANCA.md).
+Na versão 0.2.0, as delegações adicionais `communications`, `assemblies` e `physicalAccess` controlam as novas frentes; não são atribuídas automaticamente a delegações antigas. Modelo/canal dependem de configuração segura. Ver [etapa 6](ETAPA_6_FONTES_E_GOVERNANCA.md).

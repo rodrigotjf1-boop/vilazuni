@@ -12,7 +12,7 @@ function date(value,label){
  return value;
 }
 function content(input,number,user,now){
- if(!['community','management'].includes(input.audience))throw Error('Escolha o público da fonte.');
+ if(!['community','management','external'].includes(input.audience))throw Error('Escolha o público da fonte.');
  const effectiveFrom=date(input.effectiveFrom,'Início da vigência'),expiresOn=input.expiresOn?date(input.expiresOn,'Fim da vigência'):null;
  if(expiresOn&&expiresOn<effectiveFrom)throw Error('O fim da vigência deve ser igual ou posterior ao início.');
  const fields={title:text(input.title,'Título'),reference:text(input.reference,'Documento e trecho de origem',500),body:text(input.body,'Texto conferido',12000),audience:input.audience,effectiveFrom,expiresOn};
@@ -56,11 +56,11 @@ export function toggleSource(state,user,input,now=Date.now()){
  source.active=input.active;source.version++;audit(source,user,input.active?'Fonte reativada':'Fonte retirada de consulta',reason,now);return structuredClone(source);
 }
 export function publishedSources(state,user,audience='private',now=Date.now()){
- if(!['private','community'].includes(audience))throw Error('Público de consulta inválido.');
+ if(!['private','community','external'].includes(audience))throw Error('Público de consulta inválido.');
  const today=localDay(now);
  return (state.knowledgeSources||[]).filter(s=>s.tenant===user.tenant&&s.active).flatMap(source=>{
   const r=source.revisions.find(r=>r.number===source.publishedNumber&&r.status==='published');
-  if(!r||r.effectiveFrom>today||r.expiresOn&&r.expiresOn<today||r.audience==='management'&&(audience==='community'||!can(user,'knowledge')))return [];
+  if(!r||audience==='external'&&r.audience!=='external'||r.effectiveFrom>today||r.expiresOn&&r.expiresOn<today||r.audience==='management'&&(audience==='community'||!can(user,'knowledge')))return [];
   return [{id:source.id,...structuredClone(r)}];
  });
 }

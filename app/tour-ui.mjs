@@ -18,7 +18,7 @@ export function createTourUI({getState,getUser,panel,refresh,refreshTour,world,o
     map.querySelectorAll('[data-tour-point]').forEach(b=>{const p=places.find(p=>p.id===b.dataset.tourPoint);b.style.setProperty('--map-x',p.map.x+'%');b.style.setProperty('--map-y',p.map.y+'%');});
     dock.querySelectorAll('[data-tour-point]').forEach(b=>b.onclick=()=>detail(b.dataset.tourPoint));
    }
-   form.onsubmit=e=>e.preventDefault();form.addEventListener('input',render);form.addEventListener('change',render);render();
+   form.onsubmit=e=>e.preventDefault();form.addEventListener('input',render);form.elements.kind.addEventListener('change',render);form.elements.accessible.addEventListener('change',render);render();
    dock.querySelector('#tour-map-tab').onclick=()=>{view='map';dock.querySelector('#tour-map-tab').setAttribute('aria-pressed','true');dock.querySelector('#tour-list-tab').setAttribute('aria-pressed','false');render();};
    dock.querySelector('#tour-list-tab').onclick=()=>{view='list';dock.querySelector('#tour-map-tab').setAttribute('aria-pressed','false');dock.querySelector('#tour-list-tab').setAttribute('aria-pressed','true');render();};
    dock.querySelector('#tour-refresh').onclick=()=>directory();dock.querySelector('#tour-show-3d')?.addEventListener('click',()=>{if(world().show3D())closePanel();});
