@@ -20,9 +20,9 @@ A tabela de fundação abaixo continua sendo a direção do produto. A implement
 | Compras e fornecedores | Preparação por módulo próprio; aprovador separado, com limite explícito; sem autoaprovação, mesmo para síndico; contatos do fornecedor apenas a quem prepara |
 | Recebimento de compra | Preparação e, para consumíveis, acesso a materiais; gravação única de estoque e compra; versão atual obrigatória |
 | Documentos privados | Somente contas com módulo de documentos; responsável precisa manter acesso; download de cada versão autenticado por condomínio; moradores não recebem arquivos ou prazos |
-| Consulta financeira | Leitura de contas/fundos, lançamentos, compromissos e relatórios; sem escrita/exportação explícita |
-| Operação financeira | Registro manual de receita/despesa, transferência entre contas, compromissos, baixa integral e estorno; sem controle de fundos/fechamento |
-| Controle financeiro | Cadastro/saldo inicial, realocação de fundos, ajustes e fechamento; reabertura só síndico |
+| Consulta financeira | Leitura de contas/fundos, lançamentos, contas a pagar/receber, orçamento e relatórios; sem escrita/exportação explícita |
+| Operação financeira | Registro manual de receita/despesa, transferência entre contas, contas a pagar/receber, baixa integral e estorno; sem controle de fundos/fechamento |
+| Controle financeiro | Cadastro/saldo inicial, realocação de fundos, ajustes, previsões orçamentárias e fechamento; reabertura só síndico |
 | Exportação financeira | Leitura e download de relatório JSON; não concede escrita |
 | Avisos internos | Individuais e filtrados pela autorização atual; leitura não altera avisos de terceiros; sem envio externo |
 
@@ -107,3 +107,5 @@ As quatro delegações financeiras são independentes e limitadas ao condomínio
 Financeiro recebe somente a referência mínima da compra recebida necessária ao compromisso, sem obter contatos ou propostas privadas. Baixas são registros manuais, sem autorização ou execução bancária. Financeiro não amplia poderes de aprovação de compra. Exportação exige módulo explícito em cada solicitação HTTP.
 
 Fechamento usa revisão do financeiro e congela o relatório; só o síndico reabre o último mês fechado. Ajuste/reclassificação de fundos é controle; estorno exige a permissão da operação original. Cadastro de conta, transferências, baixa e estorno verificam versão e saldo; idempotência e referências impedem repetição. Registros nunca são apagados por estorno ou reabertura. Avisos continuam sujeitos ao acesso atual.
+
+Contas a receber seguem a mesma operação financeira e privacidade por condomínio: não concedem ao morador leitura de dívida própria/alheia nem geram rateio/cobrança externa. Recebimento integral registra receita vinculada; só estorno a reabre após baixa. Previsão/revisão de orçamento exige controle financeiro e mantém histórico de valores e justificativas. Consulta, operação e exportação não concedem revisão de previsão. Fechamento congela orçamento e situação dos recebíveis; reabertura mantém relatórios anteriores. Avisos desses recursos são filtrados pela delegação atual.

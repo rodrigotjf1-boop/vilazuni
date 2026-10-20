@@ -33,7 +33,7 @@ test('estorno mantém original e refaz saldo; estornar receita gasta é recusado
 });
 test('baixa e estorno de compromisso preservam a situação em cada mês',()=>{
  const b=base(),p=payable(b);const paid=payPayable(b.state,root,pay(b,p),now);assert.equal(paid.payable.status,'paid');assert.equal(financialReport(b.state,root,'2026-09').report.outstanding.length,0);
- reverseEntry(b.state,root,reversal(b,paid.entry,{date:'2026-10-19'}),now);assert.equal(b.state.financialPayables[0].status,'open');assert.equal(financialReport(b.state,root,'2026-09').report.outstanding.length,0);assert.equal(financialReport(b.state,root,'2026-10').report.outstanding.length,1);assert.equal(balance(b.state,'a'),10000);
+ reverseEntry(b.state,root,reversal(b,paid.entry,{date:'2026-10-19'}),now);assert.equal(b.state.financialPayables[0].status,'open');assert.equal(financialReport(b.state,root,'2026-09').report.outstanding.length,0);assert.equal(financialReport(b.state,root,'2026-10').report.outstanding.length,1);assert.equal(balance(b.state,'a'),10000);assert.throws(()=>payPayable(b.state,root,pay(b,b.state.financialPayables[0]),now),/última alteração/);
 });
 test('cancelar, reabrir e atualizar compromisso não reescreve o retrato de mês anterior',()=>{
  const b=base(),p=payable(b);let edited=editPayable(b.state,root,{id:p.id,version:1,fundId:b.reserve.id,dueOn:'2026-11-01',category:'Nova categoria',reason:'Destinação revista'},now);

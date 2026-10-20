@@ -1,0 +1,39 @@
+import {esc,money,stamp,cents,onSubmit} from './ui-common.mjs';
+const statuses={open:'Em aberto',received:'Entrada registrada',cancelled:'Cancelada'};
+const field=(name,label,type='text',value='',attrs='')=>`<label>${label}<input name="${name}" type="${type}" value="${esc(value)}" ${attrs} required></label>`;
+const reason='<label>Observação / justificativa<textarea name="reason" required minlength="3" maxlength="500"></textarea></label>';
+const end=label=>`<p class="auth-error" role="alert"></p><button type="submit" class="glass-primary">${label}</button></form>`;
+
+export function createReceivablesUI({f,write,panel,perform,accountOptions,fundOptions,version,entryDetail,home}){
+ function list(){
+  const dock=panel('Valores a receber.','CONTAS A RECEBER',`${write?'<button id="fin-receivable" class="glass-primary">＋ Conta a receber manual</button>':''}<p class="micro-note">O cadastro não aumenta o saldo. Registre a entrada integral somente depois de conferir o recebimento. Sem envio de cobrança, cálculo de juros ou rateio automático.</p><div class="float-feed">${f().receivables.slice().sort((a,b)=>a.dueOn.localeCompare(b.dueOn)).map(r=>`<button class="journey-card" data-receivable="${r.id}"><span class="float-pill">${statuses[r.status]}${r.status==='open'&&r.dueOn<f().today?' · vencida':''}</span><h3>${esc(r.description)}</h3><p>${money(r.amountCents)} · ${esc(r.debtor)}</p><small>Vencimento ${esc(r.dueOn)} · ${esc(r.fundName)}</small></button>`).join('')||'<p class="quiet-state">Nenhuma conta a receber registrada.</p>'}</div>`,{back:home});
+  dock.querySelector('#fin-receivable')?.addEventListener('click',create);dock.querySelectorAll('[data-receivable]').forEach(b=>b.onclick=()=>detail(b.dataset.receivable));
+ }
+ function create(){
+  const dock=panel('Registrar valor a receber.','CONTA A RECEBER',`<form class="float-wizard">${field('description','Descrição')}${field('debtor','Pagador')}${field('reference','Documento / referência')}${field('value','Valor · R$','number','','min="0.01" max="1000000" step="0.01"')}${field('issuedOn','Emissão','date',f().today,`max="${f().today}"`)}<label>Fundo<select name="fundId" required>${fundOptions()}</select></label>${field('dueOn','Vencimento','date',f().today)}${field('category','Categoria')}<p class="micro-note">Use uma identificação suficiente do pagador e uma referência única. O valor original é preservado; correções exigem cancelar e registrar outra referência.</p>${end('Registrar conta a receber')}`,{back:list});
+  onSubmit(dock.querySelector('form'),data=>perform('/receivables/create',{...data,amountCents:cents(data.value)},list));
+ }
+ function detail(id){
+  const r=f().receivables.find(r=>r.id===id);if(!r)return list();
+  const dock=panel(r.description,'CONTA A RECEBER',`<span class="float-pill">${statuses[r.status]}</span><div class="floating-note"><h3>${money(r.amountCents)} · ${esc(r.debtor)}</h3><p>${esc(r.reference)}</p><small>Emissão ${esc(r.issuedOn)} · vencimento ${esc(r.dueOn)}<br>${esc(r.fundName)} · ${esc(r.category)}</small></div>${write&&r.status==='open'?'<button id="receive-record" class="glass-primary">Registrar entrada manual</button><button id="receive-edit" class="glass-secondary">Atualizar vencimento / fundo</button>':''}${write&&r.status!=='received'?`<button id="receive-status" class="glass-secondary">${r.status==='open'?'Cancelar conta a receber':'Reabrir conta a receber'}</button>`:''}${r.receiptEntryId?'<button id="receive-entry" class="glass-secondary">Consultar lançamento da entrada</button>':''}<div class="float-feed">${r.history.map(h=>`<div class="floating-note"><small>${esc(stamp(h.at))} · ${esc(h.actor)}</small><p>${esc(h.action)} · ${esc(h.reason||'')}</p></div>`).join('')}</div>`,{back:list});
+  dock.querySelector('#receive-entry')?.addEventListener('click',()=>entryDetail(r.receiptEntryId));
+  dock.querySelector('#receive-record')?.addEventListener('click',()=>{
+   const operationId=crypto.randomUUID(),d=panel('Conferir entrada já recebida.','REGISTRO MANUAL',`<form class="float-wizard"><p>${money(r.amountCents)} · ${esc(r.fundName)}</p><label>Conta de entrada<select name="accountId" required>${accountOptions()}</select></label>${field('date','Data da entrada','date',f().today,`min="${r.events.at(-1).date}" max="${f().today}"`)}${field('reference','Referência da entrada','text',r.reference)}${reason}<p class="micro-note">Registra a entrada integral conferida, sem confirmação automática do banco.</p>${end('Confirmar registro da entrada')}`,{back:()=>detail(id)});
+   onSubmit(d.querySelector('form'),data=>perform('/receivables/record',{...data,id,version:r.version,operationId,accountVersion:version(data.accountId)},()=>detail(id)));
+  });
+  dock.querySelector('#receive-edit')?.addEventListener('click',()=>{
+   const d=panel('Atualizar conta a receber.','VENCIMENTO E DESTINAÇÃO',`<form class="float-wizard"><label>Fundo<select name="fundId">${fundOptions(r.fundId)}</select></label>${field('dueOn','Vencimento','date',r.dueOn)}${field('category','Categoria','text',r.category)}${reason}${end('Salvar conta a receber')}`,{back:()=>detail(id)});
+   onSubmit(d.querySelector('form'),data=>perform('/receivables/edit',{...data,id,version:r.version},()=>detail(id)));
+  });
+  dock.querySelector('#receive-status')?.addEventListener('click',()=>{
+   const d=panel(r.status==='open'?'Cancelar conta a receber.':'Reabrir conta a receber.','JUSTIFICATIVA',`<form class="float-wizard">${reason}${end('Confirmar alteração')}`,{back:()=>detail(id)});
+   onSubmit(d.querySelector('form'),data=>perform('/receivables/status',{...data,id,version:r.version,status:r.status==='open'?'cancelled':'open'},()=>detail(id)));
+  });
+ }
+ return list;
+}
+export function receivablesReportMarkup(report){
+ if(!report.receivables)return '<p class="micro-note">Este fechamento é anterior ao módulo de contas a receber.</p>';
+ const open=report.receivableOutstanding||[];
+ return `<div class="floating-note"><h3>A receber no fim do mês: ${money(open.reduce((n,r)=>n+r.amountCents,0))}</h3><p>Vencidas na data de corte: ${money(open.filter(r=>r.dueOn<report.through).reduce((n,r)=>n+r.amountCents,0))}</p></div><details class="account-section"><summary>Contas a receber na data de corte (${report.receivables.length})</summary>${report.receivables.map(r=>`<div class="floating-note"><p>${esc(r.debtor)} · ${money(r.amountCents)} · ${statuses[r.status]}</p><small>${esc(r.description)} · ${esc(r.dueOn)}${r.statusReason?' · '+esc(r.statusReason):''}</small></div>`).join('')}</details>`;
+}

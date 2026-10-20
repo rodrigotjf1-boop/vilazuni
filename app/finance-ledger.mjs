@@ -36,7 +36,7 @@ export function toggleFinancial(s,u,input,now=Date.now()){
  requireFinance(u,'financeClose');if(!['account','fund'].includes(input.kind))throw Error('Cadastro financeiro inválido.');
  const list=rows(s,input.kind==='account'?'financialAccounts':'financialFunds',u.tenant),r=list.find(r=>r.id===input.id);if(!r)throw Error('Cadastro indisponível.');
  if(!Number.isInteger(input.version)||input.version!==r.version)throw Error('Cadastro mudou. Atualize antes de continuar.');const reason=text(input.reason,'Motivo',500);if(typeof input.active!=='boolean'||input.active===r.active)throw Error('Alteração inválida.');
- if(!input.active){if(balance(s,u.tenant,input.kind==='account'?r.id:null,input.kind==='fund'?r.id:null)!==0)throw Error('Zere o saldo antes de inativar.');if(input.kind==='fund'&&rows(s,'financialPayables',u.tenant).some(p=>p.fundId===r.id&&p.status==='open'))throw Error('Fundo possui compromissos em aberto.');}
+ if(!input.active){if(balance(s,u.tenant,input.kind==='account'?r.id:null,input.kind==='fund'?r.id:null)!==0)throw Error('Zere o saldo antes de inativar.');if(input.kind==='fund'&&['financialPayables','financialReceivables'].some(key=>rows(s,key,u.tenant).some(p=>p.fundId===r.id&&p.status==='open')))throw Error('Fundo possui compromissos ou contas a receber em aberto.');}
  r.active=input.active;r.version++;r.history.push({at:new Date(now).toISOString(),actor:u.name,action:(r.active?'Reativado':'Inativado')+' · '+reason});bump(s,u.tenant);return structuredClone(r);
 }
 function checkHistory(s,u,tx){
@@ -60,7 +60,7 @@ export function post(s,u,tx,versions,now){
 }
 export function createEntry(s,u,input,now=Date.now()){
  const control=input.kind==='adjustment';requireFinance(u,control?'financeClose':'finance');
- if(!['income','expense','adjustment'].includes(input.kind))throw Error('Tipo de lançamento inválido.');if(input.purchaseId||input.payableId)throw Error('Use contas a pagar para registrar saída de uma compra.');
+ if(!['income','expense','adjustment'].includes(input.kind))throw Error('Tipo de lançamento inválido.');if(input.purchaseId||input.payableId||input.receivableId)throw Error('Use contas a pagar ou a receber para registrar uma baixa vinculada.');
  const on=openDate(s,u,input.date,now),value=amount(input.amountCents),description=text(input.description,'Descrição'),category=text(input.category,'Categoria'),reference=text(input.reference,'Referência'),reason=text(input.reason,'Observação',500);
  if(control&&!['credit','debit'].includes(input.direction))throw Error('Escolha crédito ou débito do ajuste.');const sign=input.kind==='expense'||control&&input.direction==='debit'?-1:1;
  return post(s,u,{operationId:input.operationId,kind:input.kind,date:on,description,category,reference,reason,amountCents:value,postings:[{accountId:input.accountId,fundId:input.fundId,amountCents:sign*value}]},[{id:input.accountId,version:input.accountVersion}],now);
