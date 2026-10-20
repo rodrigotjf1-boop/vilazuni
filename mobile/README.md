@@ -8,7 +8,7 @@ Android: abrir a aplicação no navegador e usar **Celular → Instalar neste di
 
 ## Android
 
-Projeto em `android/`: Gradle 8.9, Android Gradle Plugin 8.7.3, Java 17, compile/target SDK 35, mínimo 23, Android Browser Helper 2.6.2. TWA reutiliza o PWA no navegador do aparelho; domínio não verificado utiliza a alternativa de aba do navegador. Não há senha, segredo de servidor ou bridge JavaScript nativa no pacote.
+Projeto em `android/`: Gradle 8.11.1, Android Gradle Plugin 8.10.1, Java 17, compile/target SDK 36, mínimo 23, Android Browser Helper 2.6.2 e AndroidX Browser 1.9.0 estável. TWA reutiliza o PWA no navegador do aparelho; domínio não verificado utiliza a alternativa de aba do navegador. Não há senha, segredo de servidor ou bridge JavaScript nativa no pacote.
 
 ```sh
 cd mobile/android

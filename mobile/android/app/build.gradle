@@ -4,11 +4,11 @@ def parsedOrigin = new URI(publicOrigin)
 if (parsedOrigin.scheme != 'https' || !parsedOrigin.host || parsedOrigin.userInfo || parsedOrigin.query || parsedOrigin.fragment || !(parsedOrigin.path in ['', '/'])) throw new GradleException('VILAZUNI_ORIGIN precisa ser uma origem HTTPS.')
 android {
  namespace 'br.com.vilazuni.app'
- compileSdk 35
+ compileSdk 36
  defaultConfig {
   applicationId 'br.com.vilazuni.app'
   minSdk 23
-  targetSdk 35
+  targetSdk 36
   versionCode 2
   versionName '0.2.0'
   manifestPlaceholders = [publicOrigin: publicOrigin + '/', publicHost: parsedOrigin.host]
@@ -17,4 +17,7 @@ android {
  buildTypes { release { minifyEnabled false } }
  compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
 }
-dependencies { implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.6.2' }
+dependencies {
+ implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.6.2'
+ implementation 'androidx.browser:browser:1.9.0'
+}

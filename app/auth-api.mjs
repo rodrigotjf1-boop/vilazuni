@@ -72,7 +72,7 @@ export async function createAuthApi({directory,now=()=>Date.now(),sessionMs=8*36
   if(method==='POST'&&route==='/api/physical/plate-event'){const chunks=[];let size=0;for await(const c of req){size+=c.length;if(size>4096)fail(413,'Evento muito grande.');chunks.push(c);}const next=structuredClone(db);try{plateEvent(next.state,url.searchParams.get('device'),Buffer.concat(chunks).toString('utf8'),req.headers['x-vilazuni-signature'],process.env,now());}catch{fail(403,'Evento não autenticado ou repetido.');}await persist(next);return send(res,200,{accepted:true});}
   if(method==='POST'&&route==='/api/channels/telegram/webhook'){const input=await body(req,16384),next=structuredClone(db);let result;try{result=telegramWebhook(next.state,input,req.headers['x-telegram-bot-api-secret-token'],process.env,now());}catch{fail(403,'Webhook não autenticado ou inválido.');}if(result.accepted)await persist(next);return send(res,200,result);}
   const session=getSession(req);
-  if(method==='GET'&&route==='/api/session')return send(res,200,{setupRequired:db.users.length===0,user:session?describe(session.user):null});
+  if(method==='GET'&&route==='/api/session')return send(res,200,{setupRequired:db.users.length===0,production:config.production,user:session?describe(session.user):null});
   if(method==='POST'&&route==='/api/recovery/request'){
    limit(req);const input=await body(req),person=db.users.find(u=>u.email===String(input.email||'').trim().toLowerCase());
    if(person&&mailProvider){const token=randomBytes(32).toString('base64url'),next=structuredClone(db),target=next.users.find(u=>u.id===person.id);target.reset={hash:digest(token),until:now()+20*60000};await persist(next);mailProvider.sendReset(person.email,token).catch(()=>{});}
