@@ -14,7 +14,7 @@ Primeira entrega implementada: fontes em texto com origem/trecho, vigência, pú
 
 A comunidade recebe somente fontes expressamente publicadas para todas as contas. Indicadores privados de tarefas, estoque, preventiva e vencimentos exigem seus módulos também na leitura de resumos salvos. Retirar/expirar/substituir fonte invalida a exposição do resumo anterior. Consulta e prévia não gravam. Respostas individuais de enquetes ficam fora das projeções/API; participantes veem totais ao encerrar. Contagem por conta não representa voto por unidade ou quórum de assembleia.
 
-186 testes aprovados, incluindo 21 novos, e conferência em Chromium desktop/móvel. A busca local não é um modelo generativo. Fornecedor de IA, canal oficial, grupos/públicos, horários, fontes reais, município/UF/regime jurídico e regras de assembleia continuam pendentes. A etapa 6 permanece aberta. Detalhes, operação, limites e próximos critérios: [ETAPA_6_FONTES_E_GOVERNANCA.md](fundacao/ETAPA_6_FONTES_E_GOVERNANCA.md).
+186 testes aprovados, incluindo 21 novos, e conferência em Chromium desktop/móvel. A busca local não é um modelo generativo. Município/UF informado pelo usuário em 20/10/2026: Arraial do Cabo/RJ. Fornecedor de IA, canal oficial, grupos/públicos, horários, fontes reais, regime jurídico e regras de assembleia continuam pendentes. A etapa 6 permanece aberta. Detalhes, operação, limites e próximos critérios: [ETAPA_6_FONTES_E_GOVERNANCA.md](fundacao/ETAPA_6_FONTES_E_GOVERNANCA.md).
 
 ### Passeio virtual contextual — etapa 5
 

@@ -1,5 +1,7 @@
 # Condomínio Chandra — piloto e primeiro backlog
 
+Município/UF informado pelo usuário em 20/10/2026: **Arraial do Cabo/RJ**. O regime jurídico e os documentos aprovados ainda precisam ser identificados.
+
 ## Dados de demonstração
 
 Somente o nome Condomínio Chandra foi confirmado. Quantidade de casas, características, capacidade, regras, localização e pessoas abaixo são fictícias para teste e não descrevem o condomínio real.
@@ -34,7 +36,7 @@ Fluxo de avaliação ponta a ponta: gestor habilita proprietário → proprietá
 
 ## Decisões ainda necessárias, sem bloquear o desenho
 
-- Município/UF e natureza jurídica do Chandra, casas e dependências reais.
+- Natureza jurídica do Chandra, casas e dependências reais. Município/UF informado: Arraial do Cabo/RJ.
 - Convenção, regimento, regras de temporada e critérios de aprovação.
 - Preferência de canal para mensagens e recursos oficiais disponíveis.
 - Orçamento para serviços gerenciados, testes e publicação.

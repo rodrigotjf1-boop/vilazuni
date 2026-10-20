@@ -74,7 +74,7 @@ Prévias sintéticas: [consulta](../previa-consulta-fontes.png), [consulta no ce
 
 ## Decisões para continuar a etapa 6
 
-Do usuário: município/UF, regime jurídico do Chandra e identificação dos documentos aprovados; canal pretendido, grupos/públicos e horários dos resumos. Essas perguntas foram adiantadas, sem presumir uma resposta. Enquanto não forem definidos, o piloto permanece interno e usa fontes sintéticas.
+Município/UF informado pelo usuário em 20/10/2026: **Arraial do Cabo/RJ**. Ainda faltam regime jurídico do Chandra e identificação dos documentos aprovados; canal pretendido, grupos/públicos e horários dos resumos. Essas respostas permanecem pendentes. Enquanto essas definições não forem concluídas, o piloto permanece interno e usa fontes sintéticas. A localização não determina automaticamente o regime jurídico, as regras condominiais ou os quóruns de assembleia.
 
 Depois: validar suporte oficial do canal e identificação dos participantes; escolher modelo, política de dados, orçamento e configuração segura no servidor; montar avaliação de respostas corretas, ausência de fontes, fontes contraditórias e tentativas de ampliar acesso. Só então habilitar síntese generativa e envios. Credenciais devem ser configuradas em ambiente seguro, nunca copiadas para código ou conversa.
 
