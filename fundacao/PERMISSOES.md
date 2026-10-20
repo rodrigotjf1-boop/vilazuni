@@ -134,3 +134,15 @@ O servidor filtra catálogo e ficha por condomínio, unidade e módulo. Exterior
 Vincular dependência ao marcador exige `facilities`, registro do mesmo condomínio, versão atual e justificativa. Cada dependência ocupa no máximo um marcador, sem associação por nome. Troca/remoção conserva histórico; somente gestão de dependências recebe histórico e IDs de configuração do vínculo. Moradores consultam regras/agenda pelo fluxo de reservas já autorizado. Interdição é consultada/atualizada na ficha e continua bloqueando reserva no servidor. Sem esse módulo, o marcador não retorna regras ou situação privadas. Outros condomínios não recebem o cenário cadastral do Chandra.
 
 Toque, teclado, interiores, mapa/lista e falta/perda de WebGL usam as mesmas fichas e validações; nenhum modo amplia poderes. Sessão expirada/revogada é recusada também nas rotas do passeio. Respostas atrasadas de outro painel/sessão não reabrem fichas após saída. Preferência visual é salva sem dados privados. Critérios: [ETAPA_5_PASSEIO_VIRTUAL.md](ETAPA_5_PASSEIO_VIRTUAL.md).
+
+### Fontes, resumos internos e enquetes — 20/10/2026
+
+`knowledge` (Fontes revisadas e resumos internos) e `governance` (Enquetes consultivas) são delegações independentes, concedidas somente pelo síndico, com validade/revogação existentes. Não ampliam módulos de documentos, pessoas, financeiro ou tarefas. Síndico possui as duas; gestão delegada existente não as recebe automaticamente.
+
+Todos os usuários autenticados recebem somente fontes publicadas, ativas e vigentes para todas as contas. `knowledge` permite também fontes da gestão e seus rascunhos/históricos. Consulta direcionada à comunidade usa somente fontes comunitárias, mesmo para síndico. Referência antiga não concede acesso a revisão retirada, rascunho ou texto restrito. PDFs privados não são publicados por serem cadastrados como referência textual.
+
+Resumo comunitário usa somente fontes liberadas para todas as contas. Resumo privado exige `knowledge` e todos os módulos dos indicadores incluídos, reavaliados em cada leitura. Fonte retirada, expirada ou substituída oculta o resumo anterior; histórico integral permanece na base, fora da API pública de leitura. Consultas/prévias não persistem perguntas ou resultados. Conteúdo de fonte é dado, sem executar comandos ou ampliar acesso.
+
+Gestão com `governance` publica e encerra/cancela enquetes consultivas no condomínio. Público é definido na publicação: proprietários/ocupantes, ou todas as contas. Uma resposta por conta, sem voto por unidade/quórum. Gestão consulta totais durante a coleta; participantes somente ao encerrar. Nenhum perfil recebe pela API a relação de respostas individuais. Resposta guarda conta e data na base; não prometer anonimato. Permissão, prazo e opção são reavaliados em cada envio, inclusive concorrente ao encerramento.
+
+Canal externo, modelo generativo, envio de resumos, ações assistidas e assembleias com representação formal não estão habilitados por essas delegações. Ver [etapa 6](ETAPA_6_FONTES_E_GOVERNANCA.md).

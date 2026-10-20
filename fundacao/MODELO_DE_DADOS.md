@@ -69,3 +69,12 @@ Condomínio 1:N casas, pessoas, acessos e áreas de estacionamento. Casa 1:N ver
 ## Banco e segurança antes de implementação
 
 Gerar migração PostgreSQL com chaves, índices por condomínio e período, verificações de intervalos e exclusividade de atribuições fixas. Implementar políticas no banco e autorização no serviço antes de expor consultas. Serviço de negócio medeia aprovações e alterações sensíveis. Testar isolamento de registros, arquivos, exportações, buscas e eventos. SQL e configuração do provedor serão produzidos após definir o ambiente de execução; este documento não é uma migração executável.
+### Registros locais da primeira entrega da etapa 6 — 20/10/2026
+
+`knowledgeSources`: fonte por condomínio com controle de versão, disponibilidade, número da publicação atual, revisões imutáveis e histórico. Cada revisão guarda texto, referência, público, vigência, hash e dados de preparação/publicação. Rascunhos e revisões antigas ficam somente no escopo de gestão de fontes; a projeção comum contém apenas a publicação vigente permitida.
+
+`knowledgeBriefings`: retrato por dia/público/conjunto de módulos, com versão, referências e hashes das fontes, contagens autorizadas, instante e responsável pela preparação. Revisões anteriores ficam na base para auditoria restrita, fora da projeção de leitura. A leitura confere os módulos atuais e a validade de todas as fontes citadas. Preparação interna não representa envio ou ciência em canal externo.
+
+`consultativePolls`: pergunta, contexto, opções identificadas, público, encerramento, situação e histórico. Respostas internas guardam conta, opção e instante; uma resposta por conta. As projeções retornam somente totais quando permitidos e a própria escolha. Esse registro não modela votos legais por unidade, fração, copropriedade ou procuração.
+
+Perguntas e resultados da consulta local não são persistidos. Nenhuma dessas coleções concede acesso ao conteúdo de documentos privados ou aos demais módulos. A persistência JSON e os limites do piloto estão descritos em [ETAPA_6_FONTES_E_GOVERNANCA.md](ETAPA_6_FONTES_E_GOVERNANCA.md); migrações, retenção e armazenamento de produção permanecem pendentes.

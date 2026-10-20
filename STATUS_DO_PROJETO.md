@@ -1,12 +1,20 @@
 # Vilazuni — estado de desenvolvimento
 
-Atualização: 19/10/2026.
+Atualização: 20/10/2026.
 
-## Estado atual — passeio virtual contextual concluído em 19/10/2026
+## Estado atual — primeira entrega da etapa 6 em 20/10/2026
 
 A etapa 2 está funcional como piloto local, e a etapa 3 já possui tarefas com fotos/revisão, ocorrências, consumíveis/estoque, manutenção preventiva, dependências/reservas, encomendas, fornecedores/compras, documentos com vencimentos e avisos internos. A etapa 4 está concluída para o piloto de cobrança manual, com contas/fundos, lançamentos e compromissos manuais, ligação de compras recebidas, contas a receber, orçamento versus realizado, rateios por unidade, baixas parciais, acordos de parcelamento, modelos recorrentes, cobrança privada manual, atrasos, contestações, encargos aprovados, conciliação manual por extrato CSV e fechamento mensal. A etapa 5 está concluída para o piloto 3D ilustrativo, com fichas autorizadas, mapa/lista, controles móveis e alternativa sem WebGL. Esta entrega não implanta produção, PostgreSQL, HTTPS ou integrações externas.
 
-As PRs #1–#7 consolidaram a base anterior na `main`. O passeio contextual amplia essa base, com o aceite registrado abaixo. O usuário escolheu manter somente cobrança manual por enquanto. A integração bancária e os retornos autenticados ficam adiados; o critério original de homologação com parceiro permanece pendente. Critérios e operação: [encerramento da etapa 4](fundacao/ETAPA_4_FINANCEIRO.md). Critérios do passeio: [etapa 5](fundacao/ETAPA_5_PASSEIO_VIRTUAL.md). Próxima frente: etapa 6 — IA consultiva e governança.
+As PRs #1–#7 consolidaram a base anterior na `main`. O passeio contextual amplia essa base, com o aceite registrado abaixo. O usuário escolheu manter somente cobrança manual por enquanto. A integração bancária e os retornos autenticados ficam adiados; o critério original de homologação com parceiro permanece pendente. Critérios e operação: [encerramento da etapa 4](fundacao/ETAPA_4_FINANCEIRO.md). Critérios do passeio: [etapa 5](fundacao/ETAPA_5_PASSEIO_VIRTUAL.md). Frente atual: etapa 6 — IA consultiva e governança, com a primeira entrega descrita abaixo.
+
+### Fontes, consultas, resumos e enquetes — etapa 6 iniciada
+
+Primeira entrega implementada: fontes em texto com origem/trecho, vigência, público, rascunho, revisão/publicação e histórico; busca local em trechos literais com referência/revisão/hash e resposta explícita quando não encontra correspondência; resumos internos preparados manualmente por dia/público/escopo; enquetes consultivas com uma resposta por conta, prazo, encerramento/cancelamento e resultados agregados. Novas delegações independentes: `knowledge` e `governance`.
+
+A comunidade recebe somente fontes expressamente publicadas para todas as contas. Indicadores privados de tarefas, estoque, preventiva e vencimentos exigem seus módulos também na leitura de resumos salvos. Retirar/expirar/substituir fonte invalida a exposição do resumo anterior. Consulta e prévia não gravam. Respostas individuais de enquetes ficam fora das projeções/API; participantes veem totais ao encerrar. Contagem por conta não representa voto por unidade ou quórum de assembleia.
+
+186 testes aprovados, incluindo 21 novos, e conferência em Chromium desktop/móvel. A busca local não é um modelo generativo. Fornecedor de IA, canal oficial, grupos/públicos, horários, fontes reais, município/UF/regime jurídico e regras de assembleia continuam pendentes. A etapa 6 permanece aberta. Detalhes, operação, limites e próximos critérios: [ETAPA_6_FONTES_E_GOVERNANCA.md](fundacao/ETAPA_6_FONTES_E_GOVERNANCA.md).
 
 ### Passeio virtual contextual — etapa 5
 
