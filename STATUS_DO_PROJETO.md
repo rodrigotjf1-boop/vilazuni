@@ -21,7 +21,9 @@ Entrega técnica não equivale à validação jurídica, publicação em lojas o
 - `npm test --prefix app`: 214 testes, incluindo PostgreSQL quando `VILAZUNI_PG_TEST_CONFIG` aponta para a base local descartável. Sem essa configuração, três testes PostgreSQL são explicitamente pulados.
 - `npm run test:browser --prefix app`: fluxo sintético em Chromium desktop/móvel. Requer navegador Playwright instalado ou `CHROMIUM_PATH`.
 - `npm audit --prefix app --omit=dev`: auditoria das dependências de execução.
-- Workflows de validação e pacotes móveis estão em `.github/workflows/`. Pacotes de avaliação não são assinaturas de distribuição nem lançamento nas lojas.
+- Workflows de validação e pacotes móveis estão em `.github/workflows/`. Android e iOS compilaram no GitHub Actions após liberar a execução pública; os pacotes de avaliação não são assinaturas de distribuição nem lançamento nas lojas.
+
+A imagem também foi executada localmente como usuário não privilegiado, com sistema de arquivos somente leitura, PostgreSQL de teste, bootstrap protegido, cookie Secure, MFA obrigatório e base vazia de produção.
 
 Os testes criam suas próprias contas e bases temporárias. Nenhuma conta ou senha de morador foi criada. Não inserir dados reais no piloto local. A nova base de produção começa sem casas, pessoas, estadias ou tarefas fictícias.
 

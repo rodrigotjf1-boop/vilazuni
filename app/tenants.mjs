@@ -59,7 +59,7 @@ export function saveUnit(db,user,input,now=Date.now()){
  if(input.id&&!current)throw Error('Unidade indisponível.');if(current&&input.version!==(current.version||0))throw Error('A unidade mudou. Atualize.');
  if(db.state.houses.some(h=>h.tenant===user.tenant&&h.id!==current?.id&&h.number.toLocaleLowerCase('pt-BR')===fresh.number.toLocaleLowerCase('pt-BR')))throw Error('Identificação de unidade já utilizada.');
  if(!current&&db.state.houses.filter(h=>h.tenant===user.tenant).length>=tenantSettings(db.state,user.tenant).limits.units)throw Error('Limite de unidades do plano atingido.');
- if(current){const {id,owners,version,active,side,...fields}=fresh;Object.assign(current,fields,{version:(current.version||0)+1});current.history??=[];note(current,user,'Características atualizadas',reason,now);return {unit:structuredClone(current)};}
+ if(current){const keys=['number','type','floors','rooms','area','parking','parkingType'],previous=Object.fromEntries(keys.map(key=>[key,current[key]??null]));const {id,owners,version,active,side,...fields}=fresh;Object.assign(current,fields,{version:(current.version||0)+1});current.history??=[];note(current,user,'Características atualizadas',reason,now);Object.assign(current.history.at(-1),{previous,current:Object.fromEntries(keys.map(key=>[key,current[key]??null]))});return {unit:structuredClone(current)};}
  fresh.history=[];note(fresh,user,'Unidade cadastrada',reason,now);db.state.houses.push(fresh);return {unit:structuredClone(fresh)};
 }
 export function exportTenant(db,user,now=Date.now()){
