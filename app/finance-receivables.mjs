@@ -2,10 +2,14 @@ import {randomUUID} from 'node:crypto';
 import {localDay} from './residents.mjs';
 import {requireFinance,text,date,amount,rows,bump,openDate,activeFund,post,ledger} from './finance-ledger.mjs';
 import {isOutstanding,settlementPosition,lastSettlementDate,syncSettlement} from './finance-settlements.mjs';
+import {requireUnbilledDate} from './finance-collection-policy.mjs';
 
 const normalize=v=>v.normalize('NFKC').trim().toLocaleLowerCase('pt-BR');
 export function createReceivable(s,u,input,now=Date.now()){
- requireFinance(u,'finance');
+ requireFinance(u,'finance');return registerReceivable(s,u,input,now);
+}
+// Internal record builder; callers enforce their own domain permission before use.
+export function registerReceivable(s,u,input,now=Date.now()){
  if(input.assessmentId||input.houseId||input.competence||input.agreementId||input.sourceReceivableId)throw Error('Use a geração do rateio aprovado ou do acordo para vincular contribuições por unidade.');
  const issuedOn=openDate(s,u,input.issuedOn,now),dueOn=date(input.dueOn),fund=activeFund(s,u,input.fundId);
  const debtor=text(input.debtor,'Pagador'),reference=text(input.reference,'Documento / referência'),description=text(input.description,'Descrição'),category=text(input.category,'Categoria'),value=amount(input.amountCents);
@@ -24,6 +28,7 @@ export function receiveReceivablePartial(s,u,input,now=Date.now()){return record
 function recordReceipt(s,u,input,now,partial){
  const r=editable(s,u,input),position=settlementPosition(s,u.tenant,'receivable',r);if(!isOutstanding(position))throw Error('Conta a receber não está em aberto.');
  const on=openDate(s,u,input.date,now);
+ requireUnbilledDate(s,u.tenant,r.id,on);
  if(on<lastSettlementDate(s,u.tenant,'receivable',r))throw Error('Data anterior à emissão, reabertura ou última alteração da conta a receber.');
  const value=partial?amount(input.amountCents):position.remainingCents;if(value>position.remainingCents)throw Error('Entrada excede o saldo restante da conta a receber.');
  const reference=text(input.reference,'Referência da entrada'),reason=text(input.reason,'Conferência da entrada manual',500);
@@ -33,6 +38,8 @@ function recordReceipt(s,u,input,now,partial){
 export function changeReceivable(s,u,input,now=Date.now()){
  const r=editable(s,u,input),today=openDate(s,u,localDay(now),now),reason=text(input.reason,'Motivo',500);
  if(r.agreementId||r.activeAgreementId)throw Error('Trate o cancelamento pelo acordo, preservando suas parcelas.');
+ if(r.feeSourceId)throw Error('Cancele encargos pela apuração, preservando a memória de cálculo.');
+ if(input.status==='cancelled'&&rows(s,'financialFeeAccruals',u.tenant).some(a=>a.sourceId===r.id&&a.status==='active'))throw Error('Revise e cancele as apurações de encargos antes de cancelar o principal.');
  if(settlementPosition(s,u.tenant,'receivable',r).settledCents>0)throw Error('Estorne as baixas antes de cancelar a conta a receber.');
  if(!['cancelled','open'].includes(input.status)||!(r.status==='open'&&input.status==='cancelled'||r.status==='cancelled'&&input.status==='open'))throw Error('Alteração da conta a receber inválida.');
  if(input.status==='open')activeFund(s,u,r.fundId);
@@ -42,6 +49,7 @@ export function editReceivable(s,u,input,now=Date.now()){
  const r=editable(s,u,input);if(!isOutstanding(r))throw Error('Somente conta a receber aberta pode ser atualizada.');
  if(r.agreementId)throw Error('Vencimentos e destinação das parcelas são preservados pelo acordo.');
  const on=openDate(s,u,localDay(now),now),fund=activeFund(s,u,input.fundId),dueOn=date(input.dueOn),category=text(input.category,'Categoria'),reason=text(input.reason,'Motivo',500);
+ requireUnbilledDate(s,u.tenant,r.id,on);
  if(dueOn<r.issuedOn)throw Error('Vencimento anterior à emissão.');
  const before={fundId:r.fundId,fundName:r.fundName,dueOn:r.dueOn,category:r.category};
  Object.assign(r,{fundId:fund.id,fundName:fund.name,dueOn,category,version:r.version+1});r.terms.push({date:on,fundId:fund.id,fundName:fund.name,dueOn,category});r.history.push({at:new Date(now).toISOString(),actor:u.name,action:'Conta a receber atualizada',reason,before});bump(s,u.tenant);return structuredClone(r);

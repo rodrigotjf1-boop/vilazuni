@@ -32,7 +32,7 @@ O serviço atende somente em 127.0.0.1. Para distribuição ainda faltam Postgre
 
 ## Verificação
 
-`npm test`: 133 testes, incluindo integração HTTP com contas sintéticas temporárias, domínio, delegações, manutenção, reservas, encomendas, avisos e persistência após reinício. Cobre escopo de casas e condomínios, convite único, sessão, suspensão, expiração de delegação, troca de senha e campos mínimos por perfil. O teste HTTP exige conexão de loopback permitida. A tela inicial foi conferida no navegador; a senha da conta real deve ser criada pelo usuário.
+`npm test`: 151 testes, incluindo integração HTTP com contas sintéticas temporárias, domínio, delegações, manutenção, reservas, encomendas, avisos e persistência após reinício. Cobre escopo de casas e condomínios, convite único, sessão, suspensão, expiração de delegação, troca de senha e campos mínimos por perfil. O teste HTTP exige conexão de loopback permitida. A tela inicial foi conferida no navegador; a senha da conta real deve ser criada pelo usuário.
 
 
 ## Moradores e vínculos
@@ -137,7 +137,7 @@ Abra cada movimento e selecione explicitamente um lançamento existente com mesm
 
 O relatório mostra cobertura por conta bancária; o mês só fica conferido com cobertura integral e sem diferenças/ressalvas. Fechar mês ainda aceita conciliação incompleta e preserva essas pendências no relatório/exportação. Para corrigir extratos de mês fechado, solicite reabertura ao síndico. Fechamentos anteriores mantêm conteúdo/hash. Estornar não desfaz a conferência do lançamento original; o lançamento inverso precisa de conferência própria. O hash identifica o conteúdo UTF-8 recebido, incluindo BOM; o CSV original não é armazenado, apenas dados normalizados e histórico. Consulta/operação/exportação financeira leem extratos, mas só controle pode importar, vincular ou cancelar.
 
-Não há transferência bancária, pagamento, cobrança externa ou emissão recorrente automática. Os saldos e extratos são informados manualmente, sem autenticação bancária. Ainda faltam parceiro de cobrança/retornos autenticados, OFX e formatos específicos de bancos, divisão/agregação de movimentos e evoluções de acordos/rateios. Valores de teste são sintéticos. Até R$ 1.000.000,00 por movimento. Verificação atual: 133 testes aprovados e fluxo conferido no Chromium, incluindo consulta em tela móvel.
+Não há transferência bancária, pagamento, cobrança bancária ou emissão recorrente automática. Os saldos e extratos são informados manualmente, sem autenticação bancária. A etapa 4 está concluída para o piloto de cobrança manual por decisão do usuário; parceiro/retornos autenticados ficam adiados. OFX, formatos específicos de bancos, divisão/agregação de movimentos e evoluções de acordos/rateios continuam pendentes. Valores de teste são sintéticos. Até R$ 1.000.000,00 por movimento. Verificação atual: 151 testes aprovados e fluxo conferido no Chromium, incluindo consulta em tela móvel.
 
 Prévias com valores sintéticos: [relatório mensal](../previa-financeiro.png) e [consulta no celular](../previa-financeiro-mobile.png).
 
@@ -148,3 +148,19 @@ Prévias dos rateios com valores sintéticos: [distribuição por unidade](../pr
 Prévias destas três etapas: [baixa parcial](../previa-baixas-parciais.png), [acordo e parcelas](../previa-acordos.png) e [recorrência no celular](../previa-recorrencia-mobile.png).
 
 Prévias da conciliação: [extrato conferido](../previa-conciliacao.png) e [consulta no celular](../previa-conciliacao-mobile.png).
+
+## Cobrança manual, análise e encargos — 20/10/2026
+
+A etapa 4 está concluída no escopo manual escolhido pelo usuário. Leia os critérios, limites e passos em [ETAPA_4_FINANCEIRO.md](../fundacao/ETAPA_4_FINANCEIRO.md). Não há integração com instituição financeira ou homologação de retornos bancários.
+
+Em Contas a receber → Cobrança e acesso do pagador, controle vincula explicitamente uma conta residencial ativa, com fundamento; contribuições por unidade exigem acesso à unidade. Operação emite aviso com referência única e orientações conferidas. No máximo um aviso ativo por recebível; cancelar aviso preserva dívida. Trocar/remover pagador cancela avisos anteriores e revoga consulta. O vínculo não presume responsabilidade jurídica. Parcelas de acordo e encargos preservam o pagador indicado na origem quando criados; cada aviso ainda exige emissão. Alterações posteriores de vínculo são individuais por recebível.
+
+A pessoa indicada usa Minhas cobranças, sem fundos/saldos gerais ou dívidas de terceiros. Pode contestar ou informar pagamento; ambos abrem análise privada e não registram receita. Controle acompanha/resolve, e a operação registra entrada somente após conferir. Análise aberta e suspensão administrativa impedem novos avisos/lembretes/encargos e renegociação da origem. Retirar suspensão não encerra análise; resolver análise não dá baixa. Alterações são compartilhadas com o destinatário vigente; relatos antigos não são repassados ao novo pagador.
+
+Cobranças e atrasos mostra saldo restante por faixa, unidade/competência e vencimento; previsões não são dinheiro disponível. Controle configura a régua (até 12 dias entre -30 e 120 em relação ao vencimento); operação usa Preparar lembretes de hoje. Somente avisos ativos com saldo, destinatário vigente e sem suspensão/análise geram aviso interno. Mesmo vencimento/dia não se repete. Sem agendador, e-mail ou WhatsApp.
+
+Em Encargos aprovados, controle propõe referência, fundamento, vigência e percentuais explícitos; outra pessoa com controle aprova após confirmar a validação aplicável. Método disponível: multa única sobre saldo ao fim do vencimento, juros simples anuais / 365 sobre saldo ao fim de cada dia e arredondamento agregado em centavos. Informe zero no componente não aplicável. O aplicativo não presume taxas legais nem substitui validação jurídica. Regras aprovadas não são editadas; retirar impede novas aplicações e mantém memórias anteriores.
+
+Calcular encargo mostra prévia sem gravação. Confirmar cria recebível separado com memória, principal preservado e nenhum efeito no caixa. Novos períodos começam após a última apuração ativa; multa não se repete e não há juros sobre encargos. Alteração de termos limita o início ao dia da alteração. Limites: 3.660 dias e R$ 1.000.000,00 por apuração. Cancelamento exige tratar avisos/baixas e apurações posteriores; memória e histórico permanecem. Para mudar a base por baixa, estorno, revisão ou ativação de acordo em dia já apurado, revise/cancele antes a apuração. Calcular até ontem permite registrar novos fatos de hoje sem mudar o período apurado. Sem correção por índice, descontos, consolidação de origens ou outros métodos de cálculo. Relatório/exportação congelam os novos dados na data de corte, conservando hashes anteriores.
+
+Validação: 151 testes aprovados; fluxos conferidos no Chromium, incluindo portal móvel, isolamento, segunda aprovação, informação de pagamento sem baixa, lembrete único, baixa parcial, revogação e fechamento/exportação. Prévias sintéticas: [aviso manual](../previa-cobranca-manual.png), [pagador no celular](../previa-minhas-cobrancas-mobile.png) e [memória](../previa-memoria-encargos.png).
