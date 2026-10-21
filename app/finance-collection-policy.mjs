@@ -6,6 +6,10 @@ export function collectionHeld(s,tenant,id,through='9999-12-31'){
  return !!hold?.held||rows(s,'financialCollectionCases',tenant).some(c=>c.receivableId===id&&['open','review'].includes(c.events.filter(e=>e.date<=through).at(-1)?.status));
 }
 export function ownsCollection(s,u,r){return r.tenant===u.tenant&&r.payerUserId===u.id&&payerLink(s,u.tenant,r.receivableId)?.payerUserId===u.id;}
+export function requireNoExternalCollection(s,tenant,id){
+ if(rows(s,'asaasCharges',tenant).some(q=>q.receivableId===id&&q.environment==='production'&&!['failed','cancelled'].includes(q.status)))throw Error('Há cobrança Asaas vinculada. Consulte e concilie ou cancele no provedor antes de alterar a conta.');
+}
 export function requireUnbilledDate(s,tenant,id,day){
+ requireNoExternalCollection(s,tenant,id);
  if(rows(s,'financialFeeAccruals',tenant).some(a=>a.sourceId===id&&a.status==='active'&&day<=a.through))throw Error('Há encargos apurados nessa data. Revise e cancele as apurações antes de alterar sua base.');
 }

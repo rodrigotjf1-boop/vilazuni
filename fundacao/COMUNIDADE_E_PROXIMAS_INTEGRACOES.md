@@ -1,6 +1,6 @@
 # Comunidade e próximas integrações
 
-Atualização: 21/10/2026, Brasília. Este documento distingue os recursos entregues dos próximos pedidos do usuário.
+Atualização: 21/10/2026, Brasília. Este documento registra a entrega de comunidade 0.2.0 e o planejamento daquele ciclo. **Os itens seguintes de perfis, Asaas e WhatsApp evoluíram na versão 0.3.0**; o estado atual e os limites estão em [PILOTO_ASAAS_E_ACESSOS](PILOTO_ASAAS_E_ACESSOS.md) e [Evolution/n8n](../deploy/n8n/README.md).
 
 ## Entrega: personagens, contatos e mural
 

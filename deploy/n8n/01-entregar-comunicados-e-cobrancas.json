@@ -1,0 +1,287 @@
+{
+  "name": "Vilazuni - fila aprovada para Evolution",
+  "nodes": [
+    {
+      "id": "1395a07b-2e6a-4f12-9e52-8c389cf1210e",
+      "name": "A cada 30 segundos",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "seconds",
+              "secondsInterval": 30
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "ee345206-0bd6-4daa-8100-9bee49ab9af2",
+      "name": "Configuração",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        250,
+        0
+      ],
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\"vilazuniUrl\": \"https://app.vilazuni.com\", \"evolutionUrl\": \"https://EVOLUTION.SEUDOMINIO.COM\", \"instance\": \"NOME_DA_INSTANCIA\"}",
+        "includeOtherFields": true
+      }
+    },
+    {
+      "id": "f729f87f-52d9-478c-ace1-efd9e19d03d5",
+      "name": "Reservar mensagem",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        500,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Configuração').item.json.vilazuniUrl + '/api/automation/claim' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 15000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {} }}"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "CONFIGURAR_VILAZUNI_-_AGENTE",
+          "name": "Vilazuni - agente"
+        }
+      }
+    },
+    {
+      "id": "af446608-da9e-43d1-a1e7-979e747acf9c",
+      "name": "Há mensagem?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        750,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "37cda5cf-d1bc-4d53-a424-3dc32ee86c00",
+              "leftValue": "={{ $json.message?.id || \"\" }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "516b0066-522d-44e1-8d73-7a08250c5c5d",
+      "name": "Entregar pela Evolution",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1000,
+        -100
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Configuração').item.json.evolutionUrl.replace(/\\/$/, '') + '/message/sendText/' + encodeURIComponent($('Configuração').item.json.instance) }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 15000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { number: $json.message.number, text: $json.message.text, linkPreview: false } }}"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "CONFIGURAR_EVOLUTION_-_API",
+          "name": "Evolution - API"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "8bd8e62f-7096-42bb-8c5f-5e57b5cab8a1",
+      "name": "Conferir aceite",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1250,
+        -100
+      ],
+      "parameters": {
+        "jsCode": "const id=$json.key?.id;return [{json:{status:typeof id==='string'&&id.length>0?'sent':'uncertain',providerId:typeof id==='string'?id:null}}];"
+      }
+    },
+    {
+      "id": "674e164e-cfdc-4bd6-832c-9ed4f56656d9",
+      "name": "Registrar resultado",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1500,
+        -100
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Configuração').item.json.vilazuniUrl + '/api/automation/ack' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 15000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {id: $('Reservar mensagem').item.json.message.id, lease: $('Reservar mensagem').item.json.message.lease, status: $json.status, providerId: $json.providerId} }}"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "CONFIGURAR_VILAZUNI_-_AGENTE",
+          "name": "Vilazuni - agente"
+        }
+      }
+    },
+    {
+      "id": "5f618e10-8ca2-4aea-af60-428e1e762af1",
+      "name": "Registrar entrega incerta",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1250,
+        160
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Configuração').item.json.vilazuniUrl + '/api/automation/ack' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 15000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {id: $('Reservar mensagem').item.json.message.id, lease: $('Reservar mensagem').item.json.message.lease, status: 'uncertain'} }}"
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "CONFIGURAR_VILAZUNI_-_AGENTE",
+          "name": "Vilazuni - agente"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "A cada 30 segundos": {
+      "main": [
+        [
+          {
+            "node": "Configuração",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configuração": {
+      "main": [
+        [
+          {
+            "node": "Reservar mensagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reservar mensagem": {
+      "main": [
+        [
+          {
+            "node": "Há mensagem?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Conferir aceite": {
+      "main": [
+        [
+          {
+            "node": "Registrar resultado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Há mensagem?": {
+      "main": [
+        [
+          {
+            "node": "Entregar pela Evolution",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Entregar pela Evolution": {
+      "main": [
+        [
+          {
+            "node": "Conferir aceite",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Registrar entrega incerta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Sao_Paulo",
+    "saveDataErrorExecution": "none",
+    "saveDataSuccessExecution": "none",
+    "saveExecutionProgress": false,
+    "executionTimeout": 120
+  },
+  "pinData": {},
+  "versionId": "872c24e7-3263-4f09-bf7f-acde2a5df2aa",
+  "tags": []
+}

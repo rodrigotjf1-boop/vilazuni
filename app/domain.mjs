@@ -17,7 +17,7 @@ export function actor(role='sindico') {
   return {role,tenant:'chandra',houses:role==='proprietario'?['c01','c02']:role==='imobiliaria'?['c03']:[],name:role==='sindico'?'Luiza Demo':role==='proprietario'?'Ana Demo':role==='imobiliaria'?'Agência Demo':'Equipe Demo'};
 }
 export function scopedHouses(state,user) {
-  return state.houses.filter(h=>h.tenant===user.tenant && (can(user,'residents')||can(user,'stays')||user.role==='portaria'||['proprietario','imobiliaria','ocupante'].includes(user.role)&&user.houses?.includes(h.id)));
+  return state.houses.filter(h=>h.tenant===user.tenant && (can(user,'residents')||can(user,'stays')||user.role==='portaria'||['proprietario','imobiliaria','ocupante','temporario'].includes(user.role)&&user.houses?.includes(h.id)));
 }
 export function scopedStays(state,user) {
   if(!can(user,'stays')&&!['proprietario','imobiliaria','portaria'].includes(user.role))return [];

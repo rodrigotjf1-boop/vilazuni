@@ -7,7 +7,7 @@ export const COMMUNITY_SLOTS = ['sindico','zelador'];
 const fail = (message,status=403) => { throw Object.assign(Error(message),{status}); };
 const editor = u => can(u,'residents');
 const moderator = u => can(u,'communications');
-const publisher = u => moderator(u)||['zelador','proprietario','ocupante'].includes(u.role);
+const publisher = u => moderator(u)||['zelador','proprietario','ocupante','temporario'].includes(u.role);
 function member(u) { if (!u?.id || !u.tenant || !ROLES.includes(u.role)) fail('Entre com um vínculo vigente neste condomínio.'); }
 function text(value,label,max,required=false) {
  if (typeof value !== 'string' && value != null) fail(label+' inválido.',400);
@@ -35,7 +35,7 @@ function profileView(s,users,u,which,now) {
  if(!available)return {slot:which,version:p?.version||0,configured:false,unavailable:!!p,canEdit:editor(u)};
  return {slot:which,version:p.version,configured:true,canEdit:editor(u),name:p.name,age:p.age,phone:p.phone,whatsapp:p.whatsapp,email:p.email,termStart:p.termStart,termEnd:p.termEnd,inTerm:(!p.termStart||p.termStart<=localDay(now))&&(!p.termEnd||p.termEnd>=localDay(now)),house:house?{id:house.id,number:house.number}:null,isOwner:!!house&&p.isOwner,photo:!!p.photo,userId:p.userId||null};
 }
-function photo(data) {
+export function portraitAttachment(data) {
  const match=/^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/]+={0,2})$/.exec(data);
  if(!match)fail('Use uma foto JPEG, PNG ou WebP.',400);
  const bytes=Buffer.from(match[2],'base64'),mime=match[1];
@@ -64,7 +64,7 @@ export function saveCommunityProfile(s,users,u,input,now=Date.now()) {
  const userId=input.userId||null;
  if(userId&&!users.some(x=>x.id===userId&&x.tenant===u.tenant&&x.role===which&&validBinding(s,x,now)))fail('Selecione uma conta ativa deste perfil e condomínio.');
  if(input.photo!=null&&typeof input.photo!=='string')fail('Foto inválida.',400);
- const attachment=input.photo===null?null:input.photo?photo(input.photo):current?.photo||null;
+ const attachment=input.photo===null?null:input.photo?portraitAttachment(input.photo):current?.photo||null;
  const p={id:current?.id||randomUUID(),tenant:u.tenant,slot:which,version:(current?.version||0)+1,name,age,email,phone:phone(input.phone),whatsapp:phone(input.whatsapp),termStart,termEnd,houseId,isOwner:!!houseId&&input.isOwner===true,userId,photo:attachment,updatedAt:new Date(now).toISOString()};
  s.communityProfiles??=[];if(current)s.communityProfiles[s.communityProfiles.indexOf(current)]=p;else s.communityProfiles.push(p);
  record(s,u,'Ficha do personagem atualizada: '+which,p.id,now);

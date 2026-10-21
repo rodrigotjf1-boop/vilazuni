@@ -22,7 +22,7 @@ test('delegação por módulo não concede poderes de identidade nem acesso tran
  await request('/admin/suspend',{id:sub.body.user.id},admin.cookie);assert.equal((await request('/state',undefined,login.cookie)).status,401);
 }finally{await f.close();}});
 test('ocupante não recebe fichas e perde acesso quando vínculo anual termina',async()=>{const f=await fixture();const {request,admin}=f;try{
- const r=await request('/residents',{houseId:'c01',kind:'annual',name:'Morador Sintético',contact:'Contato fictício',people:['Morador Sintético'],startDate:'2026-10-01'},admin.cookie);assert.equal(r.status,200);
+ const r=await request('/residents',{houseId:'c01',kind:'annual',name:'Morador Sintético',contact:'Contato fictício',people:['Morador Sintético'],startDate:'2026-10-01',contractEndDate:'2026-11-30'},admin.cookie);assert.equal(r.status,200);
  const occupant=await f.invite('ocupante',{residentId:r.body.id,validUntil:until,delegations:['residents','tasks'],houses:['c01']});const s=(await request('/state',undefined,occupant.cookie)).body.state;
  assert.deepEqual(s.houses.map(h=>h.id),['c01']);assert.deepEqual(s.houses[0].owners,[]);for(const name of ['residents','stays','tasks','materials'])assert.deepEqual(s[name],[]);assert.deepEqual(occupant.body.user.delegations,[]);
  assert.equal((await request('/residents',{houseId:'c01',kind:'owner'},occupant.cookie)).status,403);

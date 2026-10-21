@@ -13,7 +13,7 @@ function housePlace(s,u,h,point){
   if(can(u,'stays')||['proprietario','imobiliaria'].includes(u.role)){actions.push(action('stays','Estadias desta casa',h.id),action('new','Receber uma estadia',h.id));}
   if(u.role==='portaria')actions.push(action('access','Autorizações desta casa',h.id));
   actions.push(action('parking','Vagas desta casa',h.id));
-  if(u.role==='ocupante')actions.push(action('incidents','Minhas ocorrências'),action('myCharges','Minhas cobranças'),action('parcels','Minhas encomendas'));
+  if(['ocupante','temporario'].includes(u.role))actions.push(action('incidents','Minhas ocorrências'),action('myCharges','Minhas cobranças'),action('parcels','Minhas encomendas'));
  }
  return {id:point?.id||'house:'+h.id,sceneId:point?.id||null,title:point?.title||'Casa '+h.number,kind:'house',description:point?.description||'Localização no cenário ainda não definida',map:point?{x:point.mapX,y:point.mapY}:null,houseId:allowed?h.id:null,access:allowed?'allowed':'exterior',status:allowed?'Ficha conforme seu perfil':'Somente exterior ilustrativo',structure,interior:!!point&&allowed&&u.role!=='portaria',actions};
 }

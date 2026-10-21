@@ -2,7 +2,7 @@ import {randomUUID} from 'node:crypto';
 import {localDay} from './residents.mjs';
 import {requireFinance,text,date,amount,rows,bump,openDate,activeFund,post,ledger} from './finance-ledger.mjs';
 import {isOutstanding,settlementPosition,lastSettlementDate,syncSettlement} from './finance-settlements.mjs';
-import {requireUnbilledDate} from './finance-collection-policy.mjs';
+import {requireUnbilledDate,requireNoExternalCollection} from './finance-collection-policy.mjs';
 
 const normalize=v=>v.normalize('NFKC').trim().toLocaleLowerCase('pt-BR');
 export function createReceivable(s,u,input,now=Date.now()){
@@ -37,7 +37,7 @@ function recordReceipt(s,u,input,now,partial){
 }
 export function changeReceivable(s,u,input,now=Date.now()){
  const r=editable(s,u,input),today=openDate(s,u,localDay(now),now),reason=text(input.reason,'Motivo',500);
- if(r.agreementId||r.activeAgreementId)throw Error('Trate o cancelamento pelo acordo, preservando suas parcelas.');
+ requireNoExternalCollection(s,u.tenant,r.id);if(r.agreementId||r.activeAgreementId)throw Error('Trate o cancelamento pelo acordo, preservando suas parcelas.');
  if(r.feeSourceId)throw Error('Cancele encargos pela apuração, preservando a memória de cálculo.');
  if(input.status==='cancelled'&&rows(s,'financialFeeAccruals',u.tenant).some(a=>a.sourceId===r.id&&a.status==='active'))throw Error('Revise e cancele as apurações de encargos antes de cancelar o principal.');
  if(settlementPosition(s,u.tenant,'receivable',r).settledCents>0)throw Error('Estorne as baixas antes de cancelar a conta a receber.');
