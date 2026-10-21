@@ -4,7 +4,7 @@ import {can} from './permissions.mjs';
 import {canReadFinance,requireFinance,text,date,rows,bump,openDate} from './finance-ledger.mjs';
 import {isOutstanding,settlementPosition} from './finance-settlements.mjs';
 import {receivablesAt} from './finance-receivables.mjs';
-import {payerLink,ownsCollection,collectionHeld} from './finance-collection-policy.mjs';
+import {payerLink,ownsCollection,collectionHeld,requireNoExternalCollection} from './finance-collection-policy.mjs';
 
 const audit=(u,action,reason,now)=>({at:new Date(now).toISOString(),actor:u.name,actorId:u.id,action,reason});
 export const daysBetween=(from,through)=>Math.floor((Date.parse(through+'T12:00Z')-Date.parse(from+'T12:00Z'))/86400000);
@@ -14,8 +14,8 @@ function receivable(s,u,id,version){
 }
 export function assignFinancialPayer(s,users,u,input,now=Date.now()){
  requireFinance(u,'financeClose');const today=openDate(s,u,localDay(now),now),r=receivable(s,u,input.id,input.version),reason=text(input.reason,'Fundamento do vínculo ao pagador',500),current=payerLink(s,u.tenant,r.id);
- if(input.linkVersion!==(current?.version||0))throw Error('O vínculo mudou. Atualize antes de continuar.');
- const payer=input.payerUserId?users.find(p=>p.tenant===u.tenant&&p.id===input.payerUserId&&p.active&&['proprietario','imobiliaria','ocupante'].includes(p.role)):null;
+ requireNoExternalCollection(s,u.tenant,r.id);if(input.linkVersion!==(current?.version||0))throw Error('O vínculo mudou. Atualize antes de continuar.');
+ const payer=input.payerUserId?users.find(p=>p.tenant===u.tenant&&p.id===input.payerUserId&&p.active&&['proprietario','imobiliaria','ocupante','temporario'].includes(p.role)):null;
  if(input.payerUserId&&!payer)throw Error('Selecione conta residencial ativa deste condomínio.');
  if(payer&&r.houseId&&!payer.houses?.includes(r.houseId))throw Error('O pagador deve ter acesso à unidade desta contribuição.');
  if((current?.payerUserId||null)===(payer?.id||null))throw Error('O vínculo já está nessa situação.');
@@ -27,7 +27,7 @@ export function assignFinancialPayer(s,users,u,input,now=Date.now()){
 }
 export function issueManualRequest(s,u,input,now=Date.now()){
  requireFinance(u,'finance');const today=openDate(s,u,localDay(now),now),r=receivable(s,u,input.id,input.version),link=payerLink(s,u.tenant,r.id),position=settlementPosition(s,u.tenant,'receivable',r);
- if(!isOutstanding(position))throw Error('Emita aviso somente para saldo aberto.');
+ requireNoExternalCollection(s,u.tenant,r.id);if(!isOutstanding(position))throw Error('Emita aviso somente para saldo aberto.');
  if(!link?.payerUserId||input.linkVersion!==link.version)throw Error('Controle deve conferir o vínculo ao pagador antes de emitir.');
  if(collectionHeld(s,u.tenant,r.id))throw Error('Cobrança suspensa ou em contestação. Aguarde análise do controle.');
  if(rows(s,'financialManualRequests',u.tenant).some(q=>q.receivableId===r.id&&!q.cancelledOn))throw Error('Há aviso ativo para esta conta. Consulte ou cancele antes de substituir.');
@@ -82,7 +82,7 @@ export function prepareFinancialReminders(s,users,u,input,now=Date.now()){
  if(created.length)bump(s,u.tenant);return {created,count:created.length};
 }
 export function visiblePayerCharges(s,u){
- if(!['proprietario','imobiliaria','ocupante'].includes(u.role))return [];
+ if(!['proprietario','imobiliaria','ocupante','temporario'].includes(u.role))return [];
  return rows(s,'financialManualRequests',u.tenant).filter(q=>ownsCollection(s,u,q)).map(q=>{
   const r=rows(s,'financialReceivables',u.tenant).find(r=>r.id===q.receivableId),p=settlementPosition(s,u.tenant,'receivable',r);
   return {id:q.id,receivableId:r.id,reference:q.reference,description:q.description,issuedOn:q.issuedOn,dueOn:r.dueOn,issuedAmountCents:q.amountCents,amountCents:r.amountCents,...p,instructions:q.instructions,cancelledOn:q.cancelledOn||null,houseNumber:q.houseNumber,competence:q.competence,held:collectionHeld(s,u.tenant,r.id),feeMemo:r.feeMemo||null,cases:structuredClone(rows(s,'financialCollectionCases',u.tenant).filter(c=>c.receivableId===r.id&&ownsCollection(s,u,c))),reminders:rows(s,'financialReminders',u.tenant).filter(x=>x.receivableId===r.id&&ownsCollection(s,u,x)).map(({on,remainingCents})=>({on,remainingCents}))};

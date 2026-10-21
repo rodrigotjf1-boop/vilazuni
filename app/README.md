@@ -1,6 +1,6 @@
 # Vilazuni — piloto local com login
 
-Requer Node.js 20 ou superior e `npm ci` nesta pasta. Dependências e integridades estão fixadas no lockfile. Estado atual da versão 0.2.0: [STATUS_DO_PROJETO](../STATUS_DO_PROJETO.md); implantação: [deploy](../deploy/README.md).
+Requer Node.js 20 ou superior e `npm ci` nesta pasta. Dependências e integridades estão fixadas no lockfile. Estado atual da versão 0.3.0: [STATUS_DO_PROJETO](../STATUS_DO_PROJETO.md); implantação: [deploy](../deploy/README.md).
 
 ## Abrir e configurar
 
@@ -16,7 +16,7 @@ Os convites valem 48 horas, são de uso único e devem ser entregues manualmente
 - Portaria: dados mínimos das autorizações aprovadas; sem contatos particulares ou proprietários.
 - Zeladoria: tarefas; sem fichas residenciais ou de hóspedes.
 
-Subsíndico e administradora recebem somente módulos delegados explicitamente pelo síndico, com prazo e justificativa. Ocupante recebe convite ligado a um vínculo anual vigente, com validade obrigatória e escopo mínimo. Use “Delegações e ocupantes” no menu da conta do síndico. Convites comuns não concedem cargos de gestão.
+Subsíndico e administradora recebem somente módulos delegados explicitamente pelo síndico, com prazo e justificativa. Inquilino anual recebe convite ligado ao cadastro residencial com fim de contrato informado. Inquilino temporário usa a estadia aprovada, somente no intervalo de entrada/saída. A gestão renova os vínculos explicitamente. Use “Pessoas, convites e acessos” no menu da conta do síndico. Convites comuns não concedem cargos de gestão.
 
 ## Dados e sessões
 
@@ -28,7 +28,7 @@ Senhas são armazenadas com scrypt e salt; convites com hash. Sessões ficam em 
 
 Tour WebGL com 14 sobrados, áreas comuns e interiores ilustrativos em dois pavimentos. Consultas e cadastros abrem sobre o cenário. As operações usam o horário atual; o cenário e os dados operacionais são de exemplo. Login real local não significa ambiente de produção: não inserir dados reais de moradores antes de implantar a base central.
 
-Por padrão local, o serviço atende em 127.0.0.1. A versão 0.2.0 acrescenta PostgreSQL/RLS, HTTPS via gateway, MFA, recuperação, vários vínculos, anexos privados e backup cifrado. Adaptadores de IA, Telegram, push e equipamentos ficam opcionais e desativados sem configuração. Pagamentos continuam manuais. A configuração inicial não verifica mandato de síndico; leia os critérios de ativação antes do uso real.
+Por padrão local, o serviço atende em 127.0.0.1. A versão 0.3.0 acrescenta PostgreSQL/RLS, HTTPS via gateway, MFA, recuperação, vários vínculos, anexos privados e backup cifrado. Adaptadores de IA, Telegram, push e equipamentos ficam opcionais e desativados sem configuração. Pagamentos continuam manuais. A configuração inicial não verifica mandato de síndico; leia os critérios de ativação antes do uso real.
 
 ## Verificação
 
@@ -199,3 +199,7 @@ Em **Mural**, gestão, zeladoria, proprietário e ocupante podem publicar avisos
 O cabeçalho destaca o nome configurado do condomínio. O menu esquerdo tem busca, grupos e opção selecionada; no celular, use o botão de menu para abrir a gaveta. Fotos e respostas de API não ficam no cache público da PWA.
 
 Detalhamento e próximos pedidos de perfis por estadia/contrato, WhatsApp e Asaas: [comunidade e integrações](../fundacao/COMUNIDADE_E_PROXIMAS_INTEGRACOES.md). Prévias com dados sintéticos: [menu](../previa-menu-comunidade.png) e [mural móvel](../previa-mural-mobile.png).
+
+## Piloto integrado 0.3.0
+
+Perfis pessoais e fotos privadas, expiração por contrato/estadia, aviso de atualização e cobrança confirmada via uma conta própria Asaas estão em [piloto e acessos](../fundacao/PILOTO_ASAAS_E_ACESSOS.md). Para o agente WhatsApp, use os [workflows e prompt Evolution/n8n](../deploy/n8n/README.md). As chaves são cadastradas nos respectivos formulários/credenciais; não vão para o Git. Homologação não movimenta o caixa real. A entrega não ativou integrações nas VPS do usuário.

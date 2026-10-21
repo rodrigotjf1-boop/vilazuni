@@ -1,3 +1,4 @@
+import {requireNoExternalCollection} from './finance-collection-policy.mjs';
 import {randomUUID} from 'node:crypto';
 import {localDay} from './residents.mjs';
 import {requireFinance,text,date,amount,rows,revision,bump,openDate} from './finance-ledger.mjs';
@@ -26,7 +27,7 @@ export function decideFeeRule(s,u,input,now=Date.now()){
 }
 function calculated(s,u,input,now){
  requireFinance(u,'financeClose');const today=openDate(s,u,localDay(now),now),r=rows(s,'financialReceivables',u.tenant).find(r=>r.id===input.sourceId),rule=rows(s,'financialFeeRules',u.tenant).find(r=>r.id===input.ruleId&&r.status==='approved'),through=date(input.through);
- if(!r||!Number.isInteger(input.sourceVersion)||r.version!==input.sourceVersion)throw Error('A origem mudou. Atualize antes de calcular.');
+ if(r)requireNoExternalCollection(s,u.tenant,r.id);if(!r||!Number.isInteger(input.sourceVersion)||r.version!==input.sourceVersion)throw Error('A origem mudou. Atualize antes de calcular.');
  if(!rule||input.ruleVersion!==rule.version)throw Error('Selecione regra aprovada e atual.');
  if(r.feeSourceId||!isOutstanding(settlementPosition(s,u.tenant,'receivable',r))||r.dueOn>=through||through>today)throw Error('Encargos exigem principal aberto e período vencido até hoje, sem juros sobre encargos.');
  if(r.dueOn<rule.dueFrom||r.dueOn>rule.dueThrough)throw Error('Regra não abrange o vencimento desta conta.');

@@ -3,7 +3,7 @@ import {localDay} from './residents.mjs';
 import {requireFinance,text,date,rows,bump,openDate,activeFund} from './finance-ledger.mjs';
 import {createReceivable} from './finance-receivables.mjs';
 import {isOutstanding,settlementPosition,syncSettlement} from './finance-settlements.mjs';
-import {collectionHeld,payerLink,requireUnbilledDate} from './finance-collection-policy.mjs';
+import {collectionHeld,payerLink,requireUnbilledDate,requireNoExternalCollection} from './finance-collection-policy.mjs';
 const normalize=v=>v.normalize('NFKC').trim().toLocaleLowerCase('pt-BR');
 const audit=(u,action,reason,now)=>({at:new Date(now).toISOString(),actor:u.name,actorId:u.id,action,reason});
 function record(s,u,input,module){
@@ -65,6 +65,7 @@ export function cancelAgreement(s,u,input,now=Date.now()){
   if(rows(next,'financialFeeAccruals',u.tenant).some(f=>f.status==='active'&&children.some(r=>r.id===f.sourceId)))throw Error('Cancele as apurações de encargos das parcelas antes de cancelar o acordo.');
   const original=rows(next,'financialReceivables',u.tenant).find(r=>r.id===a.sourceId);if(original?.activeAgreementId!==a.id)throw Error('Origem do acordo inconsistente. Confira o histórico.');
   for(const r of children){r.events.push({date:today,kind:'cancelled',reason});r.version++;syncSettlement(next,u.tenant,'receivable',r);r.history.push(audit(u,'Parcela cancelada com o acordo',reason,now));}
+  for(const child of children)requireNoExternalCollection(next,u.tenant,child.id);
   for(const q of rows(next,'financialManualRequests',u.tenant).filter(q=>!q.cancelledOn&&children.some(r=>r.id===q.receivableId))){q.cancelledOn=today;q.version++;q.history.push(audit(u,'Aviso cancelado com a parcela do acordo',reason,now));}
   original.events.push({date:today,kind:'open',reason});original.version++;syncSettlement(next,u.tenant,'receivable',original);original.history.push(audit(u,'Acordo cancelado; saldo de origem restaurado',reason,now));
  }
