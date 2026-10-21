@@ -50,6 +50,22 @@ export function createWorldRenderer(canvas,{onSelect=()=>{},onProject=()=>{},onC
  for(const x of [-5.5,5.5]){box(x,3.2,-36,1.5,.6,2.5,'b4ad95');foliage(x,4.1,-36,.85,'658d58');}
  for(const x of [-14,14])palm(x,.2,31);
  box(-7,.2,-28,1.4,.12,3,'9ab280');foliage(-7,.8,-28,.7,'71975e');
+ // Personagens simbólicos, sem representar a aparência de pessoas reais.
+ function person(id,x,z,shirt){
+  objectStart=vertices.length/6;
+  for(const side of [-1,1]){box(x+side*.2,.18,z,.27,1.2,.32,'334d46');box(x+side*.2,.17,z+.1,.32,.18,.55,'344039');box(x+side*.55,1.32,z,.24,.95,.3,shirt);foliage(x+side*.55,1.28,z,.16,'bc906c');}
+  box(x,1.3,z,.83,1.1,.44,shirt);box(x,2.4,z,.22,.2,.22,'bc906c');foliage(x,2.91,z,.4,'bc906c');foliage(x,3.15,z-.04,.34,'53483d');
+  if(id==='caretaker'){box(x,3.3,z,.9,.12,.65,'d9b65b');box(x,3.35,z,.65,.2,.55,'d9b65b');box(x+.32,1.82,z+.24,.1,.15,.04,'f1e2af');}
+  else {box(x,2.22,z+.24,.22,.16,.025,'f0e9d5');box(x,1.8,z+.24,.08,.42,.03,'e7d6a4');}
+  mark(id);
+ }
+ person('syndic',-3.4,17,'e8e2cc');person('caretaker',3.4,-5,'4f867c');
+ // Quadro de madeira e folhas no plano voltado à entrada da alameda.
+ objectStart=vertices.length/6;
+ for(const x of [-4.75,-2.25])box(x,.15,27,.15,3.2,.18,'73583d');
+ box(-3.5,1.28,27,3.1,2.15,.22,'73583d');box(-3.5,1.4,27.14,2.85,1.88,.08,'b69563');
+ for(const [x,y] of [[-4.32,2.4],[-3.48,2.25],[-2.7,2.4]]){box(x,y-.55,27.21,.62,1,.025,'f1ecda');box(x,y+.42,27.24,.08,.08,.03,'a9543f');for(let i=0;i<3;i++)box(x,y+.1-i*.17,27.24,.4,.025,.01,'8a927c');}
+ mark('noticeboard');
  const exteriorCount=vertices.length/6;
  // Interior conceitual: sala aberta, cozinha e jardim vistos da entrada.
  box(0,-.2,0,16,.2,16,'bda98b');

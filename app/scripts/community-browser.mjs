@@ -1,0 +1,75 @@
+import {multiply,perspective,viewMatrix,transform} from '../tour-geometry.mjs';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import assert from 'node:assert/strict';
+import {calendarRange} from '../community-calendar.mjs';
+
+export async function communityBrowser({browser,page,base,api,password}) {
+ const artifacts=process.env.VILAZUNI_COMMUNITY_ARTIFACTS;
+ if(artifacts)await fs.mkdir(artifacts,{recursive:true});
+ const capture=async(target,name)=>{if(artifacts)await target.screenshot({path:path.join(artifacts,name),animations:'disabled'});};
+ const tinyPhoto=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aV1cAAAAASUVORK5CYII=','base64');
+ const manager=(await api('/state')).user;
+ const workerEmail='zeladoria-browser@example.test',ownerEmail='proprietario-browser@example.test';
+ const workerInvite=await api('/admin/invites',{email:workerEmail,role:'zelador'});
+ const ownerInvite=await api('/admin/invites',{email:ownerEmail,role:'proprietario',houses:['c01']});
+ const workerContext=await browser.newContext(),ownerContext=await browser.newContext({viewport:{width:1280,height:900}});
+ try {
+  async function activate(context,email,code,name){const r=await context.request.post(base+'/api/activate',{headers:{Origin:base},data:{name,email,password,code}});assert.equal(r.status(),200,await r.text());return (await r.json()).user;}
+  const worker=await activate(workerContext,workerEmail,workerInvite.code,'Zelador navegador');
+  await activate(ownerContext,ownerEmail,ownerInvite.code,'Proprietário navegador');
+  await page.getByLabel('Buscar no menu',{exact:true}).fill('mural');assert.equal(await page.locator('[data-world-page=finance]').isVisible(),false);await page.getByLabel('Buscar no menu',{exact:true}).fill('');
+  async function selectPerson(x,z){const size=page.viewportSize(),distance=106,yaw=.22,pitch=.92,matrix=multiply(perspective(size.width/size.height),viewMatrix([distance*Math.sin(yaw)*Math.cos(pitch),distance*Math.sin(pitch),-8+distance*Math.cos(yaw)*Math.cos(pitch)],[0,0,-8])),point=transform(matrix,[x,2.91,z,1]);await page.locator('#world-canvas').click({position:{x:(point[0]/point[3]*.5+.5)*size.width,y:(.5-point[1]/point[3]*.5)*size.height}});}
+  await selectPerson(-3.4,17);
+  await page.getByRole('button',{name:'Editar ficha',exact:true}).click();
+  let form=page.locator('#community-profile-form');
+  await form.getByLabel('Nome',{exact:true}).fill('Síndico navegador');await form.getByLabel('Idade',{exact:true}).fill('43');
+  await form.locator('[name=userId]').selectOption(manager.id);
+  await form.getByLabel('Telefone · DDI e DDD',{exact:true}).fill('55 22 99999 9999');await form.getByLabel('WhatsApp · DDI e DDD',{exact:true}).fill('55 22 99999 9999');await form.getByLabel('E-mail',{exact:true}).fill('gestao-browser@example.test');
+  await form.getByLabel('Início da vigência',{exact:true}).fill('2026-01-01');await form.getByLabel('Fim da vigência',{exact:true}).fill('2027-12-31');
+  await form.locator('[name=houseId]').selectOption('c01');await form.getByLabel('É proprietário da unidade vinculada',{exact:true}).check();
+  await form.getByLabel('Foto',{exact:true}).setInputFiles({name:'foto.png',mimeType:'image/png',buffer:tinyPhoto});
+  await form.getByRole('button',{name:'Salvar ficha',exact:true}).click();
+  await page.getByRole('heading',{name:'Síndico navegador',exact:true}).first().waitFor();
+  assert.equal(await page.getByRole('link',{name:'WhatsApp',exact:true}).getAttribute('href'),'https://wa.me/5522999999999');
+  assert.equal(await page.getByRole('link',{name:'Ligar',exact:true}).getAttribute('href'),'tel:+5522999999999');
+  assert.equal(await page.getByRole('link',{name:'Enviar e-mail',exact:true}).getAttribute('href'),'mailto:gestao-browser%40example.test');
+  await page.waitForFunction(()=>document.querySelector('.community-photo')?.naturalWidth>0);
+  await capture(page,'ficha-sindico.png');
+  await page.getByRole('button',{name:'Fechar painel',exact:true}).click();
+  await selectPerson(3.4,-5);await page.getByRole('button',{name:'Editar ficha',exact:true}).click();form=page.locator('#community-profile-form');
+  await form.getByLabel('Nome',{exact:true}).fill('Zelador navegador');await form.getByLabel('Idade',{exact:true}).fill('35');await form.locator('[name=userId]').selectOption(worker.id);await form.getByRole('button',{name:'Salvar ficha',exact:true}).click();
+  await page.getByRole('heading',{name:'Zelador navegador',exact:true}).first().waitFor();
+  const today=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+  const week=calendarRange('week',today),month=calendarRange('month',today);
+  for(const [title,due,published] of [['Tarefa visível hoje',today,true],['Tarefa da semana',week.through,true],['Tarefa do mês',month.through,true],['Tarefa confidencial',today,false]])await api('/tasks/create',{title,area:'Área comum',due,assigneeId:worker.id,publicSchedule:published,description:'Orientação interna da tarefa'});
+  await page.getByRole('button',{name:'Hoje',exact:true}).click();await page.getByRole('heading',{name:'Tarefa visível hoje',exact:true}).waitFor();
+  await page.getByRole('button',{name:'Semana',exact:true}).click();await page.getByRole('heading',{name:'Tarefa da semana',exact:true}).waitFor();
+  await page.getByRole('button',{name:'Mês',exact:true}).click();await page.getByRole('heading',{name:'Tarefa do mês',exact:true}).waitFor();
+  await page.getByRole('button',{name:'Mural',exact:true}).click();await page.getByRole('button',{name:'Publicar aviso',exact:false}).click();
+  const noticeTitle='Aviso do mural pelo navegador';
+  await page.getByLabel('Título do aviso',{exact:true}).fill(noticeTitle);await page.getByLabel('Texto do aviso',{exact:true}).fill('Aviso sintético. <img id="probe" src="x" onerror="alert(1)">');await page.getByRole('button',{name:'Publicar aviso',exact:true}).click();
+  await page.getByRole('heading',{name:noticeTitle,exact:true}).waitFor();
+  assert.equal(await page.locator('[data-world-page=board]').getAttribute('aria-current'),'page');
+  await capture(page,'mural-desktop.png');
+  const reader=await ownerContext.newPage();reader.setDefaultTimeout(15000);await reader.goto(base);
+  await reader.locator('[data-world-page=board].community-unread').waitFor();
+  await reader.locator('[data-world-page=board]').click();await reader.getByRole('heading',{name:noticeTitle,exact:true}).waitFor();
+  const unread=await reader.evaluate(async()=>await (await fetch('/api/community/summary')).json());assert.equal(unread.unreadCount,1);
+  await reader.getByRole('button',{name:new RegExp(noticeTitle)}).click();await reader.getByText('Aviso visto.',{exact:true}).waitFor();
+  assert.equal(await reader.locator('#probe').count(),0);assert.equal(await reader.locator('[data-world-page=board].community-unread').count(),0);
+  const n=(await api('/community')).notices.find(n=>n.title===noticeTitle);
+  await api('/community/notices/save',{id:n.id,version:n.version,title:noticeTitle,body:'Aviso editado: deve sinalizar novamente.'});
+  await reader.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));await reader.locator('[data-world-page=board].community-unread').waitFor();
+  await reader.locator('[data-world-page=community]').click();await reader.getByRole('button',{name:/Zelador.*Zelador navegador/}).click();
+  await reader.getByRole('heading',{name:'Tarefa visível hoje',exact:true}).waitFor();assert.equal(await reader.getByRole('heading',{name:'Tarefa confidencial',exact:true}).count(),0);assert.equal(await reader.getByRole('button',{name:'Editar ficha',exact:true}).count(),0);
+  await reader.setViewportSize({width:390,height:844});await reader.getByRole('button',{name:'Fechar painel',exact:true}).click();await reader.locator('#world-menu-toggle').click();await reader.locator('[data-world-page=board]').click();await reader.getByRole('heading',{name:noticeTitle,exact:true}).waitFor();assert.ok(await reader.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+  await capture(reader,'mural-celular.png');
+  await reader.getByRole('button',{name:'Fechar painel',exact:true}).click();await reader.locator('#world-menu-toggle').click();await reader.getByLabel('Buscar no menu',{exact:true}).fill('condominio');await reader.getByRole('button',{name:'Condomínio',exact:true}).waitFor();await capture(reader,'menu-celular.png');
+  await page.getByRole('button',{name:'Fechar painel',exact:true}).click();
+  await capture(page,'cenario-menu.png');
+  await page.getByRole('button',{name:'Mapa e lista acessível de locais',exact:true}).click();await page.locator('.tour-search [name=kind]').selectOption('person');await page.locator('#tour-results').getByRole('button',{name:/Síndico/}).click();await page.getByRole('heading',{name:'Síndico navegador',exact:true}).first().waitFor();
+  await page.getByRole('button',{name:'Fechar painel',exact:true}).click();
+  console.log('Personagens/fichas/foto/contatos, agenda compartilhada, mural com texto seguro, leitura individual por versão, alertas e navegação móvel/mapa aprovados.');
+ } finally {await workerContext.close();await ownerContext.close();}
+}
