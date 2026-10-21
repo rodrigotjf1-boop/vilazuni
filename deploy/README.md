@@ -1,6 +1,6 @@
 # Implantação do Vilazuni 0.2.0
 
-Arquivos preparados para aplicação Node.js + PostgreSQL + volume privado + HTTPS. O usuário escolheu VPS Hostinger com Easypanel e adquiriu o domínio; a publicação da aplicação ainda depende da configuração no servidor. Usar inicialmente homologação com dados sintéticos.
+Arquivos preparados para aplicação Node.js + PostgreSQL + volume privado + HTTPS. O usuário realizou a primeira implantação web na VPS Hostinger com Easypanel e domínio próprio; a ativação operacional depende de primeiro acesso, MFA, volume e recuperação conferidos. Usar inicialmente homologação com dados sintéticos.
 
 **Na VPS com Easypanel, seguir o [guia dos serviços nativos](easypanel/README.md)**. Ele usa o gateway do painel e inclui um gerador de configurações privadas e SQL de primeira instalação. A composição abaixo é alternativa para servidor sem Easypanel; não iniciar outro gateway nas portas 80/443 já ocupadas pelo painel.
 

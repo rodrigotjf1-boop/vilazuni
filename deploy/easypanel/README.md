@@ -118,6 +118,24 @@ O responsável cria sua própria conta com o código privado `BOOTSTRAP_TOKEN`, 
 
 Cobrança permanece manual. IA, Telegram, portão real e envio de e-mail não são ativados por este guia. Uma caixa de suporte já criada pode receber contato, mas recuperação automática exige o adaptador Resend com `MAIL_API_KEY` e `MAIL_FROM`, remetente verificado e teste de entrega. Configurar credenciais somente no servidor; não trocar MX do e-mail para implantar o aplicativo.
 
+### Trocar os segredos antes da primeira conta
+
+Se uma captura ou compartilhamento revelar os valores iniciais, substituir a senha do usuário runtime, a chave MFA e o código de instalação antes de criar a primeira conta. Para a aplicação já implantada uma vez, com imagem disponível na VPS, existe um procedimento específico:
+
+```sh
+cd "$HOME/vilazuni"
+git pull --ff-only
+bash deploy/easypanel/rotate-initial-secrets.sh
+```
+
+Usar o caminho do checkout efetivamente clonado; por exemplo, `vilazuni-config` se esse foi o nome escolhido. O procedimento pressupõe os nomes de projeto/serviços deste guia (`vilazuni`, `app`, `banco`) e configurações em `$HOME/vilazuni-private/primeira-instalacao`. Para outro diretório privado, passá-lo como primeiro argumento do script, com caminho absoluto.
+
+O script para temporariamente a aplicação, usa sua imagem existente na rede do contêiner PostgreSQL e troca a senha pelo próprio papel runtime, sem pedir a senha administrativa. O contêiner de manutenção executa como root somente para ler/gravar os arquivos privados do operador; o usuário da aplicação continua `node`. A troca bloqueia a tabela de controle em transação e **recusa qualquer base que já tenha contas**. Não é um procedimento para trocar a chave MFA de usuários existentes.
+
+O novo `application.env` e o SQL inicial ficam no mesmo diretório, com modo 600. A chave de backup é preservada. As versões anteriores são arquivadas em subpasta privada `rotation-*`; não há impressão dos segredos. Se ocorrer falha depois da possível confirmação no banco, `.rotation-pending` preserva os valores preparados: manter a aplicação parada e conferir a recuperação, sem gerar outras chaves ou apagar essa pasta.
+
+Depois do sucesso, copiar **o novo** `application.env` para **app → Environment/Ambiente**, conferir **Réplicas = 1** e executar **Deploy/Implantar**. A aplicação permanece parada até essa implantação; tentar reiniciar com o ambiente antigo falha na conexão. Conferir novamente `/healthz`, `/readyz` e o primeiro acesso. Não compartilhar capturas do terminal ou editor que contenham os valores.
+
 ## 7. Backup, atualizações e distribuição
 
 No Shell da aplicação, criar o backup cifrado no volume (nome novo a cada execução):

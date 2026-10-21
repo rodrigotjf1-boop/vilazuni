@@ -32,7 +32,7 @@ Por padrão local, o serviço atende em 127.0.0.1. A versão 0.2.0 acrescenta Po
 
 ## Verificação
 
-`npm test`: 218 testes (quatro PostgreSQL exigem configuração da base local descartável), incluindo integração HTTP com contas sintéticas temporárias, domínio, delegações, manutenção, reservas, encomendas, avisos, persistência após reinício e primeira instalação no Easypanel. Cobre escopo de casas e condomínios, convite único, sessão, suspensão, expiração de delegação, troca de senha e campos mínimos por perfil. O teste HTTP exige conexão de loopback permitida. A tela inicial foi conferida no navegador; a senha da conta real deve ser criada pelo usuário.
+`npm test`: 220 testes (cinco PostgreSQL exigem configuração da base local descartável), incluindo integração HTTP com contas sintéticas temporárias, domínio, delegações, manutenção, reservas, encomendas, avisos, persistência após reinício, primeira instalação no Easypanel e troca de segredos antes da primeira conta. Cobre escopo de casas e condomínios, convite único, sessão, suspensão, expiração de delegação, troca de senha e campos mínimos por perfil. O teste HTTP exige conexão de loopback permitida. A tela inicial foi conferida no navegador; a senha da conta real deve ser criada pelo usuário.
 
 
 ## Moradores e vínculos
