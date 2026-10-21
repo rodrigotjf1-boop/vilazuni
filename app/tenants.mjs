@@ -63,7 +63,7 @@ export function saveUnit(db,user,input,now=Date.now()){
  fresh.history=[];note(fresh,user,'Unidade cadastrada',reason,now);db.state.houses.push(fresh);return {unit:structuredClone(fresh)};
 }
 export function exportTenant(db,user,now=Date.now()){
- manager(user);const state={};for(const [key,value] of Object.entries(db.state))if(Array.isArray(value)&&!['notifications','pushSubscriptions'].includes(key))state[key]=structuredClone(value.filter(r=>r.tenant===user.tenant));
+ manager(user);const state={};for(const [key,value] of Object.entries(db.state))if(Array.isArray(value)&&!['notifications','pushSubscriptions','communityReads'].includes(key))state[key]=structuredClone(value.filter(r=>r.tenant===user.tenant));
  if(state.consultativePolls)state.consultativePolls=state.consultativePolls.map(({votes,...poll})=>({...poll,responseTotals:poll.options.map(o=>({optionId:o.id,count:votes.filter(v=>v.optionId===o.id).length})),privacy:'Respostas individuais excluídas da exportação de cliente.'}));
  const payload={format:'vilazuni-tenant-export-v1',generatedAt:new Date(now).toISOString(),tenant:tenantSettings(db.state,user.tenant),state,accounts:usersInTenant(db.users,user.tenant).map(({id,name,email,role,active,validUntil,houses})=>({id,name,email,role,active,validUntil,houses})),events:structuredClone(db.events.filter(e=>e.tenant===user.tenant))};
  return {...payload,sha256:fingerprint(payload)};

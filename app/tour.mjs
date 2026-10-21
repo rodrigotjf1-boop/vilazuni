@@ -24,6 +24,7 @@ function facilityPlace(s,u,f,point){
 export function tourView(s,u){
  const illustrated=u.tenant===TOUR_VISUAL.tenant,points=illustrated?TOUR_POINTS:[],houses=s.houses.filter(h=>h.tenant===u.tenant),facilities=(s.facilities||[]).filter(f=>f.tenant===u.tenant),links=linksFor(s,u),places=[];
  for(const point of points){
+  if(['person','board'].includes(point.kind)){places.push({...point,sceneId:point.id,map:{x:point.mapX,y:point.mapY},access:'allowed',status:point.kind==='board'?'Comunicados da comunidade':'Contatos do condomínio',actions:[action(point.id==='noticeboard'?'board':point.id,'Abrir '+point.title)]});continue;}
   if(point.kind==='house'){const h=houses.find(h=>h.id===point.id);if(h)places.push(housePlace(s,u,h,point));continue;}
   if(point.kind==='gate'){places.push({...point,sceneId:point.id,map:{x:point.mapX,y:point.mapY},access:can(u,'stays')||u.role==='portaria'?'allowed':'exterior',status:'Sem controle de portão conectado',actions:can(u,'stays')||u.role==='portaria'?[action('access','Consultar autorizações')]:[]});continue;}
   const link=links.find(l=>l.pointId===point.id),f=facilities.find(f=>f.id===link?.facilityId);

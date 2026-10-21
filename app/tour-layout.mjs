@@ -6,7 +6,10 @@ export const TOUR_POINTS=[
  {id:'party',title:'Salão de festas',kind:'facility',x:-10,y:7.8,z:-38,mapX:25,mapY:22,description:'Primeiro patamar · lado esquerdo'},
  {id:'games',title:'Salão de jogos',kind:'facility',x:10,y:7.8,z:-38,mapX:75,mapY:22,description:'Primeiro patamar · lado direito'},
  {id:'pool',title:'Piscina',kind:'facility',x:0,y:8,z:-49,mapX:50,mapY:10,description:'Patamar superior · após o segundo lance de escadas'},
- {id:'gate',title:'Entrada e portaria',kind:'gate',x:0,y:4.5,z:33,mapX:50,mapY:92,description:'Entrada · casas 01–07 à direita, 08–14 à esquerda'}
+ {id:'gate',title:'Entrada e portaria',kind:'gate',x:0,y:4.5,z:33,mapX:50,mapY:92,description:'Entrada · casas 01–07 à direita, 08–14 à esquerda'},
+ {id:'syndic',title:'Síndico',kind:'person',x:-3.4,y:4.1,z:17,mapX:50,mapY:67,description:'Ficha e contatos da gestão do condomínio'},
+ {id:'caretaker',title:'Zelador',kind:'person',x:3.4,y:4.1,z:-5,mapX:50,mapY:46,description:'Ficha, contatos e calendário de tarefas da zeladoria'},
+ {id:'noticeboard',title:'Mural de avisos',kind:'board',x:-3.5,y:4.3,z:27,mapX:50,mapY:82,description:'Quadro de comunicados da comunidade'}
 ];
 export const normalizeSearch=value=>String(value??'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('pt-BR').trim();
 export function filterTourPlaces(places,{query='',kind='all',accessible=false}={}){

@@ -32,7 +32,7 @@ Por padrão local, o serviço atende em 127.0.0.1. A versão 0.2.0 acrescenta Po
 
 ## Verificação
 
-`npm test`: 220 testes (cinco PostgreSQL exigem configuração da base local descartável), incluindo integração HTTP com contas sintéticas temporárias, domínio, delegações, manutenção, reservas, encomendas, avisos, persistência após reinício, primeira instalação no Easypanel e troca de segredos antes da primeira conta. Cobre escopo de casas e condomínios, convite único, sessão, suspensão, expiração de delegação, troca de senha e campos mínimos por perfil. O teste HTTP exige conexão de loopback permitida. A tela inicial foi conferida no navegador; a senha da conta real deve ser criada pelo usuário.
+`npm test`: 230 testes (cinco PostgreSQL exigem configuração da base local descartável), incluindo integração HTTP com contas sintéticas temporárias, domínio, delegações, manutenção, reservas, encomendas, avisos, persistência após reinício, primeira instalação no Easypanel e troca de segredos antes da primeira conta. Cobre escopo de casas e condomínios, convite único, sessão, suspensão, expiração de delegação, troca de senha e campos mínimos por perfil. O teste HTTP exige conexão de loopback permitida. A tela inicial foi conferida no navegador; a senha da conta real deve ser criada pelo usuário.
 
 
 ## Moradores e vínculos
@@ -186,3 +186,16 @@ Consulte [etapa 6](../fundacao/ETAPA_6_FONTES_E_GOVERNANCA.md) e [etapas 7–8](
 No modo local, dados sintéticos e arquivo JSON continuam disponíveis. Produção exige PostgreSQL, diretório de anexos privado persistente, chaves externas, HTTPS e MFA da gestão; a base nova começa sem dados fictícios. A implantação não é feita automaticamente ao iniciar o piloto.
 
 `npm run test:browser` executa uma jornada sintética em Chromium. Instale o navegador com `npx playwright-core install chromium` ou informe `CHROMIUM_PATH`. Para testes de PostgreSQL, veja `scripts/prepare-pg-test.mjs`; nunca use banco com dados reais. Scripts operacionais: `npm run db:migrate`, `npm run db:import-json -- <store.json>`, `npm run backup -- create|restore <arquivo>`.
+
+
+## Personagens, mural e menu
+
+No cenário, toque no síndico ou no zelador para abrir a ficha; o menu **Equipe** e a lista do mapa oferecem o mesmo acesso. A gestão edita nome, idade, foto e contatos; a ficha do síndico inclui vigência, casa e indicação de proprietário. Botões WhatsApp, telefone e e-mail abrem o aplicativo correspondente. Vincular uma conta não cria outra conta nem altera permissões.
+
+O calendário do zelador filtra as tarefas atribuídas por hoje, semana ou mês. Ao criar uma tarefa, a gestão pode compartilhar título, local, prazo e andamento no calendário; instruções e fotos permanecem privadas. Tarefas anteriores não são publicadas automaticamente.
+
+Em **Mural**, gestão, zeladoria, proprietário e ocupante podem publicar avisos com validade opcional. Autor edita/arquiva os seus; comunicação pode moderar. A exclamação indica versões ainda não vistas pela sua conta. Abrir a lista não marca leitura; abrir o conteúdo registra a visualização. Edições voltam a sinalizar. Leituras persistem e ficam isoladas por condomínio.
+
+O cabeçalho destaca o nome configurado do condomínio. O menu esquerdo tem busca, grupos e opção selecionada; no celular, use o botão de menu para abrir a gaveta. Fotos e respostas de API não ficam no cache público da PWA.
+
+Detalhamento e próximos pedidos de perfis por estadia/contrato, WhatsApp e Asaas: [comunidade e integrações](../fundacao/COMUNIDADE_E_PROXIMAS_INTEGRACOES.md). Prévias com dados sintéticos: [menu](../previa-menu-comunidade.png) e [mural móvel](../previa-mural-mobile.png).
