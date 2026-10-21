@@ -2,7 +2,7 @@
 
 Atualização: **20/10/2026, horário de Brasília**. Município do piloto: **Arraial do Cabo/RJ**.
 
-A implementação das etapas restantes está reunida na entrega 0.2.0. A liberação para moradores, contratação de infraestrutura, domínio, assinatura de aplicativos e homologação de equipamentos constituem a próxima fase operacional solicitada pelo usuário. Não há endereço público de produção, conta de serviço contratada ou equipamento real acionado nesta entrega.
+A implementação das etapas restantes está reunida na entrega 0.2.0. Na fase operacional, o usuário adquiriu VPS Hostinger com Easypanel em Campinas/SP, domínio próprio e criou o e-mail de suporte. DNS, serviços da aplicação e banco, HTTPS, recuperação, assinatura de aplicativos e homologação de equipamentos ainda precisam de configuração e conferência. Não há implantação pública da aplicação comprovada nem equipamento real acionado nesta entrega.
 
 | Etapa | Entrega técnica |
 |---|---|
@@ -18,15 +18,19 @@ Entrega técnica não equivale à validação jurídica, publicação em lojas o
 ## Validação reproduzível
 
 - `npm ci --prefix app --ignore-scripts` instala versões e integridades do lockfile.
-- `npm test --prefix app`: 215 testes, incluindo PostgreSQL quando `VILAZUNI_PG_TEST_CONFIG` aponta para a base local descartável. Sem essa configuração, três testes PostgreSQL são explicitamente pulados.
+- `npm test --prefix app`: 218 testes, incluindo PostgreSQL quando `VILAZUNI_PG_TEST_CONFIG` aponta para a base local descartável. Sem essa configuração, quatro testes PostgreSQL são explicitamente pulados.
 - `npm run test:browser --prefix app`: fluxo sintético em Chromium desktop/móvel. Requer navegador Playwright instalado ou `CHROMIUM_PATH`.
 - `npm audit --prefix app --omit=dev`: auditoria das dependências de execução.
 - Workflows de validação e pacotes móveis estão em `.github/workflows/`. Android e iOS compilaram no GitHub Actions após liberar a execução pública; os pacotes de avaliação não são assinaturas de distribuição nem lançamento nas lojas.
 
 A imagem também foi executada localmente como usuário não privilegiado, com sistema de arquivos somente leitura, PostgreSQL de teste, bootstrap protegido, cookie Secure, MFA obrigatório e base vazia de produção.
 
+O preparo Easypanel foi conferido com os 218 testes aprovados em PostgreSQL 17 descartável e o fluxo sintético em Chromium desktop/móvel. As verificações novas cobrem permissões dos arquivos privados, recusa de sobrescrita, SQL transacional, papel runtime restrito, preservação da base ao recusar repetição e cabeçalho de IP aceito somente na configuração de proxy prevista. Isso valida o preparo; a instalação na VPS exige a conferência operacional do guia.
+
 Os testes criam suas próprias contas e bases temporárias. Nenhuma conta ou senha de morador foi criada. Não inserir dados reais no piloto local. A nova base de produção começa sem casas, pessoas, estadias ou tarefas fictícias.
 
 ## Próxima fase, após esta entrega
 
-Escolher hospedagem e domínio; configurar contas e segredos diretamente no servidor; preencher os documentos, unidades e regras reais; validar o canal e os equipamentos escolhidos; distribuir os pacotes apropriados. [Guia de implantação](deploy/README.md) e [preparo móvel](mobile/README.md) concentram os passos e insumos necessários. Credenciais nunca devem ser enviadas pela conversa ou incluídas no Git.
+Configurar o DNS e os [serviços nativos do Easypanel](deploy/easypanel/README.md), sem executar a composição com Caddy no mesmo servidor. O gerador cria SQL transacional de primeira instalação e segredos fora do checkout, com usuário PostgreSQL restrito, MFA e chave de backup independentes; recusa substituir configurações ou reprovisionar uma base existente. A compatibilidade com o proxy do painel é explícita e mantém a confiança restrita a conexões privadas.
+
+Configurar contas e segredos diretamente no servidor; preencher os documentos, unidades e regras reais; validar o canal e os equipamentos escolhidos; distribuir os pacotes apropriados. E-mail de suporte criado não ativa o envio automático: configurar o provedor e verificar entrega quando escolhido. [Guia de implantação](deploy/README.md) e [preparo móvel](mobile/README.md) concentram os passos e insumos necessários. Credenciais nunca devem ser enviadas pela conversa ou incluídas no Git.
