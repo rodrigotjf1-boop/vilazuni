@@ -114,7 +114,7 @@ export function ingestAsaasWebhook(s,connectionId,token,event,vault,now=Date.now
 }
 function serviceUser(tenant){return {id:'asaas-service',tenant,name:'Asaas · retorno verificado',role:'sindico'};}
 export function reconcileAsaasPayment(s,connectionId,payment,now=Date.now()){
- const next=structuredClone(s),result=reconcilePayment(next,connectionId,payment,now),before=s.asaasCharges?.find(q=>q.id===result.id),after=next.asaasCharges.find(q=>q.id===result.id);
+ const next=structuredClone(s);let result;try{result=reconcilePayment(next,connectionId,payment,now);}catch(error){error.status??=409;throw error;}const before=s.asaasCharges?.find(q=>q.id===result.id),after=next.asaasCharges.find(q=>q.id===result.id);
  const publicState=q=>{const {version,checkedAt,...fields}=q;return JSON.stringify(fields);};if(before&&publicState(before)===publicState(after))after.version=before.version;
  Object.assign(s,next);return result;
 }
@@ -131,7 +131,7 @@ function reconcilePayment(s,connectionId,payment,now){
  const gross=paymentCents(payment.value),net=paymentCents(payment.netValue),fee=gross-net;if(net>gross)fail('Tarifa do provedor inválida.',409);
  if(q.environment==='sandbox'){Object.assign(q,{status:'received',netCents:net,feeCents:fee});return {id:q.id,status:q.status,simulation:true};}
  const r=rows(s,'financialReceivables',q.tenant).find(r=>r.id===q.receivableId);if(!r||r.version!==q.receivableVersion||settlementPosition(s,q.tenant,'receivable',r).remainingCents!==gross)fail('O saldo local mudou. Confira o recebimento antes de conciliar.',409);
- const u=serviceUser(q.tenant),day=localDay(now),on=openDate(s,u,day,now),account=activeAccount(s,u,q.accountId);
+ const u=serviceUser(q.tenant),day=payment.creditDate||payment.paymentDate;if(!day)fail('O provedor não informou a data do recebimento. Confira antes de conciliar.',409);const on=openDate(s,u,day,now),account=activeAccount(s,u,q.accountId);
  const entry=post(s,u,{operationId:q.receiptOperationId,kind:'income',date:on,description:r.description,category:r.category,reference:'Asaas '+payment.id,reason:'Recebimento confirmado por consulta autenticada ao Asaas',amountCents:gross,receivableId:r.id,providerPaymentId:payment.id,postings:[{accountId:account.id,fundId:r.fundId,amountCents:gross}]},[{id:account.id,version:account.version}],now);
  if(fee)post(s,u,{operationId:q.feeOperationId,kind:'expense',date:on,description:'Tarifa Asaas · '+r.reference,category:'Tarifas de cobrança',reference:'Tarifa Asaas '+payment.id,reason:'Diferença entre valor recebido e líquido confirmado no provedor',amountCents:fee,providerPaymentId:payment.id,postings:[{accountId:account.id,fundId:r.fundId,amountCents:-fee}]},[{id:account.id,version:account.version}],now);
  syncSettlement(s,q.tenant,'receivable',r);r.version++;r.history.push({at:new Date(now).toISOString(),actor:u.name,action:'Recebimento Asaas conciliado',entryId:entry.id,amountCents:gross});

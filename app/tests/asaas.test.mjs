@@ -15,7 +15,7 @@ function provider(){const payments=[],customers=[],calls=[];let timeout=false,se
   async customers(reference){return {data:customers.filter(c=>c.externalReference===reference)};},
   async createCustomer(data){const c={...data,id:'cus_synthetic_'+(++sequence)};customers.push(c);return c;},
   async updateCustomer(id,data){calls.push({action:'customer-update',id,data});return {id,...data};},
-  async createPayment(data){calls.push({action:'issue',environment,data});const p={...data,id:'pay_synthetic_'+(++sequence),status:'PENDING',netValue:8.01,invoiceUrl:'https://www.asaas.com/i/synthetic',dueDate:data.dueDate};payments.push(p);if(timeout){timeout=false;throw Object.assign(Error('Timeout sintético'),{uncertain:true});}return p;},
+  async createPayment(data){calls.push({action:'issue',environment,data});const p={...data,id:'pay_synthetic_'+(++sequence),status:'PENDING',creditDate:'2026-10-19',netValue:8.01,invoiceUrl:'https://www.asaas.com/i/synthetic',dueDate:data.dueDate};payments.push(p);if(timeout){timeout=false;throw Object.assign(Error('Timeout sintético'),{uncertain:true});}return p;},
   async payments(reference){return {data:payments.filter(p=>p.externalReference===reference)};},
   async payment(id){const p=payments.find(p=>p.id===id);assert.ok(p);return structuredClone(p);},
   async cancel(id){payments.find(p=>p.id===id).deleted=true;return {deleted:true};}
@@ -42,8 +42,8 @@ test('Asaas: emissão única, webhook autenticado consultado, conciliação brut
  const other=await f.invite('proprietario',{houses:['c02']});assert.deepEqual((await f.request('/payments',undefined,other.cookie)).body.charges,[]);assert.equal((await f.request('/payments/settings',undefined,owner.cookie)).status,403);
  const forged=await fetch(remote.webhook.url,{method:'POST',headers:{'Content-Type':'application/json','asaas-access-token':'wrong'},body:JSON.stringify({})});assert.equal(forged.status,403);
  assert.equal((await webhook('evt_forged_body',{id:remote.payments[0].id,status:'RECEIVED',value:999999})).status,200);await f.api.paymentTick();assert.equal((await req('/state')).body.state.finance.totalCents,0,'webhook body never supplies settlement amounts');
- remote.payments[0].status='RECEIVED';assert.equal((await webhook('evt_received',{id:remote.payments[0].id})).status,200);await f.api.paymentTick();
- let finance=(await req('/state')).body.state.finance;assert.equal(finance.totalCents,801);assert.equal(finance.receivables[0].status,'received');assert.equal(finance.entries.filter(e=>e.kind==='income').length,1);assert.equal(finance.entries.filter(e=>e.kind==='expense').length,1);
+ remote.payments[0].status='RECEIVED';remote.payments[0].creditDate='2026-10-18';assert.equal((await webhook('evt_received',{id:remote.payments[0].id})).status,200);await f.api.paymentTick();
+ let finance=(await req('/state')).body.state.finance;assert.equal(finance.totalCents,801);assert.equal(finance.receivables[0].status,'received');assert.equal(finance.entries.filter(e=>e.kind==='income').length,1);assert.equal(finance.entries.filter(e=>e.kind==='expense').length,1);assert.equal(finance.entries.find(e=>e.kind==='income').date,'2026-10-18','usa a data verificada de crédito, não a chegada tardia do webhook');
  assert.equal((await webhook('evt_received',{id:remote.payments[0].id})).body.duplicate,true);assert.equal((await webhook('evt_received_again',{id:remote.payments[0].id})).status,200);await f.api.paymentTick();assert.equal((await req('/state')).body.state.finance.totalCents,801);
  const mine=(await f.request('/payments',undefined,owner.cookie)).body;assert.equal(mine.charges[0].status,'received');assert.ok(!('paymentId' in mine.charges[0]));
  const exported=(await req('/tenants/export')).body;assert.ok(!JSON.stringify(exported).includes('webhookCredential'));assert.ok(!JSON.stringify(exported).includes('credential"'));

@@ -77,8 +77,8 @@ export function createAsaasService({read,save,run,authorize,body,send,users,vaul
   try{
    if(p.event||p.q.paymentId)payment=await p.remote.payment(p.event?.paymentId||p.q.paymentId);else {const response=await p.remote.payments(p.q.externalReference),matches=(response.data||[]).filter(q=>q.externalReference===p.q.externalReference);if(response.hasMore||matches.length!==1)throw Error('Emissão não confirmada.');payment=matches[0];}
    await run(()=>change({id:'asaas-service',tenant:p.c.tenant},s=>{A.reconcileAsaasPayment(s,p.c.id,payment,now());if(p.event){const e=s.asaasWebhookEvents.find(e=>e.id===p.event.id);e.status='processed';e.processedAt=new Date(now()).toISOString();}}));
-  }catch{
-   await run(()=>change({id:'asaas-service',tenant:p.c.tenant},s=>{if(p.event){const e=s.asaasWebhookEvents.find(e=>e.id===p.event.id);e.attempts++;e.retryAt=now()+Math.min(60,e.attempts*5)*60000;if(e.attempts>=5)e.status='review';}else {const q=s.asaasCharges.find(q=>q.id===p.q.id);q.checkedAt=new Date(now()).toISOString();q.error='A consulta requer conferência no Asaas. Nenhuma emissão foi repetida.';}}));
+  }catch(error){
+   await run(()=>change({id:'asaas-service',tenant:p.c.tenant},s=>{if(error.status===409&&payment){const q=(s.asaasCharges||[]).find(q=>q.tenant===p.c.tenant&&q.connectionId===p.c.id&&(q.paymentId===payment.id||q.externalReference===payment.externalReference));if(q){q.status='review';q.error='Dados, saldo ou período financeiro divergentes. Confira o recebimento no Asaas e o fechamento antes de conciliar.';q.version++;}}if(p.event){const e=s.asaasWebhookEvents.find(e=>e.id===p.event.id);e.attempts++;e.retryAt=now()+Math.min(60,e.attempts*5)*60000;if(e.attempts>=5)e.status='review';}else {const q=s.asaasCharges.find(q=>q.id===p.q.id);q.checkedAt=new Date(now()).toISOString();q.error||='A consulta requer conferência no Asaas. Nenhuma emissão foi repetida.';}}));
   }
  }finally{ticking=false;}}
  return {perform,tick};
