@@ -1,5 +1,7 @@
 # Cadastros fictícios do piloto — versão 0.3.1
 
+Para explorar todas as áreas, a versão **0.5.0** acrescenta **Condomínio → Explorar demonstração completa**, com um contexto separado, contatos, tarefas e demais módulos preenchidos. Consulte o [guia completo](DEMONSTRACAO_COMPLETA.md). O conjunto menor abaixo permanece disponível.
+
 Conjunto solicitado para visualizar o Condomínio Chandra. Todos os nomes são fictícios e aparecem com essa indicação; os e-mails usam o domínio reservado `example.invalid`. Não há telefone de pessoa real.
 
 | Casa | Proprietário fictício | Inquilino anual fictício |

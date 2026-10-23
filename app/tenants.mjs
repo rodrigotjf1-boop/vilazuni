@@ -25,7 +25,7 @@ function location(input){
 function note(record,user,action,reason,now){record.history.push({at:new Date(now).toISOString(),actorId:user.id,actor:user.name,action,reason});}
 export function createTenant(db,user,input,now=Date.now()){
  if(user.id!==(db.platformOwnerId||db.users[0]?.id))throw Error('Implantação de novos clientes restrita ao responsável da plataforma.');
- const identity=db.users.find(u=>u.id===user.id);if([identity,...(identity.memberships||[])].filter(b=>b.role==='sindico').length>=5)throw Error('Limite de cinco implantações por identidade neste pacote.');
+ const identity=db.users.find(u=>u.id===user.id);if([identity,...(identity.memberships||[])].filter(b=>b.role==='sindico'&&!tenantSettings(db.state,b.tenant).demoMode).length>=5)throw Error('Limite de cinco implantações por identidade neste pacote.');
  const name=text(input.name,'Nome do condomínio'),where=location(input),reason=text(input.reason,'Motivo da implantação',500);
  const id=randomUUID(),record={...structuredClone(legacy),id,tenant:id,name,...where,legalRegime:input.legalRegime?text(input.legalRegime,'Regime jurídico',200):null,version:1,history:[]};
  db.state.tenants??=[structuredClone(legacy)];db.state.tenants.push(record);note(record,user,'Cliente implantado em modo piloto',reason,now);

@@ -10,6 +10,7 @@ Plataforma de gestão e convivência para múltiplos condomínios. Piloto: **Con
 - [Modelo de dados](fundacao/MODELO_DE_DADOS.md)
 - [Permissões](fundacao/PERMISSOES.md)
 - [Fichas, privacidade e avisos importantes](fundacao/FICHAS_PRIVACIDADE_E_AVISOS.md)
+- [Demonstração completa com cadastros fictícios](fundacao/DEMONSTRACAO_COMPLETA.md)
 - [Fluxos e telas](fundacao/FLUXOS_E_TELAS.md)
 - [Piloto e backlog](fundacao/CHANDRA_E_BACKLOG.md)
 - [Conceito de identidade visual](marca/IDENTIDADE.md)
