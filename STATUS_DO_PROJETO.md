@@ -2,7 +2,7 @@
 
 Atualização: **21/10/2026, horário de Brasília**. Município do piloto: **Arraial do Cabo/RJ**.
 
-A implementação das etapas restantes foi reunida na entrega 0.2.0; o ciclo operacional atual está na versão 0.3.0. Na fase operacional, o usuário adquiriu VPS Hostinger com Easypanel em Campinas/SP, domínio próprio e criou o e-mail de suporte. A primeira implantação web foi realizada pelo usuário: aplicação em HTTPS, `/healthz` e `/readyz` com resposta 200 e `/api/state` com 401 sem login. O usuário confirmou a criação da conta de gestão, e a captura mostrou segundo fator ativo. Volume e recuperação ainda exigem conferência operacional; assinatura de aplicativos e homologação de equipamentos permanecem posteriores. Nenhum equipamento real foi acionado nesta entrega.
+A implementação das etapas restantes foi reunida na entrega 0.2.0; o ciclo operacional atual está na versão 0.3.1. Na fase operacional, o usuário adquiriu VPS Hostinger com Easypanel em Campinas/SP, domínio próprio e criou o e-mail de suporte. A primeira implantação web foi realizada pelo usuário: aplicação em HTTPS, `/healthz` e `/readyz` com resposta 200 e `/api/state` com 401 sem login. O usuário confirmou a criação da conta de gestão, e a captura mostrou segundo fator ativo. Volume e recuperação ainda exigem conferência operacional; assinatura de aplicativos e homologação de equipamentos permanecem posteriores. Nenhum equipamento real foi acionado nesta entrega.
 
 | Etapa | Entrega técnica |
 |---|---|
@@ -44,3 +44,9 @@ Concluir a conferência dos [serviços nativos do Easypanel](deploy/easypanel/RE
 Configurar contas e segredos diretamente no servidor; preencher os documentos, unidades e regras reais; validar o canal e os equipamentos escolhidos; distribuir os pacotes apropriados. E-mail de suporte criado não ativa o envio automático: configurar o provedor e verificar entrega quando escolhido. [Guia de implantação](deploy/README.md) e [preparo móvel](mobile/README.md) concentram os passos e insumos necessários. Credenciais nunca devem ser enviadas pela conversa ou incluídas no Git.
 
 A versão 0.3.0 foi conferida com 245 testes aprovados, incluindo PostgreSQL 17 local descartável e sem testes pulados. A validação Chromium cobre perfis, foto privada, preparo da configuração Asaas, fila aprovada do agente e aviso de atualização, além dos fluxos anteriores. Os workflows n8n passaram por validação estrutural e compilação dos nós JavaScript; ainda precisam ser executados na versão n8n/Evolution do usuário. Não houve chamada real de cobrança ou envio externo nos testes.
+
+## Cadastros fictícios — 0.3.1
+
+Incluído preenchimento autenticado em **Condomínio → Preencher dados fictícios**: Ricardo Almeida como síndico/proprietário da casa 01, Carlos Ferreira como zelador, 7 proprietários nas casas 01–07 e 2 locações anuais nas casas 02 e 05. Contratos de 01/10/2026 a 30/09/2027, com referência editável. A prévia informa acréscimos e mantém dados anteriores; reaplicação não duplica registros. Nomes fictícios e e-mails reservados, sem criação de login, cobrança ou mensagem. [Dados e aplicação](fundacao/CADASTROS_FICTICIOS_PILOTO.md); [prévia da ficha](previa-contrato-ficticio.png).
+
+Validação do ciclo: 250 testes aprovados com PostgreSQL 17 descartável, sem pulados, e Chromium em computador/celular. Os registros foram preenchidos somente na base local de teste; o servidor publicado exige implantação da versão e aplicação autenticada do conjunto.

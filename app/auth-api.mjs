@@ -1,3 +1,4 @@
+import {previewPilotDemo,applyPilotDemo} from './pilot-demo.mjs';
 import {automationView,configureAutomation,authenticateAutomation,automationContext,queueAutomationNotice,prepareAutomationReminders,claimAutomationMessage,acknowledgeAutomation} from './automation.mjs';
 import {createAsaasService} from './asaas-service.mjs';
 import {createAsaasClient} from './asaas-client.mjs';
@@ -108,6 +109,8 @@ export async function createAuthApi({directory,now=()=>Date.now(),sessionMs=8*36
   if(method==='POST'&&route==='/api/mfa/confirm'){limit(req);const input=await body(req),pending=session.identity.pendingMfa,step=pending&&pending.until>now()&&vault?verifyTotp(vault.open(pending.sealed),input.otp,now()):null;if(step===null||step===false)fail(400,'Código inválido ou cadastro expirado.');const next=structuredClone(db),target=next.users.find(p=>p.id===u.id),recovery=recoveryCodes();target.mfa={sealed:pending.sealed,lastStep:step,recoveryHashes:recovery.hashes};delete target.pendingMfa;target.credentialVersion=(target.credentialVersion||0)+1;event(next,u,'Segundo fator ativado');await persist(next);revoke(u.id);issue(res,u);return send(res,200,{codes:recovery.codes});}
   if(config.requireManagerMfa&&['sindico','subsindico','administradora'].includes(u.role)&&!session.identity.mfa&&!['/api/logout','/api/password','/api/session'].includes(route))fail(403,'Ative o segundo fator na sua conta para continuar a gestão.');
   if(method==='GET'&&route==='/api/automation/settings')return send(res,200,automationView(db.state,u));
+  if(method==='GET'&&route==='/api/tenants/demo/preview')return send(res,200,previewPilotDemo(db,u));
+  if(method==='POST'&&route==='/api/tenants/demo/apply'){const input=await body(req),next=structuredClone(db),result=applyPilotDemo(next,u,input,now());event(next,u,'Preenchimento fictício do piloto solicitado');await persist(next);return send(res,200,result);}
   if(method==='GET'&&route==='/api/tenants')return send(res,200,{contexts:availableContexts(db,session.identity,now()),tenant:tenantView(db.state,u),platformOwner:u.id===(db.platformOwnerId||db.users[0]?.id)});
   if(method==='POST'&&route==='/api/session/context'){const input=await body(req),target=effectiveBinding(db,session.identity,input.tenant);if(!target||!valid(target))fail(403,'Condomínio fora dos vínculos atuais.');sessions.delete(session.key);issue(res,target);return send(res,200,{user:describe(target)});}
   if(method==='GET'&&route==='/api/tenants/export'){const result=exportTenant(db,u,now());res.writeHead(200,{'Content-Type':'application/json; charset=utf-8','Content-Disposition':'attachment; filename="vilazuni-condominio.json"','Cache-Control':'no-store'});return res.end(JSON.stringify(result,null,2));}
