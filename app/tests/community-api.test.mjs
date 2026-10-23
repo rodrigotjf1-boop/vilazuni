@@ -41,3 +41,19 @@ test('API evita edição concorrente e não dá leitura de outro condomínio ou 
   assert.equal((await f.request('/community',undefined,worker.cookie)).status,401);
  }finally{await f.close();}
 });
+
+test('API persiste prioridade do síndico e expõe alertas individuais sem conceder prioridade ao morador',async()=>{
+ const f=await fixture();try{
+  const owner=await f.invite('proprietario',{houses:['c01']});
+  const values={version:0,title:'Manutenção importante',body:'Água suspensa durante a manutenção.',important:true};
+  assert.equal((await f.request('/community/notices/save',values,owner.cookie)).status,403);
+  const created=await f.request('/community/notices/save',values,f.admin.cookie);assert.equal(created.status,200);
+  const n=created.body.notice;
+  assert.equal((await f.request('/community',undefined,owner.cookie)).body.notices[0].important,true);
+  assert.deepEqual((await f.request('/community/summary',undefined,owner.cookie)).body,{unreadCount:1,importantCount:1,importantUnreadCount:1});
+  assert.equal((await f.request('/community/notices/read',{id:n.id,version:n.version},owner.cookie)).body.importantUnreadCount,0);
+  await f.restart();const login=await f.request('/login',{email:owner.email,password:f.password});
+  assert.deepEqual((await f.request('/community/summary',undefined,login.cookie)).body,{unreadCount:0,importantCount:1,importantUnreadCount:0});
+  assert.equal((await f.request('/community',undefined,login.cookie)).body.notices[0].important,true);
+ }finally{await f.close();}
+});

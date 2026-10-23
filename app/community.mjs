@@ -83,11 +83,14 @@ export function communityProfile(s,users,u,which,now=Date.now()) {
 function visibleNotices(s,u,now) { return (s.communityNotices||[]).filter(n=>n.tenant===u.tenant&&!n.archivedAt&&(!n.expiresOn||n.expiresOn>=localDay(now))); }
 function noticeView(s,u,n,detail=false) {
  const read=(s.communityReads||[]).some(r=>r.tenant===u.tenant&&r.userId===u.id&&r.noticeId===n.id&&r.version===n.version);
- return {id:n.id,version:n.version,title:n.title,...(detail?{body:n.body}:{}),author:n.author,authorRole:ROLE_NAMES[n.authorRole]||n.authorRole,createdAt:n.createdAt,updatedAt:n.updatedAt,expiresOn:n.expiresOn,read,canEdit:u.id===n.authorId||moderator(u)};
+ return {id:n.id,version:n.version,title:n.title,...(detail?{body:n.body}:{}),author:n.author,authorRole:ROLE_NAMES[n.authorRole]||n.authorRole,createdAt:n.createdAt,updatedAt:n.updatedAt,expiresOn:n.expiresOn,important:n.important===true,read,canEdit:(!n.important||u.role==='sindico')&&(u.id===n.authorId||moderator(u))};
 }
-export function communitySummary(s,u,now=Date.now()) { member(u);return {unreadCount:visibleNotices(s,u,now).filter(n=>!noticeView(s,u,n).read).length}; }
+export function communitySummary(s,u,now=Date.now()) {
+ member(u);const notices=visibleNotices(s,u,now).map(n=>noticeView(s,u,n));
+ return {unreadCount:notices.filter(n=>!n.read).length,importantCount:notices.filter(n=>n.important).length,importantUnreadCount:notices.filter(n=>n.important&&!n.read).length};
+}
 export function communityView(s,users,u,now=Date.now()) {
- member(u);return {...communitySummary(s,u,now),canPublish:publisher(u),profiles:COMMUNITY_SLOTS.map(which=>profileView(s,users,u,which,now)),notices:visibleNotices(s,u,now).sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt)||a.id.localeCompare(b.id)).map(n=>noticeView(s,u,n))};
+ member(u);return {...communitySummary(s,u,now),canPublish:publisher(u),canSetImportant:u.role==='sindico',profiles:COMMUNITY_SLOTS.map(which=>profileView(s,users,u,which,now)),notices:visibleNotices(s,u,now).sort((a,b)=>Number(b.important===true)-Number(a.important===true)||b.updatedAt.localeCompare(a.updatedAt)||a.id.localeCompare(b.id)).map(n=>noticeView(s,u,n))};
 }
 export function readCommunityNotice(s,u,id,now=Date.now()) {
  member(u);const n=visibleNotices(s,u,now).find(n=>n.id===id);if(!n)fail('Aviso indisponível.',404);return noticeView(s,u,n,true);
@@ -102,11 +105,15 @@ export function saveCommunityNotice(s,u,input,now=Date.now()) {
  const existing=input.id?(s.communityNotices||[]).find(n=>n.tenant===u.tenant&&n.id===input.id&&!n.archivedAt):null;
  if(input.id&&!existing)fail('Aviso indisponível.',404);
  if(existing&&existing.authorId!==u.id&&!moderator(u))fail('Você só pode alterar os seus avisos.');version(input,existing);
+ if(existing?.important&&u.role!=='sindico')fail('Somente o síndico altera avisos destacados como importantes.');
+ if(input.important!==undefined&&typeof input.important!=='boolean')fail('Confira a indicação de aviso importante.',400);
+ const important=input.important===undefined?existing?.important===true:input.important;
+ if(important!==!!existing?.important&&u.role!=='sindico')fail('Somente o síndico destaca avisos importantes.');
  const title=text(input.title,'Título',160,true),body=text(input.body,'Texto do aviso',5000,true),expiresOn=date(input.expiresOn);
  if(expiresOn&&expiresOn<localDay(now))fail('A validade deve ser hoje ou uma data futura.',400);
  if(!existing&&visibleNotices(s,u,now).length>=300)fail('Arquive avisos antigos antes de publicar novos.',409);
  const n=existing||{id:randomUUID(),tenant:u.tenant,authorId:u.id,author:u.name,authorRole:u.role,createdAt:new Date(now).toISOString(),version:0};
- Object.assign(n,{title,body,expiresOn,version:n.version+1,updatedAt:new Date(now).toISOString()});s.communityNotices??=[];if(!existing)s.communityNotices.push(n);
+ Object.assign(n,{title,body,expiresOn,important:important===true,version:n.version+1,updatedAt:new Date(now).toISOString()});s.communityNotices??=[];if(!existing)s.communityNotices.push(n);
  markRead(s,u,n,now);record(s,u,existing?'Aviso do mural alterado':'Aviso publicado no mural',n.id,now);return {notice:noticeView(s,u,n,true)};
 }
 export function markCommunityNoticeRead(s,u,input,now=Date.now()) {
@@ -114,5 +121,6 @@ export function markCommunityNoticeRead(s,u,input,now=Date.now()) {
 }
 export function archiveCommunityNotice(s,u,input,now=Date.now()) {
  member(u);const n=visibleNotices(s,u,now).find(n=>n.id===input.id);if(!n)fail('Aviso indisponível.',404);if(n.authorId!==u.id&&!moderator(u))fail('Você só pode arquivar os seus avisos.');version(input,n);
+ if(n.important&&u.role!=='sindico')fail('Somente o síndico arquiva avisos destacados como importantes.');
  n.archivedAt=new Date(now).toISOString();n.version++;record(s,u,'Aviso do mural arquivado',n.id,now);return communitySummary(s,u,now);
 }

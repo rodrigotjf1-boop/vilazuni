@@ -80,6 +80,39 @@ test('validade do aviso considera Brasília e expira sem criar registros de leit
  assert.throws(()=>saveCommunityNotice(s,manager,notice({expiresOn:'2026-10-20'}),now),/validade/);
 });
 
+test('avisos importantes têm prioridade no quadro, mantêm o destaque após leitura e renovam o alerta por versão',()=>{
+ const s=seed();
+ const important=saveCommunityNotice(s,manager,notice({title:'Interrupção de água',important:true,expiresOn:'2026-10-21'}),now).notice;
+ const regular=saveCommunityNotice(s,worker,notice({title:'Comunicado mais recente'}),now+1000).notice;
+ const view=communityView(s,[],owner,now+1000);
+ assert.deepEqual(view.notices.map(n=>n.id),[important.id,regular.id]);assert.equal(view.notices[0].important,true);
+ assert.deepEqual(communitySummary(s,owner,now),{unreadCount:2,importantCount:1,importantUnreadCount:1});
+ markCommunityNoticeRead(s,owner,important,now);
+ assert.deepEqual(communitySummary(s,owner,now),{unreadCount:1,importantCount:1,importantUnreadCount:0});
+ assert.equal(communityView(s,[],owner,now).notices[0].important,true);
+ const updated=saveCommunityNotice(s,manager,notice({...important,body:'Horário atualizado da interrupção.'}),now+2000).notice;
+ assert.deepEqual(communitySummary(s,owner,now),{unreadCount:2,importantCount:1,importantUnreadCount:1});
+ markCommunityNoticeRead(s,owner,updated,now);
+ const ordinary=saveCommunityNotice(s,manager,notice({...updated,important:false}),now+3000).notice;
+ assert.equal(ordinary.important,false);assert.equal(communitySummary(s,owner,now).importantCount,0);
+ saveCommunityNotice(s,manager,notice({...ordinary,important:true}),now+4000);
+ assert.equal(communitySummary(s,owner,Date.parse('2026-10-22T03:00:00Z')).importantCount,0);
+});
+
+test('somente síndico promove e altera destaque importante, sem permitir falsos destaques ou edição posterior por terceiros',()=>{
+ const s=seed(),delegate={...manager,id:'a',role:'administradora',delegations:['communications']};
+ for(const u of [worker,owner,occupant,delegate])assert.throws(()=>saveCommunityNotice(s,u,notice({important:true}),now),/Somente o síndico/);
+ for(const important of ['true',1,null,{}])assert.throws(()=>saveCommunityNotice(s,manager,notice({important}),now),/indicação/);
+ const normal=saveCommunityNotice(s,owner,notice(),now).notice;
+ const important=saveCommunityNotice(s,manager,notice({...normal,important:true}),now+1).notice;
+ assert.equal(readCommunityNotice(s,owner,important.id,now).canEdit,false);
+ assert.equal(readCommunityNotice(s,manager,important.id,now).canEdit,true);
+ assert.throws(()=>saveCommunityNotice(s,owner,notice({...important,body:'Texto sem revisão da gestão.'}),now),/Somente o síndico/);
+ assert.throws(()=>archiveCommunityNotice(s,owner,important,now),/Somente o síndico/);
+ archiveCommunityNotice(s,manager,important,now);
+ assert.deepEqual(communitySummary(s,owner,now),{unreadCount:0,importantCount:0,importantUnreadCount:0});
+});
+
 test('calendário usa semana segunda/domingo, mês civil e exclui tarefas canceladas',()=>{
  assert.deepEqual(calendarRange('week','2026-11-01'),{from:'2026-10-26',through:'2026-11-01'});
  assert.deepEqual(calendarRange('month','2028-02-29'),{from:'2028-02-01',through:'2028-02-29'});
