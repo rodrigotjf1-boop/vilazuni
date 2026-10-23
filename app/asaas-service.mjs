@@ -1,3 +1,4 @@
+import {isDemoTenant,requireLiveTenant} from './demo-policy.mjs';
 import {canViewTenantContacts} from './household-access.mjs';
 import {createAsaasClient} from './asaas-client.mjs';
 import * as A from './asaas.mjs';
@@ -10,16 +11,16 @@ const fail=(message,status=403)=>{throw Object.assign(Error(message),{status});}
 const controller=u=>{if(!can(u,'financeClose'))fail('Controle financeiro necessário.');};
 // Network requests run outside the persistence queue. Emission is durably claimed before POST.
 export function createAsaasService({read,save,run,authorize,body,send,users,vault,now,origin,transport,clientFactory=createAsaasClient}){
- const client=(s,tenant,id)=>clientFactory(A.asaasCredentials(s,tenant,vault,id));
+ const client=(s,tenant,id)=>{requireLiveTenant(s,tenant,'A conexão Asaas');return clientFactory(A.asaasCredentials(s,tenant,vault,id));};
  const change=async(u,fn)=>{const next=structuredClone(read()),result=fn(next.state,next);await save(next,u);return result;};
- async function prepare(req,fn){return run(async()=>{const session=authorize(req);return fn(session.user,read(),session);});}
+ async function prepare(req,fn){return run(async()=>{const session=authorize(req);if(req.method!=='GET')requireLiveTenant(read().state,session.user.tenant,'A integração Asaas');return fn(session.user,read(),session);});}
  function unchanged(req,owner){const s=authorize(req);if(s.user.id!==owner.id||s.user.tenant!==owner.tenant||s.user.accessVersion!==owner.accessVersion)fail('O acesso mudou. Entre novamente.',401);return s.user;}
  async function perform(req,res){let claimed;
   try{
    const route=new URL(req.url,'http://localhost').pathname.replace('/api/payments','');transport(req,route.startsWith('/asaas/webhook/')&&req.method==='POST');
    if(route.startsWith('/asaas/webhook/')&&req.method==='POST'){
     const input=await body(req,512*1024),id=route.slice('/asaas/webhook/'.length);
-    const result=await run(()=>change({id:'asaas-service'},s=>A.ingestAsaasWebhook(s,id,req.headers['asaas-access-token'],input,vault,now())));return send(res,200,result);
+    const result=await run(()=>change({id:'asaas-service'},s=>{const connection=(s.asaasConnections||[]).find(c=>c.id===id);if(connection)requireLiveTenant(s,connection.tenant,'O retorno Asaas');return A.ingestAsaasWebhook(s,id,req.headers['asaas-access-token'],input,vault,now());}));return send(res,200,result);
    }
    if(req.method==='GET'){
     const result=await prepare(req,(u,db)=>{if(route==='')return A.asaasView(db.state,u,users(db),now());if(route==='/settings'){controller(u);return {...(u.role==='sindico'?A.asaasSettings(db.state,u,{origin:origin(req),vault}):{}),people:users(db).filter(p=>p.tenant===u.tenant&&housingUser(p)&&validBinding(db.state,p,now())).map(p=>({id:p.id,name:p.name,...(!['ocupante','temporario'].includes(p.role)||p.houses?.some(id=>canViewTenantContacts(db.state,u,id,now()))?{email:p.email}:{})}))};}fail('Ação não encontrada.',404);});return send(res,200,result);
@@ -72,8 +73,8 @@ export function createAsaasService({read,save,run,authorize,body,send,users,vaul
  }
  let ticking=false;
  async function tick(){if(ticking)return;ticking=true;try{
-  await run(async()=>{const db=read(),next=structuredClone(db);if(A.prepareAsaasReminders(next.state,users(db),now()).length)await save(next,{id:'asaas-service'});});
-  const p=await run(()=>{const db=read(),event=(db.state.asaasWebhookEvents||[]).find(e=>e.status==='pending'&&(!e.retryAt||e.retryAt<=now())),q=event?null:(db.state.asaasCharges||[]).find(q=>['creating','uncertain','open','overdue'].includes(q.status)&&(!q.checkedAt||Date.parse(q.checkedAt)+15*60000<=now())),c=(db.state.asaasConnections||[]).find(c=>c.id===(event?.connectionId||q?.connectionId));if(!c||tenantSettings(db.state,c.tenant).status==='closed')return null;return {event:event&&structuredClone(event),q:q&&structuredClone(q),c:structuredClone(c),remote:client(db.state,c.tenant,c.id)};});
+  await run(async()=>{const db=read(),next=structuredClone(db);if(A.prepareAsaasReminders(next.state,users(db).filter(u=>!isDemoTenant(next.state,u.tenant)),now()).length)await save(next,{id:'asaas-service'});});
+  const p=await run(()=>{const db=read(),event=(db.state.asaasWebhookEvents||[]).find(e=>!isDemoTenant(db.state,e.tenant)&&e.status==='pending'&&(!e.retryAt||e.retryAt<=now())),q=event?null:(db.state.asaasCharges||[]).find(q=>!isDemoTenant(db.state,q.tenant)&&['creating','uncertain','open','overdue'].includes(q.status)&&(!q.checkedAt||Date.parse(q.checkedAt)+15*60000<=now())),c=(db.state.asaasConnections||[]).find(c=>c.id===(event?.connectionId||q?.connectionId));if(!c||isDemoTenant(db.state,c.tenant)||tenantSettings(db.state,c.tenant).status==='closed')return null;return {event:event&&structuredClone(event),q:q&&structuredClone(q),c:structuredClone(c),remote:client(db.state,c.tenant,c.id)};});
   if(!p)return;let payment;
   try{
    if(p.event||p.q.paymentId)payment=await p.remote.payment(p.event?.paymentId||p.q.paymentId);else {const response=await p.remote.payments(p.q.externalReference),matches=(response.data||[]).filter(q=>q.externalReference===p.q.externalReference);if(response.hasMore||matches.length!==1)throw Error('Emissão não confirmada.');payment=matches[0];}

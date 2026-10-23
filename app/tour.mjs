@@ -1,3 +1,4 @@
+import {isDemoTenant} from './demo-policy.mjs';
 import {randomUUID} from 'node:crypto';
 import {can,housingUser} from './permissions.mjs';
 import {houseHousehold} from './household.mjs';
@@ -23,7 +24,7 @@ function facilityPlace(s,u,f,point){
  return {id:point?.id||'facility:'+f.id,sceneId:point?.id||null,title:allowed?f.name:point?.title||'Dependência',kind:'facility',description:point?.description||'Localização no cenário ainda não vinculada',map:point?{x:point.mapX,y:point.mapY}:null,access:allowed?'allowed':'exterior',status:allowed?(f.active?'Disponível para solicitar':'Interditada'):'Ficha fora do seu escopo',active:allowed?f.active:null,facility:allowed?{id:f.id,name:f.name,capacity:f.capacity,opens:f.opens,closes:f.closes,maxHours:f.maxHours,rules:f.rules}:null,actions:allowed?[action('facilities',f.active?'Regras, agenda e reserva':'Consultar regras e interdição',f.id)]:[],...(point&&can(u,'facilities')?{linkVersion:link?.version||0,linkedFacilityId:f.id}:{} )};
 }
 export function tourView(s,u,now=Date.now()){
- const illustrated=u.tenant===TOUR_VISUAL.tenant,points=illustrated?TOUR_POINTS:[],houses=s.houses.filter(h=>h.tenant===u.tenant),facilities=(s.facilities||[]).filter(f=>f.tenant===u.tenant),links=linksFor(s,u),places=[];
+ const illustrated=u.tenant===TOUR_VISUAL.tenant||isDemoTenant(s,u.tenant),points=illustrated?TOUR_POINTS:[],houses=s.houses.filter(h=>h.tenant===u.tenant),facilities=(s.facilities||[]).filter(f=>f.tenant===u.tenant),links=linksFor(s,u),places=[];
  for(const point of points){
   if(['person','board'].includes(point.kind)){places.push({...point,sceneId:point.id,map:{x:point.mapX,y:point.mapY},access:'allowed',status:point.kind==='board'?'Comunicados da comunidade':'Contatos do condomínio',actions:[action(point.id==='noticeboard'?'board':point.id,'Abrir '+point.title)]});continue;}
   if(point.kind==='house'){const h=houses.find(h=>h.id===point.id);if(h)places.push(housePlace(s,u,h,point,now));continue;}
@@ -33,14 +34,14 @@ export function tourView(s,u,now=Date.now()){
  }
  for(const h of houses.filter(h=>!points.some(p=>p.kind==='house'&&p.id===h.id)))if(scopedHouses(s,u,now).some(x=>x.id===h.id))places.push(housePlace(s,u,h,null,now));
  if(canFacilities(u))for(const f of facilities.filter(f=>!links.some(l=>l.facilityId===f.id&&points.some(p=>p.id===l.pointId))))places.push(facilityPlace(s,u,f,null));
- return {visual:illustrated?structuredClone(TOUR_VISUAL):null,canLink:illustrated&&can(u,'facilities'),places};
+ return {visual:illustrated?{...structuredClone(TOUR_VISUAL),tenant:u.tenant}:null,canLink:illustrated&&can(u,'facilities'),places};
 }
 export function tourPlace(s,u,id,now=Date.now()){
  const place=tourView(s,u,now).places.find(p=>p.id===id);if(!place)throw Object.assign(Error('Local indisponível neste condomínio ou perfil.'),{status:403});
  return {...place,...(can(u,'facilities')&&place.kind==='facility'&&place.sceneId?{linkHistory:structuredClone(linksFor(s,u).find(l=>l.pointId===place.sceneId)?.history||[])}:{} )};
 }
 export function linkTourFacility(s,u,input,now=Date.now()){
- if(!can(u,'facilities')||u.tenant!==TOUR_VISUAL.tenant)throw Error('Vincular locais exige gestão de dependências do piloto.');
+ if(!can(u,'facilities')||u.tenant!==TOUR_VISUAL.tenant&&!isDemoTenant(s,u.tenant))throw Error('Vincular locais exige gestão de dependências do piloto.');
  const point=TOUR_POINTS.find(p=>p.id===input.pointId&&p.kind==='facility'),current=linksFor(s,u).find(l=>l.pointId===input.pointId);
  if(!point)throw Error('Selecione um marcador de dependência do cenário.');if(!Number.isInteger(input.version)||input.version!==(current?.version||0))throw Error('O vínculo mudou. Atualize antes de continuar.');
  const facilityId=input.facilityId||null,facility=(s.facilities||[]).find(f=>f.tenant===u.tenant&&f.id===facilityId);

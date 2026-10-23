@@ -2,7 +2,7 @@
 
 Atualização: **23/10/2026, horário de Brasília**. Município do piloto: **Arraial do Cabo/RJ**.
 
-A implementação das etapas restantes foi reunida na entrega 0.2.0; o ciclo operacional atual está na versão 0.4.0. Na fase operacional, o usuário adquiriu VPS Hostinger com Easypanel em Campinas/SP, domínio próprio e criou o e-mail de suporte. A primeira implantação web foi realizada pelo usuário: aplicação em HTTPS, `/healthz` e `/readyz` com resposta 200 e `/api/state` com 401 sem login. O usuário confirmou a criação da conta de gestão, e a captura mostrou segundo fator ativo. Volume e recuperação ainda exigem conferência operacional; assinatura de aplicativos e homologação de equipamentos permanecem posteriores. Nenhum equipamento real foi acionado nesta entrega.
+A implementação das etapas restantes foi reunida na entrega 0.2.0; o ciclo operacional atual está na versão 0.5.0. Na fase operacional, o usuário adquiriu VPS Hostinger com Easypanel em Campinas/SP, domínio próprio e criou o e-mail de suporte. A primeira implantação web foi realizada pelo usuário: aplicação em HTTPS, `/healthz` e `/readyz` com resposta 200 e `/api/state` com 401 sem login. O usuário confirmou a criação da conta de gestão, e a captura mostrou segundo fator ativo. Volume e recuperação ainda exigem conferência operacional; assinatura de aplicativos e homologação de equipamentos permanecem posteriores. Nenhum equipamento real foi acionado nesta entrega.
 
 | Etapa | Entrega técnica |
 |---|---|
@@ -24,7 +24,7 @@ A versão 0.3.0 implementa perfis pessoais privados, vínculo temporário por es
 ## Validação reproduzível
 
 - `npm ci --prefix app --ignore-scripts` instala versões e integridades do lockfile.
-- `npm test --prefix app`: 245 testes, incluindo PostgreSQL quando `VILAZUNI_PG_TEST_CONFIG` aponta para a base local descartável. Sem essa configuração, cinco testes PostgreSQL são explicitamente pulados.
+- `npm test --prefix app`: 297 testes, incluindo PostgreSQL quando `VILAZUNI_PG_TEST_CONFIG` aponta para a base local descartável. Sem essa configuração, seis testes PostgreSQL são explicitamente pulados.
 - `npm run test:browser --prefix app`: fluxo sintético em Chromium desktop/móvel. Requer navegador Playwright instalado ou `CHROMIUM_PATH`.
 - `npm audit --prefix app --omit=dev`: auditoria das dependências de execução.
 - Workflows de validação e pacotes móveis estão em `.github/workflows/`. Android e iOS compilaram no GitHub Actions após liberar a execução pública; os pacotes de avaliação não são assinaturas de distribuição nem lançamento nas lojas.
@@ -58,3 +58,11 @@ Fichas destacam proprietário, contatos com ícones, uso da casa, ocupação por
 A publicação e o preenchimento das novas informações no servidor dependem da implantação pelo Easypanel. Os dados existentes são preservados.
 
 Validação da versão 0.4.0: **268 testes aprovados com PostgreSQL 17 descartável, sem pulados**, Chromium desktop/celular e auditoria de dependências sem vulnerabilidades. Foram conferidos cadastros, retratos privados, contatos, modalidade/período, autorização e revogação da zeladoria, isolamento da imobiliária/gestão delegada e prioridade/leitura individual dos avisos. O contraste do menu ativo foi medido em 9,23:1 e o dos campos/textos de apoio conferidos ficou acima de 7:1. Prévias sintéticas: [ficha da casa](previa-ficha-casa.png), [mural importante](previa-mural-importante.png).
+
+## Demonstração completa — 0.5.0
+
+Incluído **Condomínio → Explorar demonstração completa**: cria um contexto separado com 14 casas, contatos e fotos fictícias, estadias, tarefas, estoque, preventiva, reservas, compras, documentos, mural, enquetes, assembleias, fontes, financeiro e cobranças manuais. Catálogo mostra contagens e permite experimentar perfis com permissões reais, sem senhas compartilhadas, e retornar ao condomínio original. Reabertura preserva a exploração sem duplicar os exemplos. Telefones usam faixa reservada, e integrações externas são bloqueadas no servidor; equipamentos funcionam em simuladores. [Como explorar e o que está preenchido](fundacao/DEMONSTRACAO_COMPLETA.md).
+
+O preenchimento só é aplicado no contexto de demonstração por uma ação autenticada. A entrega não alterou dados na VPS; exige implantação da versão e criação da demonstração pelo aplicativo.
+
+Validação do ciclo 0.5.0: **297 testes aprovados com PostgreSQL 17 descartável, sem testes pulados**, incluindo a gravação e restauração do conjunto completo com arquivos privados e isolamento entre partições. Chromium aprovou os fluxos em computador e celular, a troca de perfis, o retorno ao contexto original, fotos/contatos, financeiro e reabertura sem duplicação. Testes com provedores injetados confirmaram ausência de chamadas Asaas/IA/envios no contexto fictício. Auditoria de dependências sem vulnerabilidades. Prévias: [catálogo da demonstração](previa-demonstracao-completa.png) e [ficha no celular](previa-demonstracao-celular.png).
