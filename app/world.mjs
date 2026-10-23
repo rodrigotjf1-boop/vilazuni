@@ -53,8 +53,8 @@ export function mountWorld(root,options){
   root.querySelector('#world-hint').textContent=s.walk?'Arraste para olhar · controles de direção para caminhar · percurso ilustrativo':'Arraste para girar · dois dedos ou + / − para aproximar · mapa e lista sempre disponíveis';
   if(!activeHouse)removeSpots();else{const floor=root.querySelector('#floor-switch');if(floor){floor.innerHTML=s.upper?'↓<span>Térreo</span>':'↑<span>Segundo andar</span>';floor.setAttribute('aria-label',s.upper?'Descer ao térreo':'Subir ao segundo andar');}}
  }
- function pauseScene(){renderer?.pause(mode!=='3d'||shell.classList.contains('has-overlay')||shell.classList.contains('is-locked'));}
- function lost(){renderer?.dispose();renderer=null;activeHouse=null;removeSpots();setMode('map',false);live.textContent='A cena 3D está indisponível. Continue pelo mapa e pela lista.';queueMicrotask(()=>{if(!disposed)options.onDirectory?.();});}
+ function pauseScene(){const locked=shell.classList.contains('is-locked');canvas.tabIndex=locked?-1:0;canvas.setAttribute('aria-hidden',String(locked));renderer?.pause(mode!=='3d'||shell.classList.contains('has-overlay')||locked);}
+ function lost(){renderer?.dispose();renderer=null;activeHouse=null;removeSpots();setMode('map',false);live.textContent='A cena 3D está indisponível. Continue pelo mapa e pela lista.';queueMicrotask(()=>{if(!disposed&&!shell.classList.contains('is-locked'))options.onDirectory?.();});}
  function ensureRenderer(){
   if(renderer)return true;
   try{renderer=createWorldRenderer(canvas,{onSelect:select,onChange:sync,onLost:lost,onProject:points=>{for(const p of points){const el=pins.get(p.id);el.hidden=!p.visible||!!visibleScenes&&!visibleScenes.has(p.id);el.style.transform=`translate(${p.x}px,${p.y}px) translate(-50%,-100%)`;}}});sync(renderer.state());return true;}catch{renderer=null;return false;}
@@ -85,7 +85,7 @@ export function mountWorld(root,options){
  root.querySelectorAll('[data-world-page]').forEach(b=>b.onclick=()=>{setActivePage(b.dataset.worldPage);if(compact.matches)setMenuOpen(false);onPage(b.dataset.worldPage);});
  setMenuOpen(!compact.matches);setActivePage('tour');
  const observer=new MutationObserver(pauseScene);observer.observe(shell,{attributes:true,attributeFilter:['class']});updateTour(tour);updateCommunity(options.community);
- let saved='3d';try{if(localStorage.getItem('vilazuni-tour-mode')==='map')saved='map';}catch{}if(tour&&!tour.visual)saved='map';setMode(saved,false);if(mode==='map')queueMicrotask(()=>{if(!disposed)options.onDirectory?.();});
+ let saved='3d';try{if(user&&localStorage.getItem('vilazuni-tour-mode')==='map')saved='map';}catch{}if(tour&&!tour.visual)saved='map';setMode(saved,false);if(mode==='map')queueMicrotask(()=>{if(!disposed&&!shell.classList.contains('is-locked'))options.onDirectory?.();});
  const dispose=()=>{disposed=true;observer.disconnect();cleanups.forEach(off=>off());renderer?.dispose();};
  Object.assign(dispose,{enterHouse,exitHouse:reset,updateTour,updateCommunity,setActivePage,can3D:()=>mode==='3d'&&!!renderer,show3D(id){if(!setMode('3d')){options.onDirectory?.();return false;}if(id)renderer.focusPoint(id);renderer.renderStill();canvas.focus({preventScroll:true});return true;},showMap(){setMode('map');},mode:()=>mode});return dispose;
 }

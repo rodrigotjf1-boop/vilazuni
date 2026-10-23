@@ -1,0 +1,226 @@
+/* Reading panels share a spacious layout while leaving the village visible. */
+.world-shell .experience-dock {
+  width:clamp(500px,40vw,620px);
+  max-width:calc(100% - 350px);
+  bottom:112px;
+  display:flex;
+  flex-direction:column;
+  padding:0;
+  overflow:hidden;
+  border-radius:24px;
+  background:#f7f8f2;
+  box-shadow:0 18px 60px #18362a26;
+  font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:16px;
+  line-height:1.65;
+}
+.world-shell .experience-dock[hidden] { display:none; }
+.world-shell .experience-dock.wide { width:min(980px,calc(100% - 350px)); }
+.experience-dock .glass-panel-header {
+  flex-shrink:0;
+  padding:24px 28px 16px;
+  border-bottom:1px solid #d5dfd1;
+  background:#f7f8f2;
+}
+.experience-dock .glass-heading { gap:18px; }
+.experience-dock .glass-heading>div { min-width:0; }
+.world-shell .experience-dock .glass-heading span {
+  display:block;
+  color:#3c5848;
+  font-size:12px;
+  line-height:1.5;
+  letter-spacing:1px;
+}
+.world-shell .experience-dock .glass-heading h2 {
+  margin:10px 0 0;
+  color:#173d30;
+  font-size:clamp(26px,2.2vw,34px);
+  line-height:1.2;
+  font-weight:700;
+  letter-spacing:-.7px;
+  overflow-wrap:anywhere;
+  max-height:3.6em;
+  overflow:auto;
+  scrollbar-width:thin;
+  scrollbar-color:#7c957d transparent;
+}
+.experience-dock .glass-heading h2:focus-visible { outline:2px solid #326e4a;outline-offset:3px; }
+.world-shell .experience-dock .glass-close {
+  display:grid;
+  place-items:center;
+  width:44px;
+  height:44px;
+  min-height:44px;
+  padding:0;
+  font-size:26px!important;
+}
+.world-shell .experience-dock .glass-back {
+  min-height:36px;
+  margin:12px 0 -4px;
+  padding:5px 0;
+  font-size:14px!important;
+}
+.experience-dock .glass-body {
+  flex:1;
+  min-height:0;
+  min-width:0;
+  overflow:auto;
+  overscroll-behavior:contain;
+  scrollbar-width:thin;
+  scrollbar-color:#7c957d transparent;
+  scrollbar-gutter:stable;
+  padding:22px 28px 28px;
+  overflow-wrap:anywhere;
+  scroll-padding-block:16px;
+}
+.experience-dock .glass-body>:first-child { margin-top:0; }
+.experience-dock .glass-body>:last-child { margin-bottom:0; }
+.world-shell .experience-dock :is(.micro-note,.quiet-state,.floating-note small,.journey-card small,.community-profile-heading p,.household-contact-note,.household-subtle,.household-private,.household-meta) {
+  font-size:14px;
+  line-height:1.7;
+  color:#405848;
+}
+.world-shell .experience-dock :is(.floating-note p,.journey-card p,.community-note p,.household-grants p,.demo-info p,.demo-introduction) {
+  font-size:16px;
+  line-height:1.7;
+}
+.world-shell .experience-dock :is(.floating-note,.journey-card,.destination-card) { padding:18px; }
+.world-shell .experience-dock :is(.floating-note h3,.journey-card h3,.household-section-title) { font-size:21px;line-height:1.35; }
+.world-shell .experience-dock :is(.glass-primary,.glass-secondary,.room-actions button,.household-contact) {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  min-height:46px;
+  max-width:100%;
+  padding:11px 16px;
+  font-size:15px!important;
+  line-height:1.45;
+  text-align:center;
+  text-decoration:none;
+  white-space:normal;
+  overflow-wrap:anywhere;
+}
+.world-shell .experience-dock .room-actions button { justify-content:flex-start;text-align:left; }
+.world-shell .experience-dock :is(input,select,textarea) { font-size:16px; }
+.world-shell .experience-dock :is(.float-wizard label,.decision-area label,.inline-choice,.tour-search label) {
+  font-size:15px;
+  line-height:1.5;
+}
+.world-shell .experience-dock .table-scroll td { font-size:14px; }
+.world-shell .experience-dock .table-scroll th { font-size:13px; }
+.world-shell .experience-dock .float-pill { font-size:12px; }
+.experience-dock :is(.wizard-actions,.decision-buttons,.community-contacts,.community-board-toolbar) { gap:12px; }
+.experience-dock .community-notice-meta {
+  display:grid;
+  gap:7px;
+  padding-bottom:20px;
+  border-bottom:1px solid #d5dfd1;
+}
+.experience-dock .community-notice-meta .community-important-badge { justify-self:start;margin:0 0 8px; }
+.experience-dock .community-notice-meta strong { font-size:16px;color:#244432; }
+.experience-dock .community-notice-meta span { font-size:14px;color:#405848; }
+.experience-dock .community-notice-meta .community-important-badge { color:#fff; }
+.experience-dock .community-notice-body { padding:24px;font-size:18px;line-height:1.8;margin:22px 0; }
+.experience-dock .community-notice-actions { display:grid;gap:12px;margin:20px 0 10px; }
+.experience-dock .community-notice-actions>:is(a,button) { width:100%; }
+.experience-dock .community-notice-editing { margin-top:24px;padding-top:20px;border-top:1px solid #d5dfd1; }
+.experience-dock :is(#community-agent-confirm,#community-archive-confirm):not(:empty) {
+  margin:16px 0;
+  padding:16px;
+  background:#eaf1e5;
+  border:1px solid #b2c6a9;
+  border-radius:12px;
+}
+/* The entry form uses the same readable type and leaves the scene in view. */
+.world-shell .auth-entry {
+  right:28px;
+  top:108px;
+  transform:none;
+  width:min(500px,calc(100% - 56px));
+  max-height:calc(100dvh - 148px);
+  padding:28px;
+  font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:16px;
+  line-height:1.6;
+  scrollbar-width:thin;
+  scrollbar-color:#7c957d transparent;
+  scrollbar-gutter:stable;
+}
+.world-shell .auth-entry h1 { font-size:34px;line-height:1.2;font-weight:650;letter-spacing:-.8px; }
+.world-shell .auth-entry :is(p,small) { font-size:14px;line-height:1.65; }
+.world-shell .auth-entry .float-wizard label { font-size:15px;line-height:1.5; }
+.world-shell .auth-entry input { font-size:16px;min-height:48px; }
+.world-shell .auth-entry .glass-primary { min-height:48px;font-size:16px!important; }
+.world-shell .auth-entry .glass-back {
+  display:inline-flex;
+  align-items:center;
+  min-height:44px;
+  margin:0 16px 8px 0;
+  padding:6px 0;
+  font-size:14px!important;
+  line-height:1.5;
+}
+@media (max-width:900px) {
+  .world-shell .experience-dock,.world-shell .experience-dock.wide {
+    left:auto;
+    right:16px;
+    top:108px;
+    bottom:110px;
+    width:min(620px,calc(100% - 32px));
+    max-width:calc(100% - 32px);
+  }
+  .world-shell.has-demo-banner .experience-dock { top:178px; }
+  .world-shell .auth-entry { right:20px;width:min(480px,calc(100% - 40px)); }
+}
+@media (max-width:600px) {
+  .world-shell .experience-dock,.world-shell .experience-dock.wide {
+    left:10px;
+    right:10px;
+    width:auto;
+    max-width:none;
+    top:124px;
+    bottom:108px;
+    padding:0;
+    border-radius:20px;
+  }
+  .experience-dock .glass-panel-header { padding:18px 18px 12px; }
+  .experience-dock .glass-heading { gap:12px; }
+  .world-shell .experience-dock .glass-heading h2 { font-size:25px; }
+  .world-shell .experience-dock .glass-heading span { font-size:11px;letter-spacing:.7px; }
+  .experience-dock .glass-body { padding:18px; }
+  .experience-dock .community-notice-body { padding:18px;font-size:17px; }
+  .experience-dock .community-notice-editing { display:grid;grid-template-columns:1fr; }
+  .world-shell.has-demo-banner .experience-dock { top:207px; }
+  .world-shell .auth-entry {
+    left:16px;
+    right:16px;
+    top:104px;
+    width:auto;
+    max-height:calc(100dvh - 132px);
+    padding:22px;
+    border-radius:22px;
+  }
+  .world-shell .auth-entry h1 { font-size:28px; }
+}
+@media (max-height:620px) and (min-width:601px) {
+  .world-shell .experience-dock { top:96px;bottom:92px; }
+  .experience-dock .glass-panel-header { padding:16px 24px 12px; }
+  .world-shell .experience-dock .glass-heading h2 { font-size:26px; }
+  .world-shell.has-demo-banner .experience-dock { top:153px; }
+  .world-shell .auth-entry { top:96px;max-height:calc(100dvh - 118px);padding:20px 24px; }
+}
+@media (max-height:500px) and (max-width:600px) {
+  .world-shell .experience-dock { top:88px;bottom:22px; }
+  .world-shell.has-demo-banner .experience-dock { top:198px; }
+  .experience-dock .glass-panel-header { padding:12px 16px; }
+  .world-shell .experience-dock .glass-heading h2 { font-size:22px; }
+}
+@media (max-height:500px) and (min-width:601px) {
+  .world-shell .experience-dock { top:88px;bottom:16px;z-index:8; }
+  .experience-dock .glass-panel-header { padding:12px 20px; }
+  .world-shell .experience-dock .glass-heading h2 { font-size:24px; }
+  .world-shell .experience-dock .glass-heading h2 { max-height:2.4em; }
+  .world-shell.has-demo-banner .experience-dock { top:153px; }
+  .world-shell.has-demo-banner .experience-dock .glass-heading h2 { max-height:1.2em; }
+}

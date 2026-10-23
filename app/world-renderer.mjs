@@ -119,6 +119,8 @@ export function createWorldRenderer(canvas,{onSelect=()=>{},onProject=()=>{},onC
  const state=()=>({walk,interior,upper,x,z,yaw});
  const announce=()=>onChange(state());
  function invalidate(){if(!disposed&&!paused&&!document.hidden&&!gl.isContextLost()&&!frame)frame=requestAnimationFrame(draw);}
+ // O login pode pausar antes do primeiro RAF; mantenha um quadro do cenário no canvas.
+ function renderStill(){if(disposed||document.hidden||gl.isContextLost())return;cancelAnimationFrame(frame);frame=0;const wasPaused=paused;paused=false;draw(performance.now());paused=wasPaused;}
  function clearInput(){held.clear();pointers.clear();drag=null;pinch=0;gesture=false;lastTime=0;}
  function step(forward,side,amount=.65){if(!walk||interior||paused)return;({x,z}=moveAlongWalkway({x,z,yaw},forward,side,amount));announce();invalidate();}
  function draw(time){
@@ -142,16 +144,16 @@ export function createWorldRenderer(canvas,{onSelect=()=>{},onProject=()=>{},onC
  listen(canvas,'pointermove',e=>{if(paused||!pointers.has(e.pointerId))return;pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(pointers.size>1){const [a,b]=[...pointers.values()],gap=Math.hypot(a.x-b.x,a.y-b.y);if(pinch)zoom((pinch-gap)*.06);pinch=gap;return;}if(!drag||gesture)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;drag.moved||=Math.hypot(e.clientX-drag.startX,e.clientY-drag.startY)>5;drag.x=e.clientX;drag.y=e.clientY;yaw-=dx*.006;pitch=Math.max(.25,Math.min(1.35,pitch+dy*.005));invalidate();});
  listen(canvas,'pointerup',e=>{const tap=drag&&!drag.moved&&!gesture&&!paused;pointers.delete(e.pointerId);if(!pointers.size){drag=null;pinch=0;gesture=false;}if(tap&&!interior&&matrix){const rect=canvas.getBoundingClientRect(),id=pick(screenRay(matrix,e.clientX-rect.left,e.clientY-rect.top,rect.width,rect.height));if(id)onSelect(id);}});
  listen(canvas,'pointercancel',clearInput);listen(canvas,'lostpointercapture',()=>{if(!pointers.size)drag=null;});listen(window,'blur',clearInput);
- listen(document,'visibilitychange',()=>{clearInput();if(document.hidden){cancelAnimationFrame(frame);frame=0;}else invalidate();});
+ listen(document,'visibilitychange',()=>{clearInput();if(document.hidden){cancelAnimationFrame(frame);frame=0;}else if(paused)renderStill();else invalidate();});
  listen(canvas,'webglcontextlost',e=>{e.preventDefault();clearInput();cancelAnimationFrame(frame);frame=0;onLost();});
- const resize=new ResizeObserver(invalidate);resize.observe(canvas);canvas.dataset.vertices=String(vertexData.length/6);canvas.dataset.geometryBytes=String(vertexData.byteLength);canvas.dataset.exteriorVertices=String(exteriorCount);invalidate();
+ const resize=new ResizeObserver(()=>{if(paused)renderStill();else invalidate();});resize.observe(canvas);canvas.dataset.vertices=String(vertexData.length/6);canvas.dataset.geometryBytes=String(vertexData.byteLength);canvas.dataset.exteriorVertices=String(exteriorCount);invalidate();
  return {reset,zoom,step,hold,state,
   toggleWalk(){if(interior||paused)return;clearInput();walk=!walk;if(walk){x=0;z=29;yaw=0;pitch=.92;}announce();invalidate();},
   enterHouse(id){if(!TOUR_POINTS.some(p=>p.id===id&&p.kind==='house'))return;clearInput();interior=id;upper=false;walk=false;distance=8;yaw=-.15;pitch=.5;announce();invalidate();},
   toggleFloor(){if(!interior)return;upper=!upper;announce();invalidate();},
   focusPoint(id){const point=TOUR_POINTS.find(p=>p.id===id);if(!point)return;reset();x=point.x;z=point.z;distance=48;announce();invalidate();},
-  pause(value){if(paused===!!value)return;paused=!!value;clearInput();if(paused){cancelAnimationFrame(frame);frame=0;}else invalidate();},
-  renderStill(){if(disposed||document.hidden||gl.isContextLost())return;const wasPaused=paused;paused=false;draw(performance.now());paused=wasPaused;},
+  pause(value){if(paused===!!value)return;clearInput();if(value){renderStill();paused=true;}else{paused=false;invalidate();}},
+  renderStill,
   dispose(){disposed=true;clearInput();cancelAnimationFrame(frame);resize.disconnect();listeners.forEach(off=>off());gl.deleteBuffer(buffer);gl.deleteProgram(program);if(!gl.isContextLost())gl.getExtension('WEBGL_lose_context')?.loseContext();}
  };
 }
