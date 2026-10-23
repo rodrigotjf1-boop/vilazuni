@@ -1,6 +1,6 @@
 # Vilazuni — piloto local com login
 
-Requer Node.js 20 ou superior e `npm ci` nesta pasta. Dependências e integridades estão fixadas no lockfile. Estado atual da versão 0.3.0: [STATUS_DO_PROJETO](../STATUS_DO_PROJETO.md); implantação: [deploy](../deploy/README.md).
+Requer Node.js 20 ou superior e `npm ci` nesta pasta. Dependências e integridades estão fixadas no lockfile. Estado atual da versão 0.3.1: [STATUS_DO_PROJETO](../STATUS_DO_PROJETO.md); implantação: [deploy](../deploy/README.md).
 
 ## Abrir e configurar
 
@@ -203,3 +203,7 @@ Detalhamento e próximos pedidos de perfis por estadia/contrato, WhatsApp e Asaa
 ## Piloto integrado 0.3.0
 
 Perfis pessoais e fotos privadas, expiração por contrato/estadia, aviso de atualização e cobrança confirmada via uma conta própria Asaas estão em [piloto e acessos](../fundacao/PILOTO_ASAAS_E_ACESSOS.md). Para o agente WhatsApp, use os [workflows e prompt Evolution/n8n](../deploy/n8n/README.md). As chaves são cadastradas nos respectivos formulários/credenciais; não vão para o Git. Homologação não movimenta o caixa real. A entrega não ativou integrações nas VPS do usuário.
+
+## Preencher os cadastros fictícios
+
+Na versão 0.3.1, o síndico do Chandra pode abrir **Condomínio → Preencher dados fictícios** para aplicar o conjunto de 7 proprietários, 2 contratos anuais e fichas informativas de síndico/zelador. A prévia mantém dados existentes e evita duplicações. [Nomes, contratos e aplicação](../fundacao/CADASTROS_FICTICIOS_PILOTO.md).
