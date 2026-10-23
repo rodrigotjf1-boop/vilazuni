@@ -64,10 +64,10 @@ docker run --rm --user "$(id -u):$(id -g)" \
 Substituir os dois valores de exemplo antes de executar. Os arquivos estarão em `$HOME/vilazuni-private/primeira-instalacao` no host:
 
 - `database.sql`: primeira migração e criação do usuário restrito `vilazuni_app`.
-- `application.env`: variáveis da aplicação, com senha própria, chave MFA e código de instalação aleatórios.
+- `application.env`: variáveis da aplicação, com senha própria, chave de cifragem (`MFA_SECRET_KEY`) e código de instalação aleatórios; `MFA_ENABLED=false` e `REQUIRE_MANAGER_MFA=false`.
 - `backup.key`: chave do backup cifrado, independente da senha do banco e da chave MFA.
 
-O gerador não imprime segredos, recusa gravar dentro do checkout e não sobrescreve um destino existente. Diretório e arquivos têm permissões 700/600. Guardar cópia protegida de todo o conjunto fora da VPS; não enviar arquivos ou conteúdos pela conversa, Git ou tickets. Não regenerar para atualizar ou reiniciar o sistema: perder a chave MFA impede decifrar os autenticadores já cadastrados.
+O gerador não imprime segredos, recusa gravar dentro do checkout e não sobrescreve um destino existente. Diretório e arquivos têm permissões 700/600. Guardar cópia protegida de todo o conjunto fora da VPS; não enviar arquivos ou conteúdos pela conversa, Git ou tickets. Não regenerar para atualizar ou reiniciar o sistema: a chave `MFA_SECRET_KEY` protege credenciais das integrações e autenticadores já cadastrados, mesmo quando MFA está desabilitado.
 
 ## 5. Inicializar banco e implantar
 
@@ -114,9 +114,22 @@ curl --silent --output /dev/null --write-out '%{http_code}\n' https://app.SEU_DO
 
 Os dois primeiros devem responder 200; o terceiro, **401** sem sessão. Conferir redirecionamento HTTP para HTTPS, ausência de acesso público ao banco e à porta 4173 e volume persistente após redeploy. Não desativar a verificação de certificado para considerar o HTTPS aprovado.
 
-O responsável cria sua própria conta com o código privado `BOOTSTRAP_TOKEN`, habilita TOTP e guarda os códigos de recuperação. Não criar uma senha em nome do usuário. Cadastrar condomínio, documentos, unidades e regras reais somente após a conferência; a base nova não contém dados fictícios.
+O responsável cria sua própria conta com o código privado `BOOTSTRAP_TOKEN` e passa a entrar com e-mail e senha. Não criar uma senha em nome do usuário. Cadastrar condomínio, documentos, unidades e regras reais somente após a conferência; a base nova não contém dados fictícios.
 
 Cobrança permanece manual. IA, Telegram, portão real e envio de e-mail não são ativados por este guia. Uma caixa de suporte já criada pode receber contato, mas recuperação automática exige o adaptador Resend com `MAIL_API_KEY` e `MAIL_FROM`, remetente verificado e teste de entrega. Configurar credenciais somente no servidor; não trocar MX do e-mail para implantar o aplicativo.
+
+### Acesso sem código do autenticador
+
+MFA fica desabilitado por padrão, inclusive em produção e para contas que já tinham autenticador cadastrado. Para registrar essa escolha no painel, manter estas variáveis em **app → Ambiente/Environment**, salvar e executar **Implantar/Deploy**:
+
+```dotenv
+MFA_ENABLED=false
+REQUIRE_MANAGER_MFA=false
+```
+
+A atualização também usa esse padrão quando as variáveis estão ausentes. Preservar a `MFA_SECRET_KEY`, o banco e o volume atuais: a chave continua necessária para decifrar integrações como Asaas. Os fatores antigos não são apagados nem é preciso executar a primeira instalação novamente.
+
+Se futuramente houver decisão de usar autenticador, `MFA_ENABLED=true` disponibiliza MFA opcional por conta. `REQUIRE_MANAGER_MFA=true`, junto com `MFA_ENABLED=true`, passa a exigir MFA para síndico, subsíndico e administradora. Ao reabilitar, contas que já tinham fator cadastrado voltam a usá-lo; recuperar os autenticadores e códigos antes dessa alteração.
 
 ### Trocar os segredos antes da primeira conta
 
