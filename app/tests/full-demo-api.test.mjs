@@ -72,7 +72,7 @@ test('demonstração usa consulta local, bloqueia Asaas antes de chamadas e pers
 });
 
 test('MFA real permanece válido nos perfis de síndico e administradora fictícios, sem exigir MFA das identidades de exemplo',async()=>{
- const f=await fixture({vault:credentialVault('b'.repeat(64)),config:{...runtimeConfig({}),requireManagerMfa:true}});try{
+ const f=await fixture({vault:credentialVault('b'.repeat(64)),config:runtimeConfig({MFA_ENABLED:'true',REQUIRE_MANAGER_MFA:'true'})});try{
   assert.equal(f.admin.body.user.mfaRequired,true);const factor=await f.request('/mfa/enroll',{password:f.password},f.admin.cookie);assert.equal(factor.status,200);const confirmed=await f.request('/mfa/confirm',{otp:totp(factor.body.secret,f.now)},f.admin.cookie);assert.equal(confirmed.status,200,JSON.stringify(confirmed.body));
   const created=await populate(f,confirmed.cookie),entered=await enter(f,created.tenantId,confirmed.cookie),view=await profiles(f,entered.cookie);assert.equal(entered.body.user.mfaRequired,false);assert.equal(entered.body.user.mfaEnabled,true);let cookie=entered.cookie;
   for(const role of ['sindico','administradora']){const selected=await choose(f,cookie,view.profiles.find(p=>p.role===role));cookie=selected.cookie;assert.equal(selected.body.user.mfaRequired,false);assert.equal(selected.body.user.mfaEnabled,true);assert.equal((await f.request('/state',undefined,cookie)).status,200);assert.equal((await f.request('/session',undefined,cookie)).body.user.mfaRequired,false);}

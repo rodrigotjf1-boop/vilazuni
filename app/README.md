@@ -22,7 +22,7 @@ Subsíndico e administradora recebem somente módulos delegados explicitamente p
 
 Operações autenticadas são persistidas pelo servidor em `.data/store.json` (fora do Git). A variável VILAZUNI_DATA_DIR permite configurar outro diretório. O caminho padrão está dentro do workspace, que pode ser sincronizado pelo OneDrive. Não executar múltiplos servidores sobre a mesma base. Dados antigos do navegador não são importados automaticamente nem apagados.
 
-Senhas são armazenadas com scrypt e salt; convites com hash. Sessões ficam em memória e expiram em oito horas ou após trinta minutos sem consultas. Reiniciar o servidor exige novo login. Suspender a conta invalida suas sessões; alterar a senha encerra as anteriores. Recuperação opcional por e-mail e MFA TOTP estão implementados e exigem configuração segura do servidor; não existe senha mestra.
+Senhas são armazenadas com scrypt e salt; convites com hash. Sessões ficam em memória e expiram em oito horas ou após trinta minutos sem consultas. Reiniciar o servidor exige novo login. Suspender a conta invalida suas sessões; alterar a senha encerra as anteriores. Recuperação opcional por e-mail e MFA TOTP estão implementados; não existe senha mestra. O acesso padrão usa e-mail e senha, inclusive para quem já cadastrou autenticador: `MFA_ENABLED=false` e `REQUIRE_MANAGER_MFA=false`. Com `MFA_ENABLED=true`, MFA volta a ficar disponível por conta; somente `REQUIRE_MANAGER_MFA=true` também exige seu cadastro para gestores. Preservar `MFA_SECRET_KEY` mesmo sem MFA: ela também cifra as credenciais de integrações.
 
 ## Experiência e limites
 
@@ -183,7 +183,7 @@ Prévias sintéticas: [mapa](../previa-passeio-mapa.png), [dependência](../prev
 
 Consulte [etapa 6](../fundacao/ETAPA_6_FONTES_E_GOVERNANCA.md) e [etapas 7–8](../fundacao/ETAPAS_7_8_DISTRIBUICAO.md) para fluxos, delegações, configuração e limites atuais. Novos menus: Assembleias, Assistência, Alertas, Canais, Portaria física, Celular, Privacidade e Condomínio.
 
-No modo local, dados sintéticos e arquivo JSON continuam disponíveis. Produção exige PostgreSQL, diretório de anexos privado persistente, chaves externas, HTTPS e MFA da gestão; a base nova começa sem dados fictícios. A implantação não é feita automaticamente ao iniciar o piloto.
+No modo local, dados sintéticos e arquivo JSON continuam disponíveis. Produção exige PostgreSQL, diretório de anexos privado persistente, chaves externas e HTTPS; MFA da gestão depende de habilitação explícita no servidor e não é obrigatório por padrão. A base nova começa sem dados fictícios. A implantação não é feita automaticamente ao iniciar o piloto.
 
 `npm run test:browser` executa uma jornada sintética em Chromium. Instale o navegador com `npx playwright-core install chromium` ou informe `CHROMIUM_PATH`. Para testes de PostgreSQL, veja `scripts/prepare-pg-test.mjs`; nunca use banco com dados reais. Scripts operacionais: `npm run db:migrate`, `npm run db:import-json -- <store.json>`, `npm run backup -- create|restore <arquivo>`.
 

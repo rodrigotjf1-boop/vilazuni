@@ -5,7 +5,7 @@ Piloto com **um condomínio e uma conta Asaas própria**, sem criação de subco
 ## Preparação no Vilazuni
 
 1. Implante a versão 0.3.0 no Easypanel. Mantenha banco, volume e chaves atuais. A atualização usa as coleções existentes; não execute novamente a primeira instalação.
-2. Entre como síndico, com segundo fator ativo. Em **Agente WhatsApp**, informe o JID do grupo retornado pela Evolution (`…@g.us`), habilite a conexão e salve.
+2. Entre como síndico com e-mail e senha. MFA só será solicitado se tiver sido habilitado explicitamente no servidor e cadastrado na conta. Em **Agente WhatsApp**, informe o JID do grupo retornado pela Evolution (`…@g.us`), habilite a conexão e salve.
 3. Copie a chave exibida uma única vez diretamente para uma credencial **Header Auth** no n8n: nome do cabeçalho `x-vilazuni-token`. O Vilazuni guarda somente seu hash. Gerar outra chave invalida a anterior. Desabilitar a conexão interrompe as consultas/entregas do workflow.
 4. Em **Consultar → gestão de fontes**, cadastre e revise regras, horários, contatos institucionais e procedimentos reais. Publique para **público externo** somente o que pode ser respondido no grupo. Fontes apenas internas ou para usuários do aplicativo não são entregues ao agente.
 

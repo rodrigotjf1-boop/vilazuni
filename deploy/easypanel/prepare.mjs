@@ -27,6 +27,7 @@ export async function prepare({origin,databaseHost,databaseName='vilazuni',datab
  const env=[
   'NODE_ENV=production','HOST=0.0.0.0','PORT=4173','VILAZUNI_DATA_DIR=/var/lib/vilazuni',
   'APP_ORIGIN='+origin,'DATABASE_URL='+databaseUrl.href,'MFA_SECRET_KEY='+key,'BOOTSTRAP_TOKEN='+bootstrap,
+  'MFA_ENABLED=false','REQUIRE_MANAGER_MFA=false',
   'TRUST_PROXY=true','CLIENT_IP_HEADER=x-forwarded-for','AI_ENABLED=false','TELEGRAM_ENABLED=false',
   'VILAZUNI_BACKUP_KEY_FILE=/var/lib/vilazuni/backup.key',''
  ].join('\n');

@@ -24,7 +24,7 @@ Para homologar: fabricante/modelo, protocolo oficial, ambiente de teste, respons
 
 ## Vários condomínios e clientes
 
-Condomínio permite configurar identidade/localidade/regime, cadastrar unidades com UUID estável, alterar características por versão/histórico, implantar outro cliente e trocar contexto. O novo cliente começa sem dados copiados. Conta existente aceita novo convite somente com sua senha e MFA quando ativo; identidade não é duplicada e nenhum convite redefine senha.
+Condomínio permite configurar identidade/localidade/regime, cadastrar unidades com UUID estável, alterar características por versão/histórico, implantar outro cliente e trocar contexto. O novo cliente começa sem dados copiados. Conta existente aceita novo convite somente com sua senha e, se MFA tiver sido habilitado no servidor e cadastrado na conta, o fator correspondente; identidade não é duplicada e nenhum convite redefine senha.
 
 Somente contextos vigentes aparecem. Trocar contexto rota a sessão e descarta respostas de telas antigas. Cada domínio filtra condomínio/módulo/unidade; PostgreSQL também aplica RLS sobre as partições. Proprietário da plataforma só implanta clientes nos próprios vínculos e não ganha consulta universal a condomínios.
 
@@ -38,9 +38,9 @@ PostgreSQL com migração reproduzível, transações, revisão otimista e papel
 
 Anexos usam volume privado, caminhos derivados de condomínio/hash e leitura autenticada; o banco guarda referência e integridade, sem URLs públicas. Volume persistente precisa acompanhar o banco. Essa implementação usa arquivos privados no servidor; armazenamento S3 é uma expansão opcional, não uma integração já homologada.
 
-Backup lógico contém base e bytes dos anexos, cifrados com scrypt/AES-256-GCM, compressão e verificação de integridade. Restauração recusa destino com contas e não substitui arquivos originais. Limite lógico de 192 MiB; além disso usar backup físico coordenado PostgreSQL + volume, cifrado, testado e com acesso limitado. Guardar a chave MFA e a chave do backup separadamente. Só guardar banco sem volume/chaves é insuficiente.
+Backup lógico contém base e bytes dos anexos, cifrados com scrypt/AES-256-GCM, compressão e verificação de integridade. Restauração recusa destino com contas e não substitui arquivos originais. Limite lógico de 192 MiB; além disso usar backup físico coordenado PostgreSQL + volume, cifrado, testado e com acesso limitado. Guardar a chave de cifragem `MFA_SECRET_KEY` e a chave do backup separadamente. A primeira também protege as credenciais das integrações e deve ser preservada com MFA desabilitado. Só guardar banco sem volume/chaves é insuficiente.
 
-Gestores precisam de TOTP em produção; segredo cifrado por chave externa, prevenção de reutilização e códigos de recuperação de uso único. Recuperação de senha é opcional por provedor de e-mail, tem token expirável/uso único, resposta sem enumerar contas e não desativa MFA. Convites continuam entregues pela gestão; não há envio implícito a moradores.
+O acesso padrão usa e-mail e senha também em produção. MFA permanece desabilitado com `MFA_ENABLED=false`, inclusive para contas com autenticador já cadastrado; os fatores não são apagados. `MFA_ENABLED=true` disponibiliza TOTP opcional e `REQUIRE_MANAGER_MFA=true` também exige MFA para gestores. Quando habilitado, o segredo é cifrado por chave externa e há prevenção de reutilização e códigos de recuperação de uso único. Recuperação de senha é opcional por provedor de e-mail, tem token expirável/uso único, resposta sem enumerar contas e não desativa MFA. Convites continuam entregues pela gestão; não há envio implícito a moradores.
 
 Privacidade permite pedido de acesso/correção/análise de eliminação e resposta registrada da gestão. Não apaga automaticamente evidência ou obrigação de retenção. Responsáveis e prazos reais de resposta/retenção devem ser definidos na implantação. Diagnóstico de suporte mostra contagens, sem nomes, PDFs, conteúdo de mensagens ou credenciais. Não há acesso universal de suporte ao conteúdo dos clientes.
 

@@ -1,6 +1,6 @@
 # Implantação do Vilazuni 0.2.0
 
-Arquivos preparados para aplicação Node.js + PostgreSQL + volume privado + HTTPS. O usuário realizou a primeira implantação web na VPS Hostinger com Easypanel e domínio próprio; a ativação operacional depende de primeiro acesso, MFA, volume e recuperação conferidos. Usar inicialmente homologação com dados sintéticos.
+Arquivos preparados para aplicação Node.js + PostgreSQL + volume privado + HTTPS. O usuário realizou a primeira implantação web na VPS Hostinger com Easypanel e domínio próprio; a ativação operacional depende de primeiro acesso, volume e recuperação conferidos. O acesso padrão usa e-mail e senha; MFA fica desabilitado até ser habilitado explicitamente no servidor. Usar inicialmente homologação com dados sintéticos.
 
 **Na VPS com Easypanel, seguir o [guia dos serviços nativos](easypanel/README.md)**. Ele usa o gateway do painel e inclui um gerador de configurações privadas e SQL de primeira instalação. A composição abaixo é alternativa para servidor sem Easypanel; não iniciar outro gateway nas portas 80/443 já ocupadas pelo painel.
 
@@ -9,10 +9,10 @@ Arquivos preparados para aplicação Node.js + PostgreSQL + volume privado + HTT
 Requer Docker Engine/Compose, DNS apontando para o servidor e portas 80/443 disponíveis. Caddy emite o certificado para o domínio configurado. Banco e aplicação não têm portas públicas na composição.
 
 1. Copiar `.env.example` para `.env` nesta pasta, restringir leitura ao operador e preencher domínio, `APP_ORIGIN` HTTPS, senhas diferentes para banco administrativo/runtime, URL do papel runtime, código de instalação e chave MFA aleatória de 32 bytes em hexadecimal. Não usar placeholders. Percent-encode caracteres reservados da senha na URL.
-2. Guardar segredos em gerenciador/arquivos privados; nunca em Git, ticket ou conversa. O código de instalação é apresentado somente ao responsável para criar a primeira conta. MFA exige autenticador TOTP e guarda privada dos códigos de recuperação.
+2. Guardar segredos em gerenciador/arquivos privados; nunca em Git, ticket ou conversa. O código de instalação é apresentado somente ao responsável para criar a primeira conta. Manter `MFA_ENABLED=false` e `REQUIRE_MANAGER_MFA=false` para acesso por e-mail e senha, inclusive para contas que já cadastraram autenticador. Se MFA for habilitado explicitamente, ele usa TOTP e códigos de recuperação privados.
 3. Na raiz: `docker compose --env-file deploy/.env -f deploy/compose.yaml config --quiet`, depois `docker compose --env-file deploy/.env -f deploy/compose.yaml up -d --build`. Não executar `config` sem `--quiet` em logs compartilhados, pois a saída pode conter segredos.
 4. Conferir `/healthz`, `/readyz`, HTTPS e login. Sem sessão, `/api/state` deve retornar 401. Origem diferente deve retornar 403; cookie de autenticação deve ter Secure/HttpOnly/SameSite. A produção nova começa sem casas/estadias/tarefas de exemplo.
-5. Criar a conta inicial usando o código da instalação. Ativar TOTP antes de operar a gestão. Em Condomínio, cadastrar identidade, regime e unidades reais conferidos. Não importar o piloto fictício como cadastro real.
+5. Criar a conta inicial usando o código da instalação e entrar com e-mail e senha. Em Condomínio, cadastrar identidade, regime e unidades reais conferidos. Não importar o piloto fictício como cadastro real.
 
 `001_storage.sql` e o script de inicialização criam tabelas/RLS e o papel `vilazuni_app` sem SUPERUSER/BYPASSRLS no primeiro volume vazio. Para banco existente, aplicar migrações com papel administrativo separado (`MIGRATION_DATABASE_URL`, `npm run db:migrate --prefix app`) e conceder somente USAGE no schema e SELECT/INSERT/UPDATE nas tabelas de execução. A aplicação recusa papel privilegiado e não faz fallback para JSON se PostgreSQL falhar.
 
@@ -22,7 +22,7 @@ Instâncias atuais: **uma aplicação** e processos de fundo internos. Sessões 
 
 ## Backups e recuperação
 
-O volume privado e o banco formam uma unidade operacional. Backup lógico hidrata os bytes dos anexos e cifra tudo com scrypt + AES-256-GCM. Gere uma chave de pelo menos 16 caracteres e mantenha-a em arquivo privado externo ao Git. Faça backup separado e protegido da `MFA_SECRET_KEY`; sem ela, os autenticadores existentes não podem ser decifrados. Nunca imprima chaves em logs.
+O volume privado e o banco formam uma unidade operacional. Backup lógico hidrata os bytes dos anexos e cifra tudo com scrypt + AES-256-GCM. Gere uma chave de pelo menos 16 caracteres e mantenha-a em arquivo privado externo ao Git. Faça backup separado e protegido da `MFA_SECRET_KEY`; ela protege as credenciais das integrações, como Asaas, e os autenticadores existentes. Desabilitar MFA não dispensa nem troca essa chave. Nunca imprima chaves em logs.
 
 Dentro do ambiente da aplicação, com `DATABASE_URL`, `VILAZUNI_DATA_DIR` e `VILAZUNI_BACKUP_KEY_FILE` configurados:
 
@@ -43,6 +43,7 @@ Definir antes do lançamento: frequência, destino externo separado, retenção,
 |---|---|---|
 | Síntese OpenAI | `AI_ENABLED`, `OPENAI_API_KEY`, `OPENAI_MODEL` | Conta/modelo, política de dados, orçamento, avaliação com fontes reais |
 | Telegram Bot API | `TELEGRAM_ENABLED`, token e segredo próprio do webhook | Bot oficial, grupo exclusivo, nome, horário e fontes explicitamente externas |
+| MFA opcional | `MFA_ENABLED=true`; `REQUIRE_MANAGER_MFA=true` somente para exigir de gestores | Desabilitado por padrão; habilitar apenas com decisão explícita e autenticadores/códigos recuperáveis |
 | Recuperação por e-mail | `MAIL_API_KEY`, `MAIL_FROM` (adaptador Resend) | Remetente/domínio verificados e teste real de entrega; reset não remove MFA |
 | Web push | VAPID pública/privada e `VAPID_SUBJECT` mailto | Permissão e entrega nos aparelhos; inscrição voluntária |
 | Portão | `ACCESS_<CHAVE>_URL`, `_SECRET` | HTTPS, HMAC, idempotência, expiração, ambiente controlado e procedimento presencial |
