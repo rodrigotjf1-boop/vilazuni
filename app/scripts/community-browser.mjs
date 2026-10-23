@@ -1,3 +1,4 @@
+import {panelBrowser} from './panel-browser.mjs';
 import {multiply,perspective,viewMatrix,transform} from '../tour-geometry.mjs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -49,11 +50,12 @@ export async function communityBrowser({browser,page,base,api,password}) {
   await page.getByRole('button',{name:'Mês',exact:true}).click();await page.getByRole('heading',{name:'Tarefa do mês',exact:true}).waitFor();
   await navigate(page,'board');await page.getByRole('button',{name:'Publicar aviso',exact:false}).click();
   const noticeTitle='Aviso do mural pelo navegador';
-  await page.getByLabel('Título do aviso',{exact:true}).fill(noticeTitle);await page.getByLabel('Texto do aviso',{exact:true}).fill('Aviso sintético. <img id="probe" src="x" onerror="alert(1)">');await page.getByLabel('Aviso importante do síndico',{exact:true}).check();await page.getByRole('button',{name:'Publicar aviso',exact:true}).click();
+  await page.getByLabel('Título do aviso',{exact:true}).fill(noticeTitle);await page.getByLabel('Texto do aviso',{exact:true}).fill('Comunicado de manutenção do portão automático. O acesso de pedestres permanece disponível durante o reparo.\n\n'+('A equipe de zeladoria acompanhará os serviços durante o dia. Em caso de necessidade, procure a gestão pelos contatos do condomínio.\n\n').repeat(6)+'Aviso sintético. <img id="probe" src="x" onerror="alert(1)">');await page.getByLabel('Aviso importante do síndico',{exact:true}).check();await page.getByRole('button',{name:'Publicar aviso',exact:true}).click();
   await page.getByRole('heading',{name:noticeTitle,exact:true}).waitFor();
   await page.locator('.community-note.important .community-important-badge').waitFor();
   assert.equal(await page.locator('[data-world-page=board]').getAttribute('aria-current'),'page');
   await capture(page,'mural-desktop.png');
+  await page.getByRole('button',{name:new RegExp(noticeTitle)}).click();await page.getByText('Aviso visto.',{exact:true}).waitFor();await panelBrowser({page,capture});await page.getByRole('button',{name:'← Voltar',exact:true}).click();
   const reader=await ownerContext.newPage();reader.setDefaultTimeout(15000);await reader.goto(base);
   await reader.locator('[data-world-page=board].community-unread').waitFor();
   await reader.locator('[data-world-page=board].community-important-unread').waitFor();
