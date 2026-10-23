@@ -1,3 +1,4 @@
+import {canViewTenantContacts} from './household-access.mjs';
 import {createAsaasClient} from './asaas-client.mjs';
 import * as A from './asaas.mjs';
 import {can,housingUser} from './permissions.mjs';
@@ -21,7 +22,7 @@ export function createAsaasService({read,save,run,authorize,body,send,users,vaul
     const result=await run(()=>change({id:'asaas-service'},s=>A.ingestAsaasWebhook(s,id,req.headers['asaas-access-token'],input,vault,now())));return send(res,200,result);
    }
    if(req.method==='GET'){
-    const result=await prepare(req,(u,db)=>{if(route==='')return A.asaasView(db.state,u);if(route==='/settings'){controller(u);return {...(u.role==='sindico'?A.asaasSettings(db.state,u,{origin:origin(req),vault}):{}),people:users(db).filter(p=>p.tenant===u.tenant&&housingUser(p)&&validBinding(db.state,p,now())).map(({id,name,email})=>({id,name,email}))};}fail('Ação não encontrada.',404);});return send(res,200,result);
+    const result=await prepare(req,(u,db)=>{if(route==='')return A.asaasView(db.state,u,users(db),now());if(route==='/settings'){controller(u);return {...(u.role==='sindico'?A.asaasSettings(db.state,u,{origin:origin(req),vault}):{}),people:users(db).filter(p=>p.tenant===u.tenant&&housingUser(p)&&validBinding(db.state,p,now())).map(p=>({id:p.id,name:p.name,...(!['ocupante','temporario'].includes(p.role)||p.houses?.some(id=>canViewTenantContacts(db.state,u,id,now()))?{email:p.email}:{})}))};}fail('Ação não encontrada.',404);});return send(res,200,result);
    }
    if(req.method!=='POST')fail('Método não permitido.',405);
    const input=await body(req);

@@ -1,8 +1,8 @@
 # Vilazuni — estado do projeto
 
-Atualização: **21/10/2026, horário de Brasília**. Município do piloto: **Arraial do Cabo/RJ**.
+Atualização: **23/10/2026, horário de Brasília**. Município do piloto: **Arraial do Cabo/RJ**.
 
-A implementação das etapas restantes foi reunida na entrega 0.2.0; o ciclo operacional atual está na versão 0.3.1. Na fase operacional, o usuário adquiriu VPS Hostinger com Easypanel em Campinas/SP, domínio próprio e criou o e-mail de suporte. A primeira implantação web foi realizada pelo usuário: aplicação em HTTPS, `/healthz` e `/readyz` com resposta 200 e `/api/state` com 401 sem login. O usuário confirmou a criação da conta de gestão, e a captura mostrou segundo fator ativo. Volume e recuperação ainda exigem conferência operacional; assinatura de aplicativos e homologação de equipamentos permanecem posteriores. Nenhum equipamento real foi acionado nesta entrega.
+A implementação das etapas restantes foi reunida na entrega 0.2.0; o ciclo operacional atual está na versão 0.4.0. Na fase operacional, o usuário adquiriu VPS Hostinger com Easypanel em Campinas/SP, domínio próprio e criou o e-mail de suporte. A primeira implantação web foi realizada pelo usuário: aplicação em HTTPS, `/healthz` e `/readyz` com resposta 200 e `/api/state` com 401 sem login. O usuário confirmou a criação da conta de gestão, e a captura mostrou segundo fator ativo. Volume e recuperação ainda exigem conferência operacional; assinatura de aplicativos e homologação de equipamentos permanecem posteriores. Nenhum equipamento real foi acionado nesta entrega.
 
 | Etapa | Entrega técnica |
 |---|---|
@@ -50,3 +50,11 @@ A versão 0.3.0 foi conferida com 245 testes aprovados, incluindo PostgreSQL 17 
 Incluído preenchimento autenticado em **Condomínio → Preencher dados fictícios**: Ricardo Almeida como síndico/proprietário da casa 01, Carlos Ferreira como zelador, 7 proprietários nas casas 01–07 e 2 locações anuais nas casas 02 e 05. Contratos de 01/10/2026 a 30/09/2027, com referência editável. A prévia informa acréscimos e mantém dados anteriores; reaplicação não duplica registros. Nomes fictícios e e-mails reservados, sem criação de login, cobrança ou mensagem. [Dados e aplicação](fundacao/CADASTROS_FICTICIOS_PILOTO.md); [prévia da ficha](previa-contrato-ficticio.png).
 
 Validação do ciclo: 250 testes aprovados com PostgreSQL 17 descartável, sem pulados, e Chromium em computador/celular. Os registros foram preenchidos somente na base local de teste; o servidor publicado exige implantação da versão e aplicação autenticada do conjunto.
+
+## Fichas, leitura e alertas — 0.4.0
+
+Fichas destacam proprietário, contatos com ícones, uso da casa, ocupação por contrato/diária/temporada, períodos e placas. Fotos são privadas. Contatos de inquilinos exigem síndico, proprietário da casa ou autorização nominal e temporária para o zelador; delegações administrativas genéricas não dão esse acesso. Menu com grupos recolhíveis por perfil, superfícies sólidas e maior contraste. Avisos importantes do síndico ficam primeiro no quadro, com alerta individual de versão não lida. [Funcionamento e configuração](fundacao/FICHAS_PRIVACIDADE_E_AVISOS.md).
+
+A publicação e o preenchimento das novas informações no servidor dependem da implantação pelo Easypanel. Os dados existentes são preservados.
+
+Validação da versão 0.4.0: **268 testes aprovados com PostgreSQL 17 descartável, sem pulados**, Chromium desktop/celular e auditoria de dependências sem vulnerabilidades. Foram conferidos cadastros, retratos privados, contatos, modalidade/período, autorização e revogação da zeladoria, isolamento da imobiliária/gestão delegada e prioridade/leitura individual dos avisos. O contraste do menu ativo foi medido em 9,23:1 e o dos campos/textos de apoio conferidos ficou acima de 7:1. Prévias sintéticas: [ficha da casa](previa-ficha-casa.png), [mural importante](previa-mural-importante.png).

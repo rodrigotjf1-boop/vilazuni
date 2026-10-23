@@ -1,4 +1,6 @@
 import {can,ROLES,ROLE_NAMES} from './permissions.mjs';
+import {authorizedCaretakerHouses,canViewTenantContacts,canViewHousehold,householdStayView} from './household-access.mjs';
+import {portraitAttachment} from './community.mjs';
 export {ROLES,ROLE_NAMES};
 export function seed() {
   return {
@@ -16,15 +18,34 @@ export function actor(role='sindico') {
   if(!ROLES.includes(role)) throw new Error('Perfil inválido.');
   return {role,tenant:'chandra',houses:role==='proprietario'?['c01','c02']:role==='imobiliaria'?['c03']:[],name:role==='sindico'?'Luiza Demo':role==='proprietario'?'Ana Demo':role==='imobiliaria'?'Agência Demo':'Equipe Demo'};
 }
-export function scopedHouses(state,user) {
-  return state.houses.filter(h=>h.tenant===user.tenant && (can(user,'residents')||can(user,'stays')||user.role==='portaria'||['proprietario','imobiliaria','ocupante','temporario'].includes(user.role)&&user.houses?.includes(h.id)));
+export function scopedHouses(state,user,now=Date.now()) {
+  const caretakerHouses=new Set(authorizedCaretakerHouses(state,user,now));
+  return state.houses.filter(h=>h.tenant===user.tenant && (can(user,'residents')||can(user,'stays')||user.role==='portaria'||['proprietario','imobiliaria','ocupante','temporario'].includes(user.role)&&user.houses?.includes(h.id)||caretakerHouses.has(h.id)));
 }
-export function scopedStays(state,user) {
-  if(!can(user,'stays')&&!['proprietario','imobiliaria','portaria'].includes(user.role))return [];
-  const ids=new Set(scopedHouses(state,user).map(h=>h.id));
+export function scopedStays(state,user,now=Date.now()) {
+  if(!can(user,'stays')&&!['proprietario','imobiliaria','portaria'].includes(user.role)&&!authorizedCaretakerHouses(state,user,now).length)return [];
+  const ids=new Set(scopedHouses(state,user,now).map(h=>h.id));
   return state.stays.filter(s=>s.tenant===user.tenant&&ids.has(s.houseId));
 }
-function canHouse(state,user,houseId){return scopedHouses(state,user).some(h=>h.id===houseId);}
+export function visibleStays(state,user,now=Date.now()){return scopedStays(state,user,now).map(stay=>householdStayView(state,user,stay,now));}
+export function readStayPhoto(state,user,id,version,now=Date.now()){
+ const stay=state.stays.find(s=>s.id===id&&s.tenant===user.tenant);
+ if(!stay||!canViewHousehold(state,user,stay.houseId,now)||!canViewTenantContacts(state,user,stay.houseId,now)||!stay.photo||String(version)!==String(stay.version||1))throw Object.assign(Error('Foto indisponível.'),{status:403});
+ return {mime:stay.photo.mime,bytes:Buffer.from(stay.photo.data,'base64')};
+}
+function canHouse(state,user,houseId,now){return scopedHouses(state,user,now).some(h=>h.id===houseId);}
+function contactPhone(value){
+ if(value==null||value==='')return '';
+ if(typeof value!=='string')throw new Error('Telefone inválido.');
+ const digits=value.replace(/[\s()+.-]/g,'');
+ if(!/^\d{10,15}$/.test(digits))throw new Error('Informe telefone com DDI e DDD.');
+ return digits;
+}
+function contactEmail(value){
+ if(value==null||value==='')return '';
+ if(typeof value!=='string'||value.length>200||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim()))throw new Error('Informe um e-mail válido.');
+ return value.trim();
+}
 function audit(state,user,action,id,now){state.audit.unshift({id:crypto.randomUUID(),tenant:user.tenant,actor:user.name,action,resource:id,at:new Date(now).toISOString()});}
 export function dateBRLocal(value) {
   // A demonstração usa explicitamente o fuso do piloto, não o do dispositivo.
@@ -35,13 +56,15 @@ export function dateBRLocal(value) {
   return result;
 }
 export function createStay(state,user,input,now=Date.now()) {
-  if(!(can(user,'stays')||['proprietario','imobiliaria'].includes(user.role))||!canHouse(state,user,input.houseId)) throw new Error('Sem permissão para cadastrar nesta casa.');
+  if(!(can(user,'stays')||['proprietario','imobiliaria'].includes(user.role))||!canHouse(state,user,input.houseId,now)) throw new Error('Sem permissão para cadastrar nesta casa.');
   const responsible=String(input.responsible||'').trim();
-  const contact=String(input.contact||'').trim();
+  const contact=String(input.contact||'').trim(),phone=contactPhone(input.phone),whatsapp=contactPhone(input.whatsapp),email=contactEmail(input.email),rentalKind=input.rentalKind??'seasonal';
+  if(!['daily','seasonal'].includes(rentalKind))throw new Error('Selecione diária ou temporada.');
+  const photo=input.photo==null?null:portraitAttachment(input.photo);
   const people=[...new Set((input.people||[]).map(p=>String(p).trim()).filter(Boolean))];
   const vehicles=[...new Set((input.vehicles||[]).map(v=>String(v).trim().toUpperCase()).filter(Boolean))];
   if(responsible.length<3||responsible.length>120)throw new Error('Informe o nome do responsável (3 a 120 caracteres).');
-  if(!contact||contact.length>200)throw new Error('Informe um contato de até 200 caracteres.');
+  if((!contact&&!phone&&!whatsapp&&!email)||contact.length>200)throw new Error('Informe um contato de até 200 caracteres ou um telefone, WhatsApp ou e-mail.');
   if(!people.length||people.length>30||people.some(p=>p.length>120))throw new Error('Informe de 1 a 30 ocupantes, com nomes de até 120 caracteres.');
   if(!people.some(p=>p.toLocaleLowerCase('pt-BR')===responsible.toLocaleLowerCase('pt-BR')))throw new Error('Nesta demonstração, inclua o responsável presente na relação de ocupantes.');
   if(vehicles.length>10||vehicles.some(v=>v.length>20))throw new Error('Informe até 10 placas, com até 20 caracteres.');
@@ -49,7 +72,7 @@ export function createStay(state,user,input,now=Date.now()) {
   if(Date.parse(end)<=Date.parse(start))throw new Error('A saída deve ser posterior à entrada.');
   if(Date.parse(end)<=Number(now))throw new Error('A estadia deve terminar após o horário atual da demonstração.');
   if(!['Airbnb','Booking','Direta','Outra'].includes(input.source))throw new Error('Selecione uma origem válida.');
-  const stay={id:crypto.randomUUID(),tenant:user.tenant,houseId:input.houseId,responsible,contact,people,vehicles,source:input.source,start,end,status:'pending',createdAt:new Date(now).toISOString()};
+  const stay={id:crypto.randomUUID(),tenant:user.tenant,houseId:input.houseId,responsible,contact,phone,whatsapp,email,rentalKind,photo,version:1,people,vehicles,source:input.source,start,end,status:'pending',createdAt:new Date(now).toISOString()};
   state.stays.push(stay);audit(state,user,'Estadia enviada para análise',stay.id,now);
   const house=state.houses.find(h=>h.id===input.houseId&&h.tenant===user.tenant);
   const warnings=[];
@@ -58,7 +81,7 @@ export function createStay(state,user,input,now=Date.now()) {
   return {stay,warnings};
 }
 export function changeStay(state,user,id,status,reason,now=Date.now()) {
-  const stay=scopedStays(state,user).find(s=>s.id===id);
+  const stay=scopedStays(state,user,now).find(s=>s.id===id);
   if(!stay)throw new Error('Estadia indisponível.');
   const transition=stay.status==='pending'?['approved','rejected','cancelled']:stay.status==='approved'?['cancelled']:[];
   if(!transition.includes(status))throw new Error('Alteração de situação inválida.');

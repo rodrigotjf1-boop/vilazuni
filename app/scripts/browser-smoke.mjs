@@ -1,5 +1,6 @@
 import {communityBrowser} from './community-browser.mjs';
 import {demoBrowser} from './demo-browser.mjs';
+import {householdBrowser} from './household-browser.mjs';
 import {pilotBrowser} from './pilot-browser.mjs';
 import {chromium} from 'playwright-core';import {spawn} from 'node:child_process';import fs from 'node:fs/promises';import path from 'node:path';import os from 'node:os';import {fileURLToPath} from 'node:url';import assert from 'node:assert/strict';import {seed} from '../domain.mjs';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..'),directory=await fs.mkdtemp(path.join(os.tmpdir(),'vilazuni-browser-'));let browser,child;const errors=[];
@@ -10,8 +11,9 @@ try{
  browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||undefined,headless:true,args:['--no-sandbox','--disable-dev-shm-usage']});const context=await browser.newContext({viewport:{width:1440,height:1000}}),page=await context.newPage();page.setDefaultTimeout(15000);page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error'&&/Content Security Policy|Refused to/.test(m.text()))errors.push(m.text());});await page.goto(base);
  const password='Senha-sintetica-browser-2026';await page.getByLabel('Seu nome',{exact:true}).fill('Gestão Sintética');await page.getByLabel('E-mail',{exact:true}).fill('browser@example.test');await page.getByLabel('Senha',{exact:true}).fill(password);await page.getByRole('button',{name:'Criar minha conta de gestão',exact:true}).click();await page.getByRole('button',{name:'Condomínio',exact:true}).waitFor();
  async function api(route,data){return page.evaluate(async({route,data})=>{const r=await fetch('/api'+route,{method:data===undefined?'GET':'POST',headers:data===undefined?{}:{'Content-Type':'application/json'},body:data===undefined?undefined:JSON.stringify(data)});const body=await r.json();if(!r.ok)throw Error(JSON.stringify(body));return body;},{route,data});}
- async function open(name){const close=page.getByRole('button',{name:'Fechar painel',exact:true});if(await close.count())await close.click();if(await page.locator('#world-navigation').isHidden())await page.locator('#world-menu-toggle').click();await page.getByRole('button',{name,exact:true}).click();}
+ async function open(name){const close=page.getByRole('button',{name:'Fechar painel',exact:true});if(await close.count())await close.click();if(await page.locator('#world-navigation').isHidden())await page.locator('#world-menu-toggle').click();const button=page.locator('[data-world-page]').and(page.getByTitle(name,{exact:true}));await button.evaluate(el=>{const group=el.closest('details[data-nav-group]');if(group)group.open=true;});await button.click();}
  await demoBrowser({page,api,open});
+ await householdBrowser({page,api,open,browser,base,password});
  await communityBrowser({browser,page,base,api,password});
  await pilotBrowser({page,api,open});
  await open('Assistência');await page.getByLabel('Título',{exact:true}).fill('Tarefa sintética assistida');await page.getByLabel('Local',{exact:true}).fill('Jardim sintético');await page.getByRole('button',{name:'Conferir prévia da tarefa',exact:true}).click();await page.getByRole('button',{name:'Confirmar criação desta tarefa',exact:true}).waitFor();assert.ok(!(await api('/state')).state.tasks.some(t=>t.title==='Tarefa sintética assistida'));await page.getByRole('button',{name:'Confirmar criação desta tarefa',exact:true}).click();await page.getByText('Tarefa criada. Atribua e acompanhe no módulo Tarefas.',{exact:true}).waitFor();

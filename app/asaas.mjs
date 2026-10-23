@@ -1,3 +1,4 @@
+import {canViewTenantContacts} from './household-access.mjs';
 import {randomUUID,randomBytes,createHash,timingSafeEqual} from 'node:crypto';
 import {can} from './permissions.mjs';
 import {validBinding} from './access.mjs';
@@ -137,8 +138,8 @@ function reconcilePayment(s,connectionId,payment,now){
  syncSettlement(s,q.tenant,'receivable',r);r.version++;r.history.push({at:new Date(now).toISOString(),actor:u.name,action:'Recebimento Asaas conciliado',entryId:entry.id,amountCents:gross});
  Object.assign(q,{status:'received',receiptEntryId:entry.id,receivedOn:on,netCents:net,feeCents:fee});audit(s,u,'Recebimento e tarifa Asaas conciliados',q.id,now);return {id:q.id,status:q.status};
 }
-export function asaasView(s,u){
+export function asaasView(s,u,users=[],now=Date.now()){
  const managerView=canReadFinance(u);
  const charges=rows(s,'asaasCharges',u.tenant).filter(q=>managerView||q.payerUserId===u.id&&payerLink(s,u.tenant,q.receivableId)?.payerUserId===u.id).map(q=>({id:q.id,version:q.version,receivableId:q.receivableId,description:q.description,amountCents:q.amountCents,dueOn:q.dueOn,billingType:q.billingType,status:q.status,providerStatus:q.providerStatus,environment:q.environment,invoiceUrl:['open','overdue'].includes(q.status)&&!collectionHeld(s,u.tenant,q.receivableId)?q.invoiceUrl:null,bankSlipUrl:['open','overdue'].includes(q.status)&&!collectionHeld(s,u.tenant,q.receivableId)?q.bankSlipUrl:null,held:collectionHeld(s,u.tenant,q.receivableId),...(managerView?{paymentId:q.paymentId,error:q.error||null,netCents:q.netCents,feeCents:q.feeCents}:{} )}));
- return {charges,...(managerView?{connection:safeConnection(connectionFor(s,u.tenant)),payers:rows(s,'asaasPayers',u.tenant).map(({document,customerId,customers,...p})=>({...p,documentMasked:mask(document)}))}:{})};
+ return {charges,...(managerView?{connection:safeConnection(connectionFor(s,u.tenant)),payers:rows(s,'asaasPayers',u.tenant).map(({document,customerId,customers,email,mobilePhone,...p})=>{const target=users.find(person=>person.tenant===u.tenant&&person.id===p.userId),contactsVisible=u.role==='sindico'||u.id===p.userId||!!target&&(!['ocupante','temporario'].includes(target.role)||target.houses?.some(id=>canViewTenantContacts(s,u,id,now)));return {...p,...(contactsVisible?{email,mobilePhone}:{}),contactsVisible,documentMasked:mask(document)};})}:{})};
 }
