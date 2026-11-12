@@ -10,14 +10,26 @@ import {fixture} from './helpers.mjs';
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 // Pedidos sem login que antes encerravam o processo: `new URL()` falhava fora de qualquer tratamento.
-const malformed = ['GET http://[::1 HTTP/1.1', 'GET //[ HTTP/1.1', 'GET /\\[ HTTP/1.1', 'GET //[/api/session HTTP/1.1'];
+const malformed = [
+  'GET http://[::1 HTTP/1.1',
+  'GET //[ HTTP/1.1',
+  'GET /\\[ HTTP/1.1',
+  'GET //[/api/session HTTP/1.1',
+];
 
 function rawRequest(port, requestLine) {
   return new Promise((resolve) => {
-    const socket = net.connect(port, '127.0.0.1', () => socket.write(`${requestLine}\r\nHost: 127.0.0.1:${port}\r\nConnection: close\r\n\r\n`));
+    const socket = net.connect(port, '127.0.0.1', () =>
+      socket.write(`${requestLine}\r\nHost: 127.0.0.1:${port}\r\nConnection: close\r\n\r\n`),
+    );
     let response = '';
-    socket.setTimeout(5000, () => { socket.destroy(); resolve('TEMPO ESGOTADO'); });
-    socket.on('data', (chunk) => { response += chunk; });
+    socket.setTimeout(5000, () => {
+      socket.destroy();
+      resolve('TEMPO ESGOTADO');
+    });
+    socket.on('data', (chunk) => {
+      response += chunk;
+    });
     socket.on('end', () => resolve(response));
     socket.on('error', (error) => resolve('ERRO ' + error.code));
   });
@@ -25,11 +37,28 @@ function rawRequest(port, requestLine) {
 
 test('servidor responde 400 a endereço malformado e continua no ar', async () => {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'vilazuni-url-'));
-  const child = spawn(process.execPath, ['server.mjs'], {cwd: root, env: {...process.env, NODE_ENV: 'test', DATABASE_URL: '', APP_ORIGIN: '', HOST: '127.0.0.1', PORT: '0', VILAZUNI_DATA_DIR: directory}});
+  const child = spawn(process.execPath, ['server.mjs'], {
+    cwd: root,
+    env: {
+      ...process.env,
+      NODE_ENV: 'test',
+      DATABASE_URL: '',
+      APP_ORIGIN: '',
+      HOST: '127.0.0.1',
+      PORT: '0',
+      VILAZUNI_DATA_DIR: directory,
+    },
+  });
   try {
     const origin = await new Promise((resolve, reject) => {
       const timer = setTimeout(() => reject(Error('Servidor não ficou pronto.')), 20000);
-      child.stdout.on('data', (data) => { const match = String(data).match(/http:\/\/127\.0\.0\.1:\d+/); if (match) { clearTimeout(timer); resolve(match[0]); } });
+      child.stdout.on('data', (data) => {
+        const match = String(data).match(/http:\/\/127\.0\.0\.1:\d+/);
+        if (match) {
+          clearTimeout(timer);
+          resolve(match[0]);
+        }
+      });
       child.on('exit', (code) => reject(Error('Servidor encerrou: ' + code)));
     });
     const port = Number(new URL(origin).port);

@@ -1,91 +1,590 @@
 import {createWorldRenderer} from './world-renderer.mjs';
-import {TOUR_POINTS,normalizeSearch} from './tour-layout.mjs';
-import {can,ROLES} from './permissions.mjs';
+import {TOUR_POINTS, normalizeSearch} from './tour-layout.mjs';
+import {can, ROLES} from './permissions.mjs';
 // Cena local em WebGL, sem bibliotecas ou serviços externos.
-const SVG={map:'<path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3zM9 3v15M15 6v15"/>',home:'<path d="m3 11 9-8 9 8M5 10v11h14V10M9 21v-7h6v7"/>',people:'<circle cx="9" cy="8" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3M16 5a3 3 0 0 1 0 6M18 15a5 5 0 0 1 3 5"/>',task:'<rect x="5" y="4" width="15" height="18" rx="3"/><path d="M9 4V2h7v2M9 11l2 2 5-5M9 18h7"/>',car:'<path d="m3 13 2-7h14l2 7v7h-3v-3H6v3H3zM3 13h18M7 13v3M17 13v3"/>',key:'<circle cx="8" cy="8" r="5"/><path d="m12 12 9 9M17 17l3-3M14 14l3-3"/>',list:'<path d="M8 6h13M8 12h13M8 18h13M3 6h.1M3 12h.1M3 18h.1"/>',help:'<circle cx="12" cy="12" r="9"/><path d="M9 9a3 3 0 1 1 5 2c-2 1-2 2-2 3M12 17h.1"/>',view:'<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',plus:'<path d="M12 5v14M5 12h14"/>',minus:'<path d="M5 12h14"/>',reset:'<path d="M3 10a9 9 0 1 1 2 8M3 3v7h7"/>',close:'<path d="m6 6 12 12M18 6 6 18"/>',arrow:'<path d="m8 5 7 7-7 7"/>'};
-const icon=(n)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${SVG[n]||SVG.home}</svg>`;
-const safe=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const SVG = {
+  map: '<path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3zM9 3v15M15 6v15"/>',
+  home: '<path d="m3 11 9-8 9 8M5 10v11h14V10M9 21v-7h6v7"/>',
+  people:
+    '<circle cx="9" cy="8" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3M16 5a3 3 0 0 1 0 6M18 15a5 5 0 0 1 3 5"/>',
+  task: '<rect x="5" y="4" width="15" height="18" rx="3"/><path d="M9 4V2h7v2M9 11l2 2 5-5M9 18h7"/>',
+  car: '<path d="m3 13 2-7h14l2 7v7h-3v-3H6v3H3zM3 13h18M7 13v3M17 13v3"/>',
+  key: '<circle cx="8" cy="8" r="5"/><path d="m12 12 9 9M17 17l3-3M14 14l3-3"/>',
+  list: '<path d="M8 6h13M8 12h13M8 18h13M3 6h.1M3 12h.1M3 18h.1"/>',
+  help: '<circle cx="12" cy="12" r="9"/><path d="M9 9a3 3 0 1 1 5 2c-2 1-2 2-2 3M12 17h.1"/>',
+  view: '<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  minus: '<path d="M5 12h14"/>',
+  reset: '<path d="M3 10a9 9 0 1 1 2 8M3 3v7h7"/>',
+  close: '<path d="m6 6 12 12M18 6 6 18"/>',
+  arrow: '<path d="m8 5 7 7-7 7"/>',
+};
+const icon = (n) =>
+  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${SVG[n] || SVG.home}</svg>`;
+const safe = (v) =>
+  String(v).replace(
+    /[&<>"']/g,
+    (c) => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'})[c],
+  );
 
-const NAV_GROUPS=[['No condomínio',['stays','parking','facilities','community','incidents','parcels']],['Comunidade',['consult','polls','assemblies']],['Operação',['tasks','purchases','maintenance','materials','physical','access']],['Administração',['finance','payments','myCharges','assistance','alerts','channels','automation','documents','people']],['Minha conta',['profile','settings','mobile','privacy']]];
-const NAV_ICONS={board:'board',notifications:'bell',finance:'wallet',myCharges:'wallet',documents:'document',settings:'settings',maintenance:'wrench',privacy:'shield',channels:'board',incidents:'bell'};
-Object.assign(SVG,{menu:'<path d="M4 6h16M4 12h16M4 18h16"/>',search:'<circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/>',board:'<rect x="3" y="4" width="18" height="14" rx="2"/><path d="M8 18v3M16 18v3M7 8h4M7 12h10M15 8h2"/>',bell:'<path d="M5 16h14l-2-3V9a5 5 0 0 0-10 0v4l-2 3M10 20h4"/>',wallet:'<rect x="3" y="5" width="18" height="15" rx="3"/><path d="M17 11h4v5h-4a2.5 2.5 0 0 1 0-5M4 5l12-3v3"/>',document:'<path d="M14 3H5v18h14V8zM14 3v5h5M8 12h8M8 16h6"/>',settings:'<path d="M4 6h16M4 12h16M4 18h16"/><circle cx="8" cy="6" r="2"/><circle cx="16" cy="12" r="2"/><circle cx="10" cy="18" r="2"/>',wrench:'<path d="m14 5 2 4 4 1a6 6 0 0 1-7 7l-6 5-4-4 6-6a6 6 0 0 1 5-7z"/>',shield:'<path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6zM8 12l3 3 5-6"/>'});
-export function navigationGroups(items,user){
- const quick=['tour','houses','board','notifications',...(user?.role==='zelador'?['tasks']:[]),...(['proprietario','imobiliaria'].includes(user?.role)?['stays','myCharges']:[]),...(['ocupante','temporario'].includes(user?.role)?['myCharges']:[]),...(['sindico','administradora'].includes(user?.role)?['settings']:[])];
- const used=new Set(),pick=pages=>pages.map(page=>items.find(item=>item[2]===page)).filter(item=>item&&!used.has(item[2])&&used.add(item[2]));
- return [{label:'Início',collapsible:false,entries:pick(quick)},...NAV_GROUPS.map(([label,pages])=>({label,collapsible:true,entries:pick(pages)}))].filter(group=>group.entries.length);
+const NAV_GROUPS = [
+  ['No condomínio', ['stays', 'parking', 'facilities', 'community', 'incidents', 'parcels']],
+  ['Comunidade', ['consult', 'polls', 'assemblies']],
+  ['Operação', ['tasks', 'purchases', 'maintenance', 'materials', 'physical', 'access']],
+  [
+    'Administração',
+    [
+      'finance',
+      'payments',
+      'myCharges',
+      'assistance',
+      'alerts',
+      'channels',
+      'automation',
+      'documents',
+      'people',
+    ],
+  ],
+  ['Minha conta', ['profile', 'settings', 'mobile', 'privacy']],
+];
+const NAV_ICONS = {
+  board: 'board',
+  notifications: 'bell',
+  finance: 'wallet',
+  myCharges: 'wallet',
+  documents: 'document',
+  settings: 'settings',
+  maintenance: 'wrench',
+  privacy: 'shield',
+  channels: 'board',
+  incidents: 'bell',
+};
+Object.assign(SVG, {
+  menu: '<path d="M4 6h16M4 12h16M4 18h16"/>',
+  search: '<circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/>',
+  board: '<rect x="3" y="4" width="18" height="14" rx="2"/><path d="M8 18v3M16 18v3M7 8h4M7 12h10M15 8h2"/>',
+  bell: '<path d="M5 16h14l-2-3V9a5 5 0 0 0-10 0v4l-2 3M10 20h4"/>',
+  wallet:
+    '<rect x="3" y="5" width="18" height="15" rx="3"/><path d="M17 11h4v5h-4a2.5 2.5 0 0 1 0-5M4 5l12-3v3"/>',
+  document: '<path d="M14 3H5v18h14V8zM14 3v5h5M8 12h8M8 16h6"/>',
+  settings:
+    '<path d="M4 6h16M4 12h16M4 18h16"/><circle cx="8" cy="6" r="2"/><circle cx="16" cy="12" r="2"/><circle cx="10" cy="18" r="2"/>',
+  wrench: '<path d="m14 5 2 4 4 1a6 6 0 0 1-7 7l-6 5-4-4 6-6a6 6 0 0 1 5-7z"/>',
+  shield: '<path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6zM8 12l3 3 5-6"/>',
+});
+export function navigationGroups(items, user) {
+  const quick = [
+    'tour',
+    'houses',
+    'board',
+    'notifications',
+    ...(user?.role === 'zelador' ? ['tasks'] : []),
+    ...(['proprietario', 'imobiliaria'].includes(user?.role) ? ['stays', 'myCharges'] : []),
+    ...(['ocupante', 'temporario'].includes(user?.role) ? ['myCharges'] : []),
+    ...(['sindico', 'administradora'].includes(user?.role) ? ['settings'] : []),
+  ];
+  const used = new Set(),
+    pick = (pages) =>
+      pages
+        .map((page) => items.find((item) => item[2] === page))
+        .filter((item) => item && !used.has(item[2]) && used.add(item[2]));
+  return [
+    {label: 'Início', collapsible: false, entries: pick(quick)},
+    ...NAV_GROUPS.map(([label, pages]) => ({label, collapsible: true, entries: pick(pages)})),
+  ].filter((group) => group.entries.length);
 }
-function navigation(items,user){return navigationGroups(items,user).map(({label,collapsible,entries})=>{
- const buttons=entries.map(([i,title,page])=>`<button data-world-page="${page}" data-nav-label="${safe(normalizeSearch(title))}" title="${title}" aria-label="${title}">${icon(NAV_ICONS[page]||i)}<span>${title}</span><svg class="world-nav-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button>`).join('');
- return collapsible?`<details class="world-nav-group" data-nav-group><summary>${label}<span class="world-nav-group-count" aria-hidden="true">${entries.length}</span>${icon('arrow')}</summary><div class="world-nav-group-items">${buttons}</div></details>`:`<section class="world-nav-group world-nav-primary" data-nav-group aria-label="${label}"><h2>${label}</h2>${buttons}</section>`;
- }).join('');}
+function navigation(items, user) {
+  return navigationGroups(items, user)
+    .map(({label, collapsible, entries}) => {
+      const buttons = entries
+        .map(
+          ([i, title, page]) =>
+            `<button data-world-page="${page}" data-nav-label="${safe(normalizeSearch(title))}" title="${title}" aria-label="${title}">${icon(NAV_ICONS[page] || i)}<span>${title}</span><svg class="world-nav-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button>`,
+        )
+        .join('');
+      return collapsible
+        ? `<details class="world-nav-group" data-nav-group><summary>${label}<span class="world-nav-group-count" aria-hidden="true">${entries.length}</span>${icon('arrow')}</summary><div class="world-nav-group-items">${buttons}</div></details>`
+        : `<section class="world-nav-group world-nav-primary" data-nav-group aria-label="${label}"><h2>${label}</h2>${buttons}</section>`;
+    })
+    .join('');
+}
 
-
-export function mountWorld(root,options){
- const {user,role,roles,onRole=()=>{},onPage=()=>{}}=options;
- const menuItems=[['map','Explorar','tour'],['home','Casas','houses'],...((can(user,'stays')||['proprietario','imobiliaria','portaria'].includes(role))?[['people','Estadias','stays']]:[]),['car','Vagas','parking'],...(ROLES.includes(role)?[['list','Ocorrências','incidents']]:[]),...((can(user,'facilities')||['proprietario','imobiliaria','ocupante','temporario'].includes(role))?[['map','Reservas','facilities']]:[]),...((can(user,'tasks')||role==='zelador')?[['task','Tarefas','tasks']]:[]),...((can(user,'parcels')||['portaria','proprietario','imobiliaria','ocupante','temporario'].includes(role))?[['list','Encomendas','parcels']]:[]),...(ROLES.includes(role)?[['people','Meu perfil','profile'],...(can(user,'residents')?[['people','Pessoas e acessos','people']]:[]),['people','Equipe','community'],['list','Mural','board'],['list','Notificações','notifications'],['help','Consultar','consult'],['people','Enquetes','polls'],['people','Assembleias','assemblies'],['key','Condomínio','settings'],['list','Alertas','alerts'],['help','Celular','mobile'],['key','Privacidade','privacy'],...(can(user,'tasks')?[['task','Assistência','assistance']]:[]),...(can(user,'communications')&&can(user,'knowledge')?[['list','Canais','channels'],['list','Agente WhatsApp','automation']]:[]),...(can(user,'physicalAccess')||role==='portaria'?[['key','Portaria física','physical']]:[])]:[]),...(['proprietario','imobiliaria','ocupante','temporario'].includes(role)?[['list','Minhas cobranças','myCharges'],['list','Pix e boletos','payments']]:[]),...(['financeRead','finance','financeClose','financeExport'].some(m=>can(user,m))?[['list','Financeiro','finance'],['list','Cobrança integrada','payments']]:[]),...((can(user,'purchases')||can(user,'purchaseApproval'))?[['list','Compras','purchases']]:[]),...(can(user,'documents')?[['list','Documentos','documents']]:[]),...(can(user,'maintenance')?[['task','Preventiva','maintenance']]:[]),...((can(user,'materials')||role==='zelador')?[['list','Materiais','materials']]:[]),...((can(user,'stays')||role==='portaria')?[['key','Acessos','access']]:[])];
- root.innerHTML=`<main class="world-shell" id="main"><canvas id="world-canvas" tabindex="0" aria-describedby="world-hint" aria-label="Passeio 3D ilustrativo. Arraste para olhar; no modo Passear, use as setas. Mapa e lista oferecem navegação sem 3D."></canvas><div class="world-vignette"></div><header class="world-top"><button class="world-menu-toggle" id="world-menu-toggle" aria-label="Abrir menu do condomínio" aria-controls="world-navigation" aria-expanded="false">${icon('menu')}</button><div class="world-brand"><span class="brand-icon">V</span><div><small>VILAZUNI · VIDA EM COMUNIDADE</small><strong role="heading" aria-level="1">Condomínio Chandra</strong></div></div><span class="world-mode"><i></i> Mundo interativo <b>DEMO</b></span><label class="world-profile"><span>Explorar como</span><select id="world-role">${Object.entries(roles).map(([k,v])=>`<option value="${k}" ${role===k?'selected':''}>${v}</option>`).join('')}</select></label></header>
+export function mountWorld(root, options) {
+  const {user, role, roles, onRole = () => {}, onPage = () => {}} = options;
+  const menuItems = [
+    ['map', 'Explorar', 'tour'],
+    ['home', 'Casas', 'houses'],
+    ...(can(user, 'stays') || ['proprietario', 'imobiliaria', 'portaria'].includes(role)
+      ? [['people', 'Estadias', 'stays']]
+      : []),
+    ['car', 'Vagas', 'parking'],
+    ...(ROLES.includes(role) ? [['list', 'Ocorrências', 'incidents']] : []),
+    ...(can(user, 'facilities') || ['proprietario', 'imobiliaria', 'ocupante', 'temporario'].includes(role)
+      ? [['map', 'Reservas', 'facilities']]
+      : []),
+    ...(can(user, 'tasks') || role === 'zelador' ? [['task', 'Tarefas', 'tasks']] : []),
+    ...(can(user, 'parcels') ||
+    ['portaria', 'proprietario', 'imobiliaria', 'ocupante', 'temporario'].includes(role)
+      ? [['list', 'Encomendas', 'parcels']]
+      : []),
+    ...(ROLES.includes(role)
+      ? [
+          ['people', 'Meu perfil', 'profile'],
+          ...(can(user, 'residents') ? [['people', 'Pessoas e acessos', 'people']] : []),
+          ['people', 'Equipe', 'community'],
+          ['list', 'Mural', 'board'],
+          ['list', 'Notificações', 'notifications'],
+          ['help', 'Consultar', 'consult'],
+          ['people', 'Enquetes', 'polls'],
+          ['people', 'Assembleias', 'assemblies'],
+          ['key', 'Condomínio', 'settings'],
+          ['list', 'Alertas', 'alerts'],
+          ['help', 'Celular', 'mobile'],
+          ['key', 'Privacidade', 'privacy'],
+          ...(can(user, 'tasks') ? [['task', 'Assistência', 'assistance']] : []),
+          ...(can(user, 'communications') && can(user, 'knowledge')
+            ? [
+                ['list', 'Canais', 'channels'],
+                ['list', 'Agente WhatsApp', 'automation'],
+              ]
+            : []),
+          ...(can(user, 'physicalAccess') || role === 'portaria'
+            ? [['key', 'Portaria física', 'physical']]
+            : []),
+        ]
+      : []),
+    ...(['proprietario', 'imobiliaria', 'ocupante', 'temporario'].includes(role)
+      ? [
+          ['list', 'Minhas cobranças', 'myCharges'],
+          ['list', 'Pix e boletos', 'payments'],
+        ]
+      : []),
+    ...(['financeRead', 'finance', 'financeClose', 'financeExport'].some((m) => can(user, m))
+      ? [
+          ['list', 'Financeiro', 'finance'],
+          ['list', 'Cobrança integrada', 'payments'],
+        ]
+      : []),
+    ...(can(user, 'purchases') || can(user, 'purchaseApproval') ? [['list', 'Compras', 'purchases']] : []),
+    ...(can(user, 'documents') ? [['list', 'Documentos', 'documents']] : []),
+    ...(can(user, 'maintenance') ? [['task', 'Preventiva', 'maintenance']] : []),
+    ...(can(user, 'materials') || role === 'zelador' ? [['list', 'Materiais', 'materials']] : []),
+    ...(can(user, 'stays') || role === 'portaria' ? [['key', 'Acessos', 'access']] : []),
+  ];
+  root.innerHTML = `<main class="world-shell" id="main"><canvas id="world-canvas" tabindex="0" aria-describedby="world-hint" aria-label="Passeio 3D ilustrativo. Arraste para olhar; no modo Passear, use as setas. Mapa e lista oferecem navegação sem 3D."></canvas><div class="world-vignette"></div><header class="world-top"><button class="world-menu-toggle" id="world-menu-toggle" aria-label="Abrir menu do condomínio" aria-controls="world-navigation" aria-expanded="false">${icon('menu')}</button><div class="world-brand"><span class="brand-icon">V</span><div><small>VILAZUNI · VIDA EM COMUNIDADE</small><strong role="heading" aria-level="1">Condomínio Chandra</strong></div></div><span class="world-mode"><i></i> Mundo interativo <b>DEMO</b></span><label class="world-profile"><span>Explorar como</span><select id="world-role">${Object.entries(
+    roles,
+  )
+    .map(([k, v]) => `<option value="${k}" ${role === k ? 'selected' : ''}>${v}</option>`)
+    .join('')}</select></label></header>
  <section class="world-heading"><p>SEU CONDOMÍNIO, DE OUTRO JEITO</p><h1>Entre. Explore.<br>Sinta-se em casa.</h1><span>Toque em uma casa ou espaço para descobrir.</span></section>
- <div class="world-menu-scrim" id="world-menu-scrim" hidden></div><nav class="world-tools" id="world-navigation" aria-label="Ferramentas do condomínio"><div class="world-nav-top"><div><small>SEU ESPAÇO</small><strong>Menu do condomínio</strong></div><button id="world-menu-close" aria-label="Fechar menu">${icon('close')}</button></div><label class="world-nav-search">${icon('search')}<input id="world-menu-search" type="search" placeholder="Buscar no menu" aria-label="Buscar no menu" maxlength="80" autocomplete="off"></label><div class="world-nav-scroll">${navigation(menuItems,user)}<p id="world-menu-empty" hidden>Nenhuma opção encontrada.</p></div><div class="world-nav-footer"><i></i> Tudo do seu condomínio, aqui.</div><p id="world-menu-result" class="visually-hidden" role="status" aria-live="polite"></p></nav>
+ <div class="world-menu-scrim" id="world-menu-scrim" hidden></div><nav class="world-tools" id="world-navigation" aria-label="Ferramentas do condomínio"><div class="world-nav-top"><div><small>SEU ESPAÇO</small><strong>Menu do condomínio</strong></div><button id="world-menu-close" aria-label="Fechar menu">${icon('close')}</button></div><label class="world-nav-search">${icon('search')}<input id="world-menu-search" type="search" placeholder="Buscar no menu" aria-label="Buscar no menu" maxlength="80" autocomplete="off"></label><div class="world-nav-scroll">${navigation(menuItems, user)}<p id="world-menu-empty" hidden>Nenhuma opção encontrada.</p></div><div class="world-nav-footer"><i></i> Tudo do seu condomínio, aqui.</div><p id="world-menu-result" class="visually-hidden" role="status" aria-live="polite"></p></nav>
  <aside id="world-context" class="world-context" hidden></aside><div class="world-labels" id="world-labels"></div>
  <div class="world-bottom"><div class="world-location"><span>${icon('map')}</span><div><strong>Alameda central</strong><small id="world-camera-caption">Visão aérea · arraste para explorar</small></div></div><div class="world-controls"><button id="world-map" aria-label="Usar mapa sem 3D" aria-pressed="false">${icon('map')}<span>Mapa</span></button><button id="world-walk" title="Alternar vista de passeio" aria-label="Alternar vista de passeio">${icon('view')}<span>Passear</span></button><span class="control-divider"></span><button id="world-minus" aria-label="Afastar">${icon('minus')}</button><button id="world-plus" aria-label="Aproximar">${icon('plus')}</button><button id="world-reset" aria-label="Voltar à visão inicial">${icon('reset')}</button><button id="world-list" aria-label="Mapa e lista acessível de locais">${icon('list')}</button></div></div><div class="world-hint" id="world-hint">Arraste para girar <span>·</span> Role para aproximar <span>·</span> Clique para explorar</div><div class="world-disclaimer">Chandra · distribuição informada · medidas ilustrativas · sem equipamentos conectados</div><button id="world-help" class="world-help" aria-label="Ajuda de navegação">${icon('help')}</button><div class="walk-pad" id="walk-pad" aria-label="Caminhar por toque" hidden><button data-step="up" aria-label="Caminhar para a frente">↑</button><button data-step="left" aria-label="Caminhar para a esquerda">←</button><button data-step="down" aria-label="Caminhar para trás">↓</button><button data-step="right" aria-label="Caminhar para a direita">→</button></div><p id="world-live" class="visually-hidden" role="status" aria-live="polite"></p><div id="world-tooltip" class="world-tooltip" hidden></div></main><div id="modal-root"></div>`;
 
- const shell=root.querySelector('.world-shell'),canvas=root.querySelector('canvas'),ctx=root.querySelector('#world-context'),labels=root.querySelector('#world-labels'),walkButton=root.querySelector('#world-walk'),mapButton=root.querySelector('#world-map'),pad=root.querySelector('#walk-pad'),caption=root.querySelector('#world-camera-caption'),live=root.querySelector('#world-live');
- let renderer=null,mode='3d',disposed=false,activeHouse=null,lastActions=[],tour=options.tour||null,unreadCount=options.community?.unreadCount||0;const cleanups=[];
- const listen=(target,type,handler,opts)=>{target.addEventListener(type,handler,opts);cleanups.push(()=>target.removeEventListener(type,handler,opts));};
- const exit=document.createElement('button');exit.id='world-exit-house';exit.textContent='← Voltar ao condomínio';exit.hidden=true;shell.append(exit);
- const select=id=>{if(!disposed)options.onPoint?.(id);};
- labels.innerHTML=TOUR_POINTS.map(p=>`<button class="world-pin ${p.kind==='facility'?'space':p.kind}" data-world-object="${p.id}" aria-label="Explorar ${safe(p.title)}"><i></i><span>${safe(p.title)}</span></button>`).join('');
- labels.querySelectorAll('button').forEach(b=>b.onclick=()=>select(b.dataset.worldObject));const pins=new Map([...labels.children].map(b=>[b.dataset.worldObject,b]));let visibleScenes=null;
- function updateTour(next){tour=next;visibleScenes=tour?new Set(tour.places.map(p=>p.sceneId).filter(Boolean)):null;labels.querySelectorAll('button').forEach(b=>{const p=tour?.places.find(p=>p.sceneId===b.dataset.worldObject);b.classList.toggle('restricted',p?.access==='exterior');b.classList.toggle('interdicted',p?.active===false);b.querySelector('span').textContent=p?.title||TOUR_POINTS.find(p=>p.id===b.dataset.worldObject).title;b.setAttribute('aria-label','Explorar '+b.querySelector('span').textContent+(p?.active===false?' · interditada':''));b.title=p?.status||'Cenário ilustrativo';});}
- function updateCommunity(next){
-  unreadCount=Math.max(0,Number(next?.unreadCount)||0);const importantCount=Math.max(0,Number(next?.importantCount)||0),importantUnreadCount=Math.max(0,Number(next?.importantUnreadCount)||0);
-  for(const button of [pins.get('noticeboard'),root.querySelector('[data-world-page=board]')].filter(Boolean)){
-   button.classList.toggle('community-unread',unreadCount>0);button.classList.toggle('community-important',importantCount>0);button.classList.toggle('community-important-unread',importantUnreadCount>0);let badge=button.querySelector('.community-unread-badge');
-   if(unreadCount&&!badge){badge=document.createElement('b');badge.className='community-unread-badge';badge.textContent='!';badge.setAttribute('aria-hidden','true');button.append(badge);}
-   if(!unreadCount)badge?.remove();button.setAttribute('aria-label',(button.dataset.worldObject?'Explorar Mural de avisos':'Mural')+(unreadCount?' · '+unreadCount+' aviso(s) não visto(s)':'')+(importantUnreadCount?' · '+importantUnreadCount+' importante(s) não visto(s)':importantCount?' · '+importantCount+' aviso(s) importante(s)':''));
+  const shell = root.querySelector('.world-shell'),
+    canvas = root.querySelector('canvas'),
+    ctx = root.querySelector('#world-context'),
+    labels = root.querySelector('#world-labels'),
+    walkButton = root.querySelector('#world-walk'),
+    mapButton = root.querySelector('#world-map'),
+    pad = root.querySelector('#walk-pad'),
+    caption = root.querySelector('#world-camera-caption'),
+    live = root.querySelector('#world-live');
+  let renderer = null,
+    mode = '3d',
+    disposed = false,
+    activeHouse = null,
+    lastActions = [],
+    tour = options.tour || null,
+    unreadCount = options.community?.unreadCount || 0;
+  const cleanups = [];
+  const listen = (target, type, handler, opts) => {
+    target.addEventListener(type, handler, opts);
+    cleanups.push(() => target.removeEventListener(type, handler, opts));
+  };
+  const exit = document.createElement('button');
+  exit.id = 'world-exit-house';
+  exit.textContent = '← Voltar ao condomínio';
+  exit.hidden = true;
+  shell.append(exit);
+  const select = (id) => {
+    if (!disposed) options.onPoint?.(id);
+  };
+  labels.innerHTML = TOUR_POINTS.map(
+    (p) =>
+      `<button class="world-pin ${p.kind === 'facility' ? 'space' : p.kind}" data-world-object="${p.id}" aria-label="Explorar ${safe(p.title)}"><i></i><span>${safe(p.title)}</span></button>`,
+  ).join('');
+  labels.querySelectorAll('button').forEach((b) => (b.onclick = () => select(b.dataset.worldObject)));
+  const pins = new Map([...labels.children].map((b) => [b.dataset.worldObject, b]));
+  let visibleScenes = null;
+  function updateTour(next) {
+    tour = next;
+    visibleScenes = tour ? new Set(tour.places.map((p) => p.sceneId).filter(Boolean)) : null;
+    labels.querySelectorAll('button').forEach((b) => {
+      const p = tour?.places.find((p) => p.sceneId === b.dataset.worldObject);
+      b.classList.toggle('restricted', p?.access === 'exterior');
+      b.classList.toggle('interdicted', p?.active === false);
+      b.querySelector('span').textContent =
+        p?.title || TOUR_POINTS.find((p) => p.id === b.dataset.worldObject).title;
+      b.setAttribute(
+        'aria-label',
+        'Explorar ' + b.querySelector('span').textContent + (p?.active === false ? ' · interditada' : ''),
+      );
+      b.title = p?.status || 'Cenário ilustrativo';
+    });
   }
- }
- function removeSpots(){root.querySelector('#room-hotspots')?.remove();}
- function sync(s){
-  activeHouse=s.interior;shell.classList.toggle('is-walking',s.walk);shell.classList.toggle('is-interior',!!activeHouse);exit.hidden=!activeHouse;walkButton.disabled=!renderer||mode!=='3d'||!!activeHouse;walkButton.classList.toggle('selected',s.walk);walkButton.setAttribute('aria-pressed',String(s.walk));pad.hidden=!s.walk||mode!=='3d';
-  root.querySelector('.world-location strong').textContent=activeHouse?'Casa '+activeHouse.slice(-2):s.walk?'Alameda e escadas':'Alameda central';
-  caption.textContent=activeHouse?(s.upper?'Superior · ilustrativo':'Térreo · ilustrativo'):s.walk?'Passeio · toque nos controles ou use setas':'Visão aérea · arraste para explorar';
-  root.querySelector('#world-hint').textContent=s.walk?'Arraste para olhar · controles de direção para caminhar · percurso ilustrativo':'Arraste para girar · dois dedos ou + / − para aproximar · mapa e lista sempre disponíveis';
-  if(!activeHouse)removeSpots();else{const floor=root.querySelector('#floor-switch');if(floor){floor.innerHTML=s.upper?'↓<span>Térreo</span>':'↑<span>Segundo andar</span>';floor.setAttribute('aria-label',s.upper?'Descer ao térreo':'Subir ao segundo andar');}}
- }
- function pauseScene(){const locked=shell.classList.contains('is-locked');canvas.tabIndex=locked?-1:0;canvas.setAttribute('aria-hidden',String(locked));renderer?.pause(mode!=='3d'||shell.classList.contains('has-overlay')||locked);}
- function lost(){renderer?.dispose();renderer=null;activeHouse=null;removeSpots();setMode('map',false);live.textContent='A cena 3D está indisponível. Continue pelo mapa e pela lista.';queueMicrotask(()=>{if(!disposed&&!shell.classList.contains('is-locked'))options.onDirectory?.();});}
- function ensureRenderer(){
-  if(renderer)return true;
-  try{renderer=createWorldRenderer(canvas,{onSelect:select,onChange:sync,onLost:lost,onProject:points=>{for(const p of points){const el=pins.get(p.id);el.hidden=!p.visible||!!visibleScenes&&!visibleScenes.has(p.id);el.style.transform=`translate(${p.x}px,${p.y}px) translate(-50%,-100%)`;}}});sync(renderer.state());return true;}catch{renderer=null;return false;}
- }
- function setMode(next,persist=true){
-  if(next==='3d'&&!ensureRenderer()){next='map';persist=false;live.textContent='Este navegador não iniciou a cena 3D. Mapa, lista e fichas continuam disponíveis.';}
-  mode=next;shell.classList.toggle('map-mode',mode==='map');canvas.hidden=mode==='map';labels.hidden=mode==='map';pad.hidden=mode==='map'||!renderer?.state().walk;mapButton.setAttribute('aria-pressed',String(mode==='map'));walkButton.disabled=mode==='map'||!renderer||!!activeHouse;root.querySelector('#world-minus').disabled=mode==='map';root.querySelector('#world-plus').disabled=mode==='map';
-  if(mode==='map'){removeSpots();shell.classList.remove('is-interior');exit.hidden=true;root.querySelector('.world-location strong').textContent='Mapa e lista';caption.textContent='Navegação sem 3D';}
-  else sync(renderer.state());
-  if(persist)try{localStorage.setItem('vilazuni-tour-mode',mode);}catch{}pauseScene();return mode==='3d';
- }
- function enterHouse(id,actions=[]){if(mode!=='3d'||!renderer)return;lastActions=actions;renderer.enterHouse(id);removeSpots();const spots=document.createElement('div');spots.id='room-hotspots';spots.innerHTML='<button id="floor-switch" aria-label="Subir ao segundo andar">↑<span>Segundo andar</span></button>'+actions.filter(a=>['residents','parking'].includes(a.page)).map(a=>`<button data-room-page="${a.page}" aria-label="${safe(a.label)}">${a.page==='residents'?'↔':'▤'}<span>${safe(a.label)}</span></button>`).join('');shell.append(spots);spots.querySelector('#floor-switch').onclick=()=>{renderer.toggleFloor();renderer.renderStill();};spots.querySelectorAll('[data-room-page]').forEach(b=>b.onclick=()=>options.onRoomAction?.(activeHouse,lastActions.find(a=>a.page===b.dataset.roomPage)));renderer.renderStill();}
- function reset(){renderer?.reset();activeHouse=null;removeSpots();options.onExitHouse?.();if(mode==='map')options.onDirectory?.();}
- root.querySelector('#world-role').onchange=e=>onRole(e.target.value);root.querySelectorAll('[data-world-page]').forEach(b=>b.onclick=()=>onPage(b.dataset.worldPage));
- root.querySelector('#world-list').onclick=()=>options.onDirectory?.();mapButton.onclick=()=>{setMode('map');options.onDirectory?.();};walkButton.onclick=()=>{renderer?.toggleWalk();renderer?.renderStill();if(renderer)live.textContent=renderer.state().walk?'Modo passeio. Use os controles de direção ou as setas.':'Visão aérea.';};
- root.querySelector('#world-plus').onclick=()=>{renderer?.zoom(-1);renderer?.renderStill();};root.querySelector('#world-minus').onclick=()=>{renderer?.zoom(1);renderer?.renderStill();};root.querySelector('#world-reset').onclick=reset;exit.onclick=reset;
- pad.querySelectorAll('[data-step]').forEach(b=>{const direction=b.dataset.step,vector={up:[-1,0],down:[1,0],left:[0,-1],right:[0,1]}[direction];listen(b,'pointerdown',e=>{e.preventDefault();b.setPointerCapture(e.pointerId);renderer?.step(...vector,.2);renderer?.hold(direction,true);});for(const event of ['pointerup','pointercancel','lostpointercapture'])listen(b,event,()=>renderer?.hold(direction,false));b.onclick=e=>{if(e.detail===0)renderer?.step(...vector);};});
- root.querySelector('#world-help').onclick=()=>{options.onContext?.();ctx.hidden=false;ctx.innerHTML=`<div class="world-context-top"><span>NAVEGAÇÃO</span><button id="context-close" aria-label="Fechar ajuda">${icon('close')}</button></div><h2 tabindex="-1">Explore no seu ritmo.</h2><p>Escolha Mapa e lista para buscar casas e dependências sem usar 3D. No cenário, toque em um marcador ou objeto para abrir sua ficha.</p><p>Arraste para olhar; use dois dedos ou + e − para aproximar. Em Passear, use os controles de direção ou as setas/WASD. O percurso fica na alameda e nas escadas; não é uma rota de acessibilidade física.</p><p>Interiores e medidas são ilustrativos. As fichas e ações seguem suas permissões atuais; o cenário não indica quem está presente nas casas.</p>`;ctx.querySelector('#context-close').onclick=()=>{ctx.hidden=true;root.querySelector('#world-help').focus();};ctx.querySelector('h2').focus();};
- listen(ctx,'keydown',e=>{if(e.key==='Escape'){e.stopPropagation();ctx.hidden=true;root.querySelector('#world-help').focus();}});
- const menu=root.querySelector('#world-navigation'),menuToggle=root.querySelector('#world-menu-toggle'),scrim=root.querySelector('#world-menu-scrim'),search=root.querySelector('#world-menu-search'),compact=matchMedia('(max-width:900px)');
- function setMenuOpen(open,{focus=false}={}){menu.hidden=!open;menuToggle.setAttribute('aria-expanded',String(open));menuToggle.setAttribute('aria-label',open?'Recolher menu do condomínio':'Abrir menu do condomínio');scrim.hidden=!open||!compact.matches;shell.classList.toggle('menu-open',open);if(focus)(open?search:menuToggle).focus({preventScroll:true});}
- function setActivePage(page){const selected=({syndic:'community',caretaker:'community',residents:'houses',new:'stays'})[page]||page;root.querySelectorAll('[data-world-page]').forEach(b=>{if(b.dataset.worldPage===selected){b.setAttribute('aria-current','page');const group=b.closest('details[data-nav-group]');if(group)group.open=true;}else b.removeAttribute('aria-current');});}
- menuToggle.onclick=()=>setMenuOpen(menu.hidden,{focus:true});root.querySelector('#world-menu-close').onclick=()=>setMenuOpen(false,{focus:true});scrim.onclick=()=>setMenuOpen(false,{focus:true});
- let searching=false;const beforeSearch=new Map();
- listen(search,'input',()=>{const term=normalizeSearch(search.value);if(term&&!searching){menu.querySelectorAll('details[data-nav-group]').forEach(group=>beforeSearch.set(group,group.open));searching=true;}let count=0;root.querySelectorAll('[data-nav-group]').forEach(group=>{let matches=0;group.querySelectorAll('[data-world-page]').forEach(b=>{b.hidden=!b.dataset.navLabel.includes(term);if(!b.hidden)matches++;});group.hidden=!matches;if(group.tagName==='DETAILS'){if(term&&matches)group.open=true;else if(!term&&searching)group.open=beforeSearch.get(group)||!!group.querySelector('[aria-current=page]');}count+=matches;});if(!term){searching=false;beforeSearch.clear();}root.querySelector('#world-menu-empty').hidden=!!count;root.querySelector('#world-menu-result').textContent=term?count+' opções encontradas.':'';});
- listen(menu,'keydown',e=>{if(e.key==='Escape'){e.preventDefault();e.stopPropagation();if(search.value){search.value='';search.dispatchEvent(new Event('input'));search.focus();}else setMenuOpen(false,{focus:true});}});
- listen(compact,'change',()=>setMenuOpen(!compact.matches));
- root.querySelectorAll('[data-world-page]').forEach(b=>b.onclick=()=>{setActivePage(b.dataset.worldPage);if(compact.matches)setMenuOpen(false);onPage(b.dataset.worldPage);});
- setMenuOpen(!compact.matches);setActivePage('tour');
- const observer=new MutationObserver(pauseScene);observer.observe(shell,{attributes:true,attributeFilter:['class']});updateTour(tour);updateCommunity(options.community);
- let saved='3d';try{if(user&&localStorage.getItem('vilazuni-tour-mode')==='map')saved='map';}catch{}if(tour&&!tour.visual)saved='map';setMode(saved,false);if(mode==='map')queueMicrotask(()=>{if(!disposed&&!shell.classList.contains('is-locked'))options.onDirectory?.();});
- const dispose=()=>{disposed=true;observer.disconnect();cleanups.forEach(off=>off());renderer?.dispose();};
- Object.assign(dispose,{enterHouse,exitHouse:reset,updateTour,updateCommunity,setActivePage,can3D:()=>mode==='3d'&&!!renderer,show3D(id){if(!setMode('3d')){options.onDirectory?.();return false;}if(id)renderer.focusPoint(id);renderer.renderStill();canvas.focus({preventScroll:true});return true;},showMap(){setMode('map');},mode:()=>mode});return dispose;
+  function updateCommunity(next) {
+    unreadCount = Math.max(0, Number(next?.unreadCount) || 0);
+    const importantCount = Math.max(0, Number(next?.importantCount) || 0),
+      importantUnreadCount = Math.max(0, Number(next?.importantUnreadCount) || 0);
+    for (const button of [pins.get('noticeboard'), root.querySelector('[data-world-page=board]')].filter(
+      Boolean,
+    )) {
+      button.classList.toggle('community-unread', unreadCount > 0);
+      button.classList.toggle('community-important', importantCount > 0);
+      button.classList.toggle('community-important-unread', importantUnreadCount > 0);
+      let badge = button.querySelector('.community-unread-badge');
+      if (unreadCount && !badge) {
+        badge = document.createElement('b');
+        badge.className = 'community-unread-badge';
+        badge.textContent = '!';
+        badge.setAttribute('aria-hidden', 'true');
+        button.append(badge);
+      }
+      if (!unreadCount) badge?.remove();
+      button.setAttribute(
+        'aria-label',
+        (button.dataset.worldObject ? 'Explorar Mural de avisos' : 'Mural') +
+          (unreadCount ? ' · ' + unreadCount + ' aviso(s) não visto(s)' : '') +
+          (importantUnreadCount
+            ? ' · ' + importantUnreadCount + ' importante(s) não visto(s)'
+            : importantCount
+              ? ' · ' + importantCount + ' aviso(s) importante(s)'
+              : ''),
+      );
+    }
+  }
+  function removeSpots() {
+    root.querySelector('#room-hotspots')?.remove();
+  }
+  function sync(s) {
+    activeHouse = s.interior;
+    shell.classList.toggle('is-walking', s.walk);
+    shell.classList.toggle('is-interior', !!activeHouse);
+    exit.hidden = !activeHouse;
+    walkButton.disabled = !renderer || mode !== '3d' || !!activeHouse;
+    walkButton.classList.toggle('selected', s.walk);
+    walkButton.setAttribute('aria-pressed', String(s.walk));
+    pad.hidden = !s.walk || mode !== '3d';
+    root.querySelector('.world-location strong').textContent = activeHouse
+      ? 'Casa ' + activeHouse.slice(-2)
+      : s.walk
+        ? 'Alameda e escadas'
+        : 'Alameda central';
+    caption.textContent = activeHouse
+      ? s.upper
+        ? 'Superior · ilustrativo'
+        : 'Térreo · ilustrativo'
+      : s.walk
+        ? 'Passeio · toque nos controles ou use setas'
+        : 'Visão aérea · arraste para explorar';
+    root.querySelector('#world-hint').textContent = s.walk
+      ? 'Arraste para olhar · controles de direção para caminhar · percurso ilustrativo'
+      : 'Arraste para girar · dois dedos ou + / − para aproximar · mapa e lista sempre disponíveis';
+    if (!activeHouse) removeSpots();
+    else {
+      const floor = root.querySelector('#floor-switch');
+      if (floor) {
+        floor.innerHTML = s.upper ? '↓<span>Térreo</span>' : '↑<span>Segundo andar</span>';
+        floor.setAttribute('aria-label', s.upper ? 'Descer ao térreo' : 'Subir ao segundo andar');
+      }
+    }
+  }
+  function pauseScene() {
+    const locked = shell.classList.contains('is-locked');
+    canvas.tabIndex = locked ? -1 : 0;
+    canvas.setAttribute('aria-hidden', String(locked));
+    renderer?.pause(mode !== '3d' || shell.classList.contains('has-overlay') || locked);
+  }
+  function lost() {
+    renderer?.dispose();
+    renderer = null;
+    activeHouse = null;
+    removeSpots();
+    setMode('map', false);
+    live.textContent = 'A cena 3D está indisponível. Continue pelo mapa e pela lista.';
+    queueMicrotask(() => {
+      if (!disposed && !shell.classList.contains('is-locked')) options.onDirectory?.();
+    });
+  }
+  function ensureRenderer() {
+    if (renderer) return true;
+    try {
+      renderer = createWorldRenderer(canvas, {
+        onSelect: select,
+        onChange: sync,
+        onLost: lost,
+        onProject: (points) => {
+          for (const p of points) {
+            const el = pins.get(p.id);
+            el.hidden = !p.visible || (!!visibleScenes && !visibleScenes.has(p.id));
+            el.style.transform = `translate(${p.x}px,${p.y}px) translate(-50%,-100%)`;
+          }
+        },
+      });
+      sync(renderer.state());
+      return true;
+    } catch {
+      renderer = null;
+      return false;
+    }
+  }
+  function setMode(next, persist = true) {
+    if (next === '3d' && !ensureRenderer()) {
+      next = 'map';
+      persist = false;
+      live.textContent = 'Este navegador não iniciou a cena 3D. Mapa, lista e fichas continuam disponíveis.';
+    }
+    mode = next;
+    shell.classList.toggle('map-mode', mode === 'map');
+    canvas.hidden = mode === 'map';
+    labels.hidden = mode === 'map';
+    pad.hidden = mode === 'map' || !renderer?.state().walk;
+    mapButton.setAttribute('aria-pressed', String(mode === 'map'));
+    walkButton.disabled = mode === 'map' || !renderer || !!activeHouse;
+    root.querySelector('#world-minus').disabled = mode === 'map';
+    root.querySelector('#world-plus').disabled = mode === 'map';
+    if (mode === 'map') {
+      removeSpots();
+      shell.classList.remove('is-interior');
+      exit.hidden = true;
+      root.querySelector('.world-location strong').textContent = 'Mapa e lista';
+      caption.textContent = 'Navegação sem 3D';
+    } else sync(renderer.state());
+    if (persist)
+      try {
+        localStorage.setItem('vilazuni-tour-mode', mode);
+      } catch {}
+    pauseScene();
+    return mode === '3d';
+  }
+  function enterHouse(id, actions = []) {
+    if (mode !== '3d' || !renderer) return;
+    lastActions = actions;
+    renderer.enterHouse(id);
+    removeSpots();
+    const spots = document.createElement('div');
+    spots.id = 'room-hotspots';
+    spots.innerHTML =
+      '<button id="floor-switch" aria-label="Subir ao segundo andar">↑<span>Segundo andar</span></button>' +
+      actions
+        .filter((a) => ['residents', 'parking'].includes(a.page))
+        .map(
+          (a) =>
+            `<button data-room-page="${a.page}" aria-label="${safe(a.label)}">${a.page === 'residents' ? '↔' : '▤'}<span>${safe(a.label)}</span></button>`,
+        )
+        .join('');
+    shell.append(spots);
+    spots.querySelector('#floor-switch').onclick = () => {
+      renderer.toggleFloor();
+      renderer.renderStill();
+    };
+    spots.querySelectorAll('[data-room-page]').forEach(
+      (b) =>
+        (b.onclick = () =>
+          options.onRoomAction?.(
+            activeHouse,
+            lastActions.find((a) => a.page === b.dataset.roomPage),
+          )),
+    );
+    renderer.renderStill();
+  }
+  function reset() {
+    renderer?.reset();
+    activeHouse = null;
+    removeSpots();
+    options.onExitHouse?.();
+    if (mode === 'map') options.onDirectory?.();
+  }
+  root.querySelector('#world-role').onchange = (e) => onRole(e.target.value);
+  root.querySelectorAll('[data-world-page]').forEach((b) => (b.onclick = () => onPage(b.dataset.worldPage)));
+  root.querySelector('#world-list').onclick = () => options.onDirectory?.();
+  mapButton.onclick = () => {
+    setMode('map');
+    options.onDirectory?.();
+  };
+  walkButton.onclick = () => {
+    renderer?.toggleWalk();
+    renderer?.renderStill();
+    if (renderer)
+      live.textContent = renderer.state().walk
+        ? 'Modo passeio. Use os controles de direção ou as setas.'
+        : 'Visão aérea.';
+  };
+  root.querySelector('#world-plus').onclick = () => {
+    renderer?.zoom(-1);
+    renderer?.renderStill();
+  };
+  root.querySelector('#world-minus').onclick = () => {
+    renderer?.zoom(1);
+    renderer?.renderStill();
+  };
+  root.querySelector('#world-reset').onclick = reset;
+  exit.onclick = reset;
+  pad.querySelectorAll('[data-step]').forEach((b) => {
+    const direction = b.dataset.step,
+      vector = {up: [-1, 0], down: [1, 0], left: [0, -1], right: [0, 1]}[direction];
+    listen(b, 'pointerdown', (e) => {
+      e.preventDefault();
+      b.setPointerCapture(e.pointerId);
+      renderer?.step(...vector, 0.2);
+      renderer?.hold(direction, true);
+    });
+    for (const event of ['pointerup', 'pointercancel', 'lostpointercapture'])
+      listen(b, event, () => renderer?.hold(direction, false));
+    b.onclick = (e) => {
+      if (e.detail === 0) renderer?.step(...vector);
+    };
+  });
+  root.querySelector('#world-help').onclick = () => {
+    options.onContext?.();
+    ctx.hidden = false;
+    ctx.innerHTML = `<div class="world-context-top"><span>NAVEGAÇÃO</span><button id="context-close" aria-label="Fechar ajuda">${icon('close')}</button></div><h2 tabindex="-1">Explore no seu ritmo.</h2><p>Escolha Mapa e lista para buscar casas e dependências sem usar 3D. No cenário, toque em um marcador ou objeto para abrir sua ficha.</p><p>Arraste para olhar; use dois dedos ou + e − para aproximar. Em Passear, use os controles de direção ou as setas/WASD. O percurso fica na alameda e nas escadas; não é uma rota de acessibilidade física.</p><p>Interiores e medidas são ilustrativos. As fichas e ações seguem suas permissões atuais; o cenário não indica quem está presente nas casas.</p>`;
+    ctx.querySelector('#context-close').onclick = () => {
+      ctx.hidden = true;
+      root.querySelector('#world-help').focus();
+    };
+    ctx.querySelector('h2').focus();
+  };
+  listen(ctx, 'keydown', (e) => {
+    if (e.key === 'Escape') {
+      e.stopPropagation();
+      ctx.hidden = true;
+      root.querySelector('#world-help').focus();
+    }
+  });
+  const menu = root.querySelector('#world-navigation'),
+    menuToggle = root.querySelector('#world-menu-toggle'),
+    scrim = root.querySelector('#world-menu-scrim'),
+    search = root.querySelector('#world-menu-search'),
+    compact = matchMedia('(max-width:900px)');
+  function setMenuOpen(open, {focus = false} = {}) {
+    menu.hidden = !open;
+    menuToggle.setAttribute('aria-expanded', String(open));
+    menuToggle.setAttribute('aria-label', open ? 'Recolher menu do condomínio' : 'Abrir menu do condomínio');
+    scrim.hidden = !open || !compact.matches;
+    shell.classList.toggle('menu-open', open);
+    if (focus) (open ? search : menuToggle).focus({preventScroll: true});
+  }
+  function setActivePage(page) {
+    const selected =
+      {syndic: 'community', caretaker: 'community', residents: 'houses', new: 'stays'}[page] || page;
+    root.querySelectorAll('[data-world-page]').forEach((b) => {
+      if (b.dataset.worldPage === selected) {
+        b.setAttribute('aria-current', 'page');
+        const group = b.closest('details[data-nav-group]');
+        if (group) group.open = true;
+      } else b.removeAttribute('aria-current');
+    });
+  }
+  menuToggle.onclick = () => setMenuOpen(menu.hidden, {focus: true});
+  root.querySelector('#world-menu-close').onclick = () => setMenuOpen(false, {focus: true});
+  scrim.onclick = () => setMenuOpen(false, {focus: true});
+  let searching = false;
+  const beforeSearch = new Map();
+  listen(search, 'input', () => {
+    const term = normalizeSearch(search.value);
+    if (term && !searching) {
+      menu
+        .querySelectorAll('details[data-nav-group]')
+        .forEach((group) => beforeSearch.set(group, group.open));
+      searching = true;
+    }
+    let count = 0;
+    root.querySelectorAll('[data-nav-group]').forEach((group) => {
+      let matches = 0;
+      group.querySelectorAll('[data-world-page]').forEach((b) => {
+        b.hidden = !b.dataset.navLabel.includes(term);
+        if (!b.hidden) matches++;
+      });
+      group.hidden = !matches;
+      if (group.tagName === 'DETAILS') {
+        if (term && matches) group.open = true;
+        else if (!term && searching)
+          group.open = beforeSearch.get(group) || !!group.querySelector('[aria-current=page]');
+      }
+      count += matches;
+    });
+    if (!term) {
+      searching = false;
+      beforeSearch.clear();
+    }
+    root.querySelector('#world-menu-empty').hidden = !!count;
+    root.querySelector('#world-menu-result').textContent = term ? count + ' opções encontradas.' : '';
+  });
+  listen(menu, 'keydown', (e) => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation();
+      if (search.value) {
+        search.value = '';
+        search.dispatchEvent(new Event('input'));
+        search.focus();
+      } else setMenuOpen(false, {focus: true});
+    }
+  });
+  listen(compact, 'change', () => setMenuOpen(!compact.matches));
+  root.querySelectorAll('[data-world-page]').forEach(
+    (b) =>
+      (b.onclick = () => {
+        setActivePage(b.dataset.worldPage);
+        if (compact.matches) setMenuOpen(false);
+        onPage(b.dataset.worldPage);
+      }),
+  );
+  setMenuOpen(!compact.matches);
+  setActivePage('tour');
+  const observer = new MutationObserver(pauseScene);
+  observer.observe(shell, {attributes: true, attributeFilter: ['class']});
+  updateTour(tour);
+  updateCommunity(options.community);
+  let saved = '3d';
+  try {
+    if (user && localStorage.getItem('vilazuni-tour-mode') === 'map') saved = 'map';
+  } catch {}
+  if (tour && !tour.visual) saved = 'map';
+  setMode(saved, false);
+  if (mode === 'map')
+    queueMicrotask(() => {
+      if (!disposed && !shell.classList.contains('is-locked')) options.onDirectory?.();
+    });
+  const dispose = () => {
+    disposed = true;
+    observer.disconnect();
+    cleanups.forEach((off) => off());
+    renderer?.dispose();
+  };
+  Object.assign(dispose, {
+    enterHouse,
+    exitHouse: reset,
+    updateTour,
+    updateCommunity,
+    setActivePage,
+    can3D: () => mode === '3d' && !!renderer,
+    show3D(id) {
+      if (!setMode('3d')) {
+        options.onDirectory?.();
+        return false;
+      }
+      if (id) renderer.focusPoint(id);
+      renderer.renderStill();
+      canvas.focus({preventScroll: true});
+      return true;
+    },
+    showMap() {
+      setMode('map');
+    },
+    mode: () => mode,
+  });
+  return dispose;
 }
