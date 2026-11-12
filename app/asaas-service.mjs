@@ -63,13 +63,16 @@ export function createAsaasService({
       if (route.startsWith('/asaas/webhook/') && req.method === 'POST') {
         const input = await body(req, 512 * 1024),
           id = route.slice('/asaas/webhook/'.length);
-        const result = await run(() =>
-          change({id: 'asaas-service'}, (s) => {
-            const connection = (s.asaasConnections || []).find((c) => c.id === id);
-            if (connection) requireLiveTenant(s, connection.tenant, 'O retorno Asaas');
-            return A.ingestAsaasWebhook(s, id, req.headers['asaas-access-token'], input, vault, now());
-          }),
-        );
+        const result = await run(() => {
+          // Condomínio e token conferidos ANTES de copiar a base: um retorno forjado não custa uma cópia inteira.
+          const state = read().state,
+            connection = (state.asaasConnections || []).find((c) => c.id === id);
+          if (connection) requireLiveTenant(state, connection.tenant, 'O retorno Asaas');
+          A.authenticateAsaasWebhook(state, id, req.headers['asaas-access-token'], vault);
+          return change({id: 'asaas-service'}, (s) =>
+            A.ingestAsaasWebhook(s, id, req.headers['asaas-access-token'], input, vault, now()),
+          );
+        });
         return send(res, 200, result);
       }
       if (req.method === 'GET') {

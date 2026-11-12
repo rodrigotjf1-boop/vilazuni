@@ -66,7 +66,7 @@ export async function pilotBrowser({page, api, open}) {
   const version = await page.request.get(new URL('/version.json', page.url()).href),
     data = await version.json();
   assert.match(data.build, /^[a-f\d]{20}$/);
-  assert.equal(data.version, '0.7.0');
+  assert.equal(data.version, '0.7.1');
   assert.equal(version.headers()['cache-control'], 'no-store');
   await page.route('**/version.json', (route) =>
     route.fulfill({json: {version: '0.5.3', build: 'f'.repeat(20)}}),

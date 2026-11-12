@@ -27,6 +27,7 @@ export function privateFileStorage(storage, directory) {
   }
   return {
     kind: storage.kind,
+    ...(storage.current ? {current: () => storage.current()} : {}),
     async load() {
       return hydratePrivateDatabase(await storage.load(), root);
     },

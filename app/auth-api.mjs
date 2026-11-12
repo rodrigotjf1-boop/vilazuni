@@ -44,6 +44,7 @@ import {
   prepareDaily,
   scheduledChannels,
   telegramWebhook,
+  telegramSecretValid,
   claimChannelMessage,
   deliverTelegram,
 } from './channels.mjs';
@@ -58,6 +59,7 @@ import {
   deliverGate,
   recordPassage,
   plateEvent,
+  authenticPlateEvent,
 } from './physical.mjs';
 import {privateFileStorage} from './private-files.mjs';
 import {runtimeConfig, clientAddress} from './runtime-config.mjs';
@@ -403,6 +405,13 @@ export async function createAuthApi({
       return null;
     }
   }
+  // Postgres: só relê a base (e reidrata os anexos de todos os condomínios) quando outra instância gravou.
+  // Antes, todo pedido — até /api/session sem login — relia tudo.
+  async function refresh() {
+    if (storage.kind !== 'postgres') return;
+    if (storage.current && (await storage.current())) return;
+    db = await storage.load();
+  }
   async function persist(next) {
     await storage.save(next);
     db = next;
@@ -489,6 +498,35 @@ export async function createAuthApi({
     const a = attempts.get(key) || {count: 0, until: t + 15 * 60000};
     if (++a.count > 25) fail(429, 'Muitas tentativas. Aguarde 15 minutos.');
     attempts.set(key, a);
+  }
+  // Avisos anônimos (placa, Telegram, Asaas): teto por endereço e por minuto, antes de qualquer trabalho.
+  const webhookHits = new Map();
+  function limitWebhook(req) {
+    const key = clientAddress(req, config),
+      t = now();
+    for (const [k, v] of webhookHits) if (v.until <= t) webhookHits.delete(k);
+    const a = webhookHits.get(key) || {count: 0, until: t + 60000};
+    if (++a.count > 240) fail(429, 'Muitas requisições. Aguarde um minuto.');
+    webhookHits.set(key, a);
+  }
+  // Lê o corpo ANTES da fila única: um envio lento (celular com sinal fraco, ou de má-fé) não segura os
+  // pedidos de todos os condomínios. O teto geral é o maior das rotas (1 MB); cada rota confere o seu.
+  const MAX_BODY = 1024 * 1024;
+  async function preread(req) {
+    if (req.method === 'GET' || req.method === 'HEAD') return;
+    const chunks = [];
+    let size = 0;
+    for await (const chunk of req) {
+      size += chunk.length;
+      if (size > MAX_BODY) fail(413, 'Solicitação muito grande.');
+      chunks.push(chunk);
+    }
+    req.vilazuniBody = Buffer.concat(chunks);
+  }
+  async function rawBody(req, maxBytes) {
+    if (!req.vilazuniBody) await preread(req);
+    if (req.vilazuniBody.length > maxBytes) fail(413, 'Solicitação muito grande.');
+    return req.vilazuniBody;
   }
   function projection(u) {
     let houses = scopedHouses(db.state, u, now()).map((h) => {
@@ -577,15 +615,9 @@ export async function createAuthApi({
   async function body(req, maxBytes = 32768) {
     if (!String(req.headers['content-type'] || '').startsWith('application/json'))
       fail(415, 'Envie dados no formato JSON.');
-    const chunks = [];
-    let size = 0;
-    for await (const chunk of req) {
-      size += chunk.length;
-      if (size > maxBytes) fail(413, 'Solicitação muito grande.');
-      chunks.push(chunk);
-    }
+    const bytes = await rawBody(req, maxBytes);
     try {
-      const raw = new TextDecoder('utf-8', {fatal: true}).decode(Buffer.concat(chunks)),
+      const raw = new TextDecoder('utf-8', {fatal: true}).decode(bytes),
         obj = JSON.parse(raw || '{}');
       if (!obj || typeof obj !== 'object' || Array.isArray(obj)) throw Error();
       return obj;
@@ -603,7 +635,7 @@ export async function createAuthApi({
   }
   async function handle(req, res) {
     try {
-      if (storage.kind === 'postgres') db = await storage.load();
+      await refresh();
       const url = new URL(req.url, 'http://localhost'),
         route = url.pathname,
         method = req.method;
@@ -621,23 +653,16 @@ export async function createAuthApi({
       )
         fail(403, 'Origem não autorizada.');
       if (method === 'POST' && route === '/api/physical/plate-event') {
-        const chunks = [];
-        let size = 0;
-        for await (const c of req) {
-          size += c.length;
-          if (size > 4096) fail(413, 'Evento muito grande.');
-          chunks.push(c);
-        }
+        limitWebhook(req);
+        const raw = (await rawBody(req, 4096)).toString('utf8'),
+          device = url.searchParams.get('device'),
+          signature = req.headers['x-vilazuni-signature'];
+        // Assinatura conferida antes da cópia da base: evento forjado sai barato.
+        if (!authenticPlateEvent(db.state, device, raw, signature, process.env))
+          fail(403, 'Evento não autenticado ou repetido.');
         const next = structuredClone(db);
         try {
-          plateEvent(
-            next.state,
-            url.searchParams.get('device'),
-            Buffer.concat(chunks).toString('utf8'),
-            req.headers['x-vilazuni-signature'],
-            process.env,
-            now(),
-          );
+          plateEvent(next.state, device, raw, signature, process.env, now());
         } catch {
           fail(403, 'Evento não autenticado ou repetido.');
         }
@@ -645,6 +670,9 @@ export async function createAuthApi({
         return send(res, 200, {accepted: true});
       }
       if (method === 'POST' && route === '/api/channels/telegram/webhook') {
+        limitWebhook(req);
+        if (!telegramSecretValid(req.headers['x-telegram-bot-api-secret-token'], process.env))
+          fail(403, 'Webhook não autenticado ou inválido.');
         const input = await body(req, 16384),
           next = structuredClone(db);
         let result;
@@ -669,10 +697,14 @@ export async function createAuthApi({
         if (method !== 'POST' || route.endsWith('/context')) fail(405, 'Método não permitido.');
         const input = await body(req),
           next = structuredClone(db),
+          versions = (s) => (s.automationMessages || []).reduce((n, m) => n + (m.version || 0), 0),
+          before = versions(next.state),
           result = route.endsWith('/claim')
             ? claimAutomationMessage(next.state, c, allBindings(next.users), now())
             : acknowledgeAutomation(next.state, c, input, now());
-        await persist(next);
+        // O n8n consulta a cada 30 s: sem mensagem nenhuma mudada, não há o que gravar (antes, a base inteira
+        // era regravada ~2.880 vezes por dia à toa).
+        if (versions(next.state) !== before) await persist(next);
         return send(res, 200, result);
       }
       const session = getSession(req, {touch: route !== '/api/community/summary'});
@@ -1736,7 +1768,7 @@ export async function createAuthApi({
     let reservedKey;
     try {
       const prepared = await enqueue(async () => {
-        if (storage.kind === 'postgres') db = await storage.load();
+        await refresh();
         const host = config.origin ? new URL(config.origin).host : '127.0.0.1:' + req.socket.localPort;
         if (req.headers.host !== host || req.headers.origin !== (config.origin || 'http://' + host))
           fail(403, 'Origem não autorizada.');
@@ -1778,7 +1810,7 @@ export async function createAuthApi({
         providerError = true;
       }
       const output = await enqueue(async () => {
-        if (storage.kind === 'postgres') db = await storage.load();
+        await refresh();
         const s = getSession(req);
         if (
           !s ||
@@ -1818,7 +1850,7 @@ export async function createAuthApi({
     let key;
     try {
       const prepared = await enqueue(async () => {
-        if (storage.kind === 'postgres') db = await storage.load();
+        await refresh();
         const host = config.origin ? new URL(config.origin).host : '127.0.0.1:' + req.socket.localPort;
         if (req.headers.host !== host) fail(403, 'Origem não autorizada.');
         const session = getSession(req);
@@ -1842,7 +1874,7 @@ export async function createAuthApi({
       });
       const frame = await cameraSnapshot(prepared.device);
       await enqueue(async () => {
-        if (storage.kind === 'postgres') db = await storage.load();
+        await refresh();
         const session = getSession(req);
         if (!session || session.user.id !== prepared.userId || session.user.tenant !== prepared.tenant)
           fail(401, 'O acesso mudou.');
@@ -1873,7 +1905,7 @@ export async function createAuthApi({
   async function dispatchChannel(req, res) {
     try {
       const outgoing = await enqueue(async () => {
-        if (storage.kind === 'postgres') db = await storage.load();
+        await refresh();
         const host = config.origin ? new URL(config.origin).host : '127.0.0.1:' + req.socket.localPort;
         if (req.headers.host !== host || req.headers.origin !== (config.origin || 'http://' + host))
           fail(403, 'Origem não autorizada.');
@@ -1894,7 +1926,7 @@ export async function createAuthApi({
       });
       const result = await deliverTelegram(outgoing);
       await enqueue(async () => {
-        if (storage.kind === 'postgres') db = await storage.load();
+        await refresh();
         const next = structuredClone(db),
           o = next.state.channelOutbox.find((o) => o.tenant === outgoing.tenant && o.id === outgoing.id);
         Object.assign(o, result, {completedAt: new Date(now()).toISOString()});
@@ -1909,7 +1941,7 @@ export async function createAuthApi({
   async function dispatchGate(req, res) {
     try {
       const prepared = await enqueue(async () => {
-        if (storage.kind === 'postgres') db = await storage.load();
+        await refresh();
         const host = config.origin ? new URL(config.origin).host : '127.0.0.1:' + req.socket.localPort;
         if (req.headers.host !== host || req.headers.origin !== (config.origin || 'http://' + host))
           fail(403, 'Origem não autorizada.');
@@ -1930,7 +1962,7 @@ export async function createAuthApi({
       });
       const result = await deliverGate(prepared);
       const command = await enqueue(async () => {
-        if (storage.kind === 'postgres') db = await storage.load();
+        await refresh();
         const next = structuredClone(db),
           c = finishGate(next.state, prepared.command.tenant, prepared.command.id, result, now());
         await persist(next);
@@ -1955,10 +1987,11 @@ export async function createAuthApi({
     },
     run: (fn) =>
       enqueue(async () => {
-        if (storage.kind === 'postgres') db = await storage.load();
+        await refresh();
         return fn();
       }),
     transport(req, webhook = false) {
+      if (webhook) limitWebhook(req);
       const host = config.origin ? new URL(config.origin).host : '127.0.0.1:' + req.socket.localPort;
       if (
         req.headers.host !== host ||
@@ -1993,22 +2026,27 @@ export async function createAuthApi({
       send(res, 400, {error: 'Endereço inválido.'});
       return Promise.resolve();
     }
-    return route.startsWith('/api/payments')
-      ? paymentService.perform(req, res)
-      : req.method === 'GET' && route === '/api/physical/camera'
-        ? showCamera(req, res)
-        : req.method === 'POST' && route === '/api/assistant/answer'
-          ? generated(req, res)
-          : req.method === 'POST' && route === '/api/physical/dispatch'
-            ? dispatchGate(req, res)
-            : req.method === 'POST' && route === '/api/channels/send'
-              ? dispatchChannel(req, res)
-              : enqueue(() => handle(req, res));
+    const dispatch = () =>
+      route.startsWith('/api/payments')
+        ? paymentService.perform(req, res)
+        : req.method === 'GET' && route === '/api/physical/camera'
+          ? showCamera(req, res)
+          : req.method === 'POST' && route === '/api/assistant/answer'
+            ? generated(req, res)
+            : req.method === 'POST' && route === '/api/physical/dispatch'
+              ? dispatchGate(req, res)
+              : req.method === 'POST' && route === '/api/channels/send'
+                ? dispatchChannel(req, res)
+                : enqueue(() => handle(req, res));
+    // O corpo chega inteiro antes de o pedido entrar na fila (ver preread).
+    return preread(req).then(dispatch, (e) => {
+      if (!res.headersSent) send(res, e.status || 400, {error: e.status ? e.message : 'Dados inválidos.'});
+    });
   };
   api.paymentTick = paymentService.tick;
   api.automationTick = () =>
     enqueue(async () => {
-      if (storage.kind === 'postgres') db = await storage.load();
+      await refresh();
       const next = structuredClone(db);
       let changed = prepareAutomationReminders(next.state, allBindings(next.users), now());
       for (const m of next.state.automationMessages || [])
@@ -2021,9 +2059,11 @@ export async function createAuthApi({
     });
   let closing;
   api.close = () => (closing ??= storage.close());
+  // Prontidão: o banco responde? (consulta de uma linha; não relê a base inteira a cada checagem)
   api.ready = () =>
     enqueue(async () => {
-      await storage.load();
+      if (storage.current) await storage.current();
+      else await storage.load();
     });
   api.storageKind = storage.kind;
   let ticking = false;
@@ -2032,7 +2072,7 @@ export async function createAuthApi({
     ticking = true;
     try {
       const outgoing = await enqueue(async () => {
-        if (storage.kind === 'postgres') db = await storage.load();
+        await refresh();
         const next = structuredClone(db);
         for (const c of scheduledChannels(next.state, now()).filter((c) => {
           const t = tenantSettings(next.state, c.tenant);
@@ -2060,7 +2100,7 @@ export async function createAuthApi({
       if (outgoing) {
         const result = await deliverTelegram(outgoing);
         await enqueue(async () => {
-          if (storage.kind === 'postgres') db = await storage.load();
+          await refresh();
           const next = structuredClone(db),
             o = next.state.channelOutbox.find((o) => o.id === outgoing.id && o.tenant === outgoing.tenant);
           Object.assign(o, result);
@@ -2078,7 +2118,7 @@ export async function createAuthApi({
     pushing = true;
     try {
       const pending = await enqueue(async () => {
-        if (storage.kind === 'postgres') db = await storage.load();
+        await refresh();
         const next = structuredClone(db),
           messages = [];
         for (const sub of next.state.pushSubscriptions || []) {
@@ -2104,7 +2144,7 @@ export async function createAuthApi({
         });
         if (result.status === 'expired')
           await enqueue(async () => {
-            if (storage.kind === 'postgres') db = await storage.load();
+            await refresh();
             const next = structuredClone(db);
             next.state.pushSubscriptions = next.state.pushSubscriptions.filter((s) => s.id !== sub.id);
             await persist(next);

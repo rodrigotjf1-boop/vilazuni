@@ -148,5 +148,12 @@ export async function postgresStorage(connectionString, initial, {allowPrivilege
       client.release();
     }
   }
-  return {kind: 'postgres', load, save, close: () => pool.end()};
+  // Consulta barata (uma linha, sem o conteúdo): a base guardada é a mesma que esta instância leu ou gravou
+  // por último? Se for, não há o que recarregar — evita reler (e reidratar anexos de) todos os condomínios a
+  // cada pedido.
+  async function current() {
+    const {rows} = await pool.query('SELECT revision FROM vilazuni_control WHERE id=1');
+    return Number(rows[0]?.revision || 0) === revision;
+  }
+  return {kind: 'postgres', load, save, current, close: () => pool.end()};
 }

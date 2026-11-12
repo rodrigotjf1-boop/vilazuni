@@ -121,15 +121,18 @@ export function scheduledChannels(state, now = Date.now()) {
     (c) => !isDemoTenant(state, c.tenant) && c.active && c.scheduled && c.dailyAt <= hour,
   );
 }
-export function telegramWebhook(state, input, secret, env = process.env, now = Date.now()) {
+// Confere o segredo do webhook sem alterar nada (a API chama antes de copiar a base).
+export function telegramSecretValid(secret, env = process.env) {
   const expected = env.TELEGRAM_WEBHOOK_SECRET;
-  if (
-    !expected ||
-    typeof secret !== 'string' ||
-    Buffer.byteLength(secret) !== Buffer.byteLength(expected) ||
-    !timingSafeEqual(Buffer.from(secret), Buffer.from(expected))
-  )
-    throw Error('Webhook não autenticado.');
+  return (
+    !!expected &&
+    typeof secret === 'string' &&
+    Buffer.byteLength(secret) === Buffer.byteLength(expected) &&
+    timingSafeEqual(Buffer.from(secret), Buffer.from(expected))
+  );
+}
+export function telegramWebhook(state, input, secret, env = process.env, now = Date.now()) {
+  if (!telegramSecretValid(secret, env)) throw Error('Webhook não autenticado.');
   if (!Number.isSafeInteger(input.update_id)) throw Error('Atualização inválida.');
   const m = input.message;
   if (!m?.chat?.id || typeof m.text !== 'string') return {ignored: true};

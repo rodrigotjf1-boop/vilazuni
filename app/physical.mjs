@@ -223,13 +223,20 @@ export function recordPassage(state, u, input, now = Date.now()) {
   state.physicalEvents.push(event);
   return event;
 }
-export function plateEvent(state, deviceId, raw, signature, env = process.env, now = Date.now()) {
+// Confere a assinatura sem alterar nada: a API chama ANTES de copiar a base, para um pedido forjado não custar
+// uma cópia inteira (e não travar a fila de todos).
+export function authenticPlateEvent(state, deviceId, raw, signature, env = process.env) {
   const d = (state.accessDevices || []).find((d) => d.id === deviceId && d.active && d.mode === 'relay');
-  if (d) requireLiveTenant(state, d.tenant, 'O recebimento de placas por equipamento');
   const secret = d && adapterValue(env, d.adapterKey, d.tenant, 'EVENT_SECRET');
-  if (!secret || !/^([a-f\d]{64})$/.test(signature || '')) throw Error('Evento não autenticado.');
+  if (!secret || typeof signature !== 'string' || !/^([a-f\d]{64})$/.test(signature)) return null;
   const expected = createHmac('sha256', secret).update(raw).digest('hex');
-  if (!timingSafeEqual(Buffer.from(expected), Buffer.from(signature))) throw Error('Evento não autenticado.');
+  return timingSafeEqual(Buffer.from(expected), Buffer.from(signature)) ? d : null;
+}
+export function plateEvent(state, deviceId, raw, signature, env = process.env, now = Date.now()) {
+  const device = (state.accessDevices || []).find((d) => d.id === deviceId && d.active && d.mode === 'relay');
+  if (device) requireLiveTenant(state, device.tenant, 'O recebimento de placas por equipamento');
+  const d = authenticPlateEvent(state, deviceId, raw, signature, env);
+  if (!d) throw Error('Evento não autenticado.');
   const input = JSON.parse(raw);
   if (
     !Number.isFinite(input.timestamp) ||
