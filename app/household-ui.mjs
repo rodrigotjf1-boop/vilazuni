@@ -45,7 +45,9 @@ export function residentPortrait(record) {
 }
 export function residentContacts(record) {
   if (record.contactsVisible === false)
-    return '<p class="household-private">Contatos privados do inquilino. Acesso do proprietário, do síndico e do zelador autorizado.</p>';
+    return record.kind === 'owner'
+      ? '<p class="household-private">Contatos do proprietário são privados. Para falar com ele, procure quem fez a sua reserva ou a administração do condomínio.</p>'
+      : '<p class="household-private">Contatos privados do inquilino. Acesso do proprietário, do síndico e do zelador autorizado.</p>';
   const whatsapp = digits(record.whatsapp),
     phone = digits(record.phone),
     email = String(record.email || '');

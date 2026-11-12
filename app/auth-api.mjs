@@ -234,6 +234,7 @@ import {
   createResident,
   updateResident,
   endResident,
+  ownerAccountsForHouse,
   localDay,
   readResidentPhoto,
 } from './residents.mjs';
@@ -1166,6 +1167,16 @@ export async function createAuthApi({
             now(),
           ),
         );
+      if (method === 'GET' && route === '/api/residents/owner-accounts') {
+        if (u.role !== 'sindico') fail(403, 'Somente o síndico revisa as contas de proprietário.');
+        return send(res, 200, {
+          accounts: ownerAccountsForHouse(
+            usersInTenant(db.users, u.tenant).filter(valid),
+            u.tenant,
+            url.searchParams.get('houseId'),
+          ).map(({id, name, email}) => ({id, name, email})),
+        });
+      }
       if (method === 'GET' && ['/api/residents/photo', '/api/stays/photo'].includes(route)) {
         const read = route === '/api/residents/photo' ? readResidentPhoto : readStayPhoto,
           photo = read(db.state, u, url.searchParams.get('id'), url.searchParams.get('version'), now());
@@ -1588,13 +1599,15 @@ export async function createAuthApi({
           } else if (route === '/api/residents/contacts/revoke') {
             result = revokeCaretakerContacts(next.state, u, input, now());
           } else if (['/api/residents', '/api/residents/update', '/api/residents/end'].includes(route)) {
-            const handler = route.endsWith('/update')
-              ? updateResident
-              : route.endsWith('/end')
-                ? endResident
-                : createResident;
-            const r = handler(next.state, u, input, now());
-            result = {id: r.record.id};
+            const r = route.endsWith('/end')
+              ? endResident(next.state, u, input, now(), usersInTenant(next.users, u.tenant))
+              : (route.endsWith('/update') ? updateResident : createResident)(next.state, u, input, now());
+            for (const a of r.revoked || [])
+              event(next, u, 'Acesso à casa retirado no encerramento do proprietário: ' + a.id);
+            result = {
+              id: r.record.id,
+              ...(r.revoked ? {revoked: r.revoked, remainingAccounts: r.remainingAccounts} : {}),
+            };
           } else if (route === '/api/incidents/create') {
             result = {incident: createIncident(next.state, u, input, now())};
           } else if (route === '/api/incidents/update') {
