@@ -1,8 +1,9 @@
-const CACHE = 'vilazuni-public-v9';
+const CACHE = 'vilazuni-public-v10';
 // Only public shell assets are cached. API responses, uploads and account data never enter CacheStorage.
 const PUBLIC = [
   ...new Set([
     '/panel.css',
+    '/login.css',
     '/demo-ui.mjs',
     '/household-ui.mjs',
     '/household.css',

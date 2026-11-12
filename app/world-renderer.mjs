@@ -12,8 +12,43 @@ export function createWorldRenderer(
     parseInt(hex.slice(2, 4), 16) / 255,
     parseInt(hex.slice(4, 6), 16) / 255,
   ];
-  function tri(a, b, c, col, shade = 1) {
-    for (const p of [a, b, c]) vertices.push(...p, ...col.map((v) => v * shade));
+  // Luz calculada na montagem, sem custo por quadro: sol alto de veraneio vindo da direita e da frente da câmera
+  // inicial, mais a luz do céu (azul por cima, areia refletida por baixo). Cada face recebe a cor já iluminada.
+  const unit = (v) => {
+      const l = Math.hypot(...v) || 1;
+      return v.map((n) => n / l);
+    },
+    sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]],
+    dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2],
+    cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]],
+    mix = (a, b, t) => a.map((v, i) => v + (b[i] - v) * Math.max(0, Math.min(1, t)));
+  const SUN = unit([0.48, 0.78, 0.4]),
+    SUN_RGB = [1, 0.93, 0.8],
+    SKY_RGB = [0.66, 0.79, 0.9],
+    BOUNCE_RGB = [0.84, 0.76, 0.62];
+  function light(n) {
+    const sun = Math.max(0, dot(n, SUN)),
+      up = n[1] * 0.5 + 0.5;
+    return [0, 1, 2].map((i) => (SKY_RGB[i] * up + BOUNCE_RGB[i] * (1 - up)) * 0.66 + SUN_RGB[i] * sun * 0.7);
+  }
+  function faceNormal(a, b, c, hint) {
+    const n = unit(cross(sub(b, a), sub(c, a)));
+    return dot(n, hint) < 0 ? n.map((v) => -v) : n;
+  }
+  function tri(a, b, c, col, shade = 1, n = null) {
+    const l = n ? light(n) : [1, 1, 1];
+    for (const p of [a, b, c])
+      vertices.push(...p, col[0] * shade * l[0], col[1] * shade * l[1], col[2] * shade * l[2]);
+  }
+  function triSmooth(points, normals, col, shade = 1) {
+    points.forEach((p, i) => {
+      const l = light(normals[i]);
+      vertices.push(...p, col[0] * shade * l[0], col[1] * shade * l[1], col[2] * shade * l[2]);
+    });
+  }
+  // Cor pronta (céu): sem luz.
+  function triColored(points, colors) {
+    points.forEach((p, i) => vertices.push(...p, ...colors[i]));
   }
   function box(x, y, z, w, h, d, hex) {
     const c = color(hex),
@@ -27,49 +62,50 @@ export function createWorldRenderer(
         [x + w / 2, y + h, z + d / 2],
         [x - w / 2, y + h, z + d / 2],
       ];
-    for (const [a, b, c1, d1, s] of [
-      [0, 1, 2, 3, 0.82],
-      [4, 7, 6, 5, 1],
-      [0, 3, 7, 4, 0.68],
-      [1, 5, 6, 2, 0.91],
-      [3, 2, 6, 7, 1.08],
+    for (const [a, b, c1, d1, n] of [
+      [0, 1, 2, 3, [0, 0, -1]],
+      [4, 7, 6, 5, [0, 0, 1]],
+      [0, 3, 7, 4, [-1, 0, 0]],
+      [1, 5, 6, 2, [1, 0, 0]],
+      [3, 2, 6, 7, [0, 1, 0]],
     ]) {
-      tri(p[a], p[b], p[c1], c, s);
-      tri(p[a], p[c1], p[d1], c, s);
+      tri(p[a], p[b], p[c1], c, 1, n);
+      tri(p[a], p[c1], p[d1], c, 1, n);
     }
   }
-  function roof(x, y, z, w, d) {
-    const c = color('aa613b'),
+  function roof(x, y, z, w, d, hex = 'b5653c') {
+    const c = color(hex),
       a = [x - w / 2, y, z - d / 2],
       b = [x + w / 2, y, z - d / 2],
       c1 = [x + w / 2, y, z + d / 2],
       d1 = [x - w / 2, y, z + d / 2],
       e = [x, y + 1.4, z - d / 2],
       f = [x, y + 1.4, z + d / 2];
-    tri(a, b, e, c, 0.8);
-    tri(d1, f, c1, c);
-    tri(a, e, f, c, 0.75);
-    tri(a, f, d1, c, 0.75);
-    tri(e, b, c1, c, 1.05);
-    tri(e, c1, f, c, 1.05);
+    tri(a, b, e, c, 1, faceNormal(a, b, e, [0, 0, -1]));
+    tri(d1, f, c1, c, 1, faceNormal(d1, f, c1, [0, 0, 1]));
+    tri(a, e, f, c, 1, faceNormal(a, e, f, [-1, 1, 0]));
+    tri(a, f, d1, c, 1, faceNormal(a, f, d1, [-1, 1, 0]));
+    tri(e, b, c1, c, 1, faceNormal(e, b, c1, [1, 1, 0]));
+    tri(e, c1, f, c, 1, faceNormal(e, c1, f, [1, 1, 0]));
   }
-  function foliage(x, y, z, r, hex) {
-    const c = color(hex),
-      rings = 5,
-      segs = 9;
+  // Esfera achatada com normal por vértice (copa arredondada); a base fica mais escura, como sombra própria.
+  function foliage(x, y, z, r, hex, rings = 5, segs = 9, squash = 0.9) {
+    const c = typeof hex === 'string' ? color(hex) : hex;
     const point = (i, j) => {
       const v = (Math.PI * i) / rings,
-        t = (2 * Math.PI * j) / segs;
-      return [
-        x + Math.sin(v) * Math.cos(t) * r,
-        y + Math.cos(v) * r * 0.9,
-        z + Math.sin(v) * Math.sin(t) * r,
-      ];
+        t = (2 * Math.PI * j) / segs,
+        n = [Math.sin(v) * Math.cos(t), Math.cos(v), Math.sin(v) * Math.sin(t)];
+      return [[x + n[0] * r, y + n[1] * r * squash, z + n[2] * r], n];
     };
     for (let i = 0; i < rings; i++)
       for (let j = 0; j < segs; j++) {
-        tri(point(i, j), point(i + 1, j), point(i + 1, j + 1), c, 0.78 + i * 0.055);
-        tri(point(i, j), point(i + 1, j + 1), point(i, j + 1), c, 0.78 + i * 0.055);
+        const [p1, n1] = point(i, j),
+          [p2, n2] = point(i + 1, j),
+          [p3, n3] = point(i + 1, j + 1),
+          [p4, n4] = point(i, j + 1),
+          ao = 1 - (0.16 * i) / rings;
+        triSmooth([p1, p2, p3], [n1, n2, n3], c, ao);
+        triSmooth([p1, p3, p4], [n1, n3, n4], c, ao);
       }
   }
   function tree(x, z, size = 1) {
@@ -85,8 +121,11 @@ export function createWorldRenderer(
         c = color(j % 2 ? '6f9358' : '567c4a');
       const tip = [x + Math.cos(t) * 2.1, y + 3.5, z + Math.sin(t) * 2.1],
         mid = [x + Math.cos(t) * 0.9, y + 4.6, z + Math.sin(t) * 0.9];
-      tri([x, y + 4, z], [mid[0] + 0.35 * Math.sin(t), mid[1], mid[2] - 0.35 * Math.cos(t)], tip, c);
-      tri([x, y + 4, z], tip, [mid[0] - 0.35 * Math.sin(t), mid[1], mid[2] + 0.35 * Math.cos(t)], c, 0.85);
+      const base = [x, y + 4, z],
+        left = [mid[0] + 0.35 * Math.sin(t), mid[1], mid[2] - 0.35 * Math.cos(t)],
+        right = [mid[0] - 0.35 * Math.sin(t), mid[1], mid[2] + 0.35 * Math.cos(t)];
+      tri(base, left, tip, c, 1, faceNormal(base, left, tip, [0, 1, 0]));
+      tri(base, tip, right, c, 0.92, faceNormal(base, tip, right, [0, 1, 0]));
     }
   }
 
@@ -243,6 +282,11 @@ export function createWorldRenderer(
     foliage(x, 4.1, -36, 0.85, '658d58');
   }
   for (const x of [-14, 14]) palm(x, 0.2, 31);
+  // Muro lateral do condomínio, do portão até os patamares, com rufo de cerâmica.
+  for (const x of [-17.3, 17.3]) {
+    box(x, -0.1, 1, 0.35, 2, 64.5, 'efe9dc');
+    box(x, 1.9, 1, 0.5, 0.12, 64.6, 'c7835a');
+  }
   box(-7, 0.2, -28, 1.4, 0.12, 3, '9ab280');
   foliage(-7, 0.8, -28, 0.7, '71975e');
   // Personagens simbólicos, sem representar a aparência de pessoas reais.
@@ -346,6 +390,329 @@ export function createWorldRenderer(
   box(4.4, 1.5, -5.8, 1.6, 1.5, 0.08, '8fa9a3');
   box(6, 0.1, -1, 0.8, 0.55, 1.2, 'f1eee3');
   const upperCount = vertices.length / 6 - upperStart;
+  // ── Paisagem do litoral (ilustrativa, Região dos Lagos): restinga, morros, praia, mar turquesa até o
+  // horizonte, costão, coqueiros, estrada e barcos de pesca. Desenhada antes do condomínio, com projeção
+  // própria, e fora do clique. Posições fixas (semente), para o cenário ser sempre o mesmo.
+  const sceneryStart = vertices.length / 6;
+  let seed = 20261112;
+  const random = () => {
+    seed = (seed + 0x6d2b79f5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  const hash = (x, z) => {
+    const s = Math.sin(x * 127.1 + z * 311.7) * 43758.5453;
+    return s - Math.floor(s);
+  };
+  function noise(x, z) {
+    const xi = Math.floor(x),
+      zi = Math.floor(z),
+      fx = x - xi,
+      fz = z - zi,
+      sx = fx * fx * (3 - 2 * fx),
+      sz = fz * fz * (3 - 2 * fz),
+      a = hash(xi, zi),
+      b = hash(xi + 1, zi),
+      c = hash(xi, zi + 1),
+      d = hash(xi + 1, zi + 1);
+    return a + (b - a) * sx + (c - a) * sz + (a - b - c + d) * sx * sz;
+  }
+  const smoothstep = (e0, e1, v) => {
+    const t = Math.max(0, Math.min(1, (v - e0) / (e1 - e0)));
+    return t * t * (3 - 2 * t);
+  };
+  const SEA_LEVEL = -0.9,
+    // Enseada: a praia fica logo atrás dos patamares e faz uma curva suave.
+    shoreZ = (x) => -128 - 0.00022 * x * x + 6 * Math.sin(x / 53 + 1.3),
+    // Pontas de terra nas laterais da enseada, uma ilha no horizonte (como as da região) e morros
+    // atrás de quem chega pela estrada.
+    HILLS = [
+      [-250, -205, 105, 30],
+      [270, -235, 115, 26],
+      [-40, -640, 95, 24],
+      [520, 260, 190, 38],
+      [-540, 220, 200, 34],
+    ];
+  const lotDistance = (x, z) => Math.hypot(Math.max(0, Math.abs(x) - 17), Math.max(0, -54 - z, z - 39)),
+    lotLevel = (z) => (z < -44 ? 5.9 : z < -31 ? 2.9 : -0.7);
+  function terrainHeight(x, z) {
+    const inland = z - shoreZ(x),
+      far = smoothstep(40, 320, lotDistance(x, z));
+    // Terra firme com ondulações de restinga que crescem longe do condomínio.
+    let h = -0.5 + (noise(x / 38, z / 38) - 0.5) * 3.2 * far + (noise(x / 9, z / 9) - 0.5) * 0.4;
+    // Praia: sobe devagar a partir da linha d'água; abaixo dela, o fundo do mar.
+    h = inland < 0 ? SEA_LEVEL + inland * 0.05 : Math.min(h, SEA_LEVEL + inland * 0.03);
+    // Duna baixa entre o condomínio e a praia, só em terra firme (um max no mar o aterraria).
+    if (inland > 12)
+      h = Math.max(
+        h,
+        -0.5 +
+          3.1 *
+            Math.exp(-((z + 78) ** 2) / 300) *
+            (1 - smoothstep(50, 140, Math.abs(x))) *
+            smoothstep(12, 36, inland),
+      );
+    for (const [hx, hz, r, hh] of HILLS) {
+      const dist = Math.hypot(x - hx, z - hz) / r;
+      h = Math.max(h, hh * Math.exp(-dist * dist * 1.6) * (0.85 + 0.3 * noise(x / 25, z / 25)) - 1.5);
+    }
+    // Platô do condomínio: o terreno encosta nos patamares.
+    const lot = 1 - smoothstep(0, 16, lotDistance(x, z));
+    return h * (1 - lot) + lotLevel(z) * lot;
+  }
+  const SAND = color('f3e7cb'),
+    SAND_DARK = color('e2d1ab'),
+    WET = color('cbb68f'),
+    SCRUB = color('8fa05e'),
+    SCRUB_DRY = color('d4c79c'),
+    FOREST = color('5f7c45'),
+    ROCK = color('8d8578'),
+    LAWN = color('9db571');
+  // Restinga: areia clara com manchas de vegetação baixa; mais verde nos morros e em volta do condomínio.
+  function groundColor(x, z, h, slope) {
+    const inland = z - shoreZ(x),
+      n = noise(x / 14, z / 14),
+      patch = smoothstep(0.55, 0.82, noise(x / 30 + 5, z / 30));
+    // Morros e pontas de terra (inclusive os que avançam no mar): vegetação e rocha pela altura e inclinação.
+    if (h > 2.4) {
+      if (slope > 0.55) return mix(ROCK, SCRUB, n * 0.4);
+      return mix(SCRUB, FOREST, smoothstep(6, 20, h) * (0.6 + 0.4 * n));
+    }
+    if (h < SEA_LEVEL + 0.35 || inland < 3) return WET;
+    if (inland < 40) return mix(SAND, SAND_DARK, n * 0.6);
+    if (lotDistance(x, z) < 12) return mix(LAWN, SCRUB, n * 0.4);
+    return mix(mix(SCRUB_DRY, SAND, n * 0.6), SCRUB, patch * 0.85);
+  }
+  const lit = (p, n, col, shade = 1) => {
+    const l = light(n);
+    vertices.push(...p, col[0] * shade * l[0], col[1] * shade * l[1], col[2] * shade * l[2]);
+  };
+  // Malha do terreno: mais fina perto da praia, onde a linha d'água precisa ser contínua.
+  const xs = [],
+    zs = [];
+  for (let x = -720; x <= 720; x += 24) xs.push(x);
+  for (let z = -720; z < -180; z += 45) zs.push(z);
+  for (let z = -180; z < -96; z += 6) zs.push(z);
+  for (let z = -96; z <= 720; z += 28) zs.push(z);
+  const cells = zs.map((z) =>
+    xs.map((x) => {
+      const h = terrainHeight(x, z),
+        e = 3,
+        n = unit([
+          terrainHeight(x - e, z) - terrainHeight(x + e, z),
+          2 * e,
+          terrainHeight(x, z - e) - terrainHeight(x, z + e),
+        ]);
+      return {p: [x, h, z], n, c: groundColor(x, z, h, 1 - n[1])};
+    }),
+  );
+  const insideLot = (v) => Math.abs(v.p[0]) < 17 && v.p[2] > -54 && v.p[2] < 39;
+  for (let i = 0; i < zs.length - 1; i++)
+    for (let j = 0; j < xs.length - 1; j++) {
+      const q = [cells[i][j], cells[i][j + 1], cells[i + 1][j + 1], cells[i + 1][j]];
+      if (q.every((v) => v.p[1] < SEA_LEVEL - 0.4) || q.every(insideLot)) continue;
+      for (const k of [0, 1, 2, 0, 2, 3]) lit(q[k].p, q[k].n, q[k].c);
+    }
+  // Mar: turquesa raso junto à praia, azul profundo ao largo; a neblina leva ao horizonte.
+  const SHALLOW = color('63d2c8'),
+    LAGOON = color('22aab6'),
+    DEEP = color('147394'),
+    OPEN = color('0e5279');
+  const seaColor = (x, z) => {
+    const off = shoreZ(x) - z;
+    return off < 60
+      ? mix(SHALLOW, LAGOON, off / 60)
+      : off < 260
+        ? mix(LAGOON, DEEP, (off - 60) / 200)
+        : mix(DEEP, OPEN, (off - 260) / 700);
+  };
+  const seaXs = [-3200, -1200];
+  for (let x = -1100; x <= 1100; x += 50) seaXs.push(x);
+  seaXs.push(1200, 3200);
+  const seaZs = [-96, -115, -130, -150, -175, -205, -245, -300, -380, -500, -700, -1000, -1500, -2200, -3200];
+  // Terra além da malha (até o horizonte, em volta da enseada), plana; a neblina esconde a emenda.
+  const FAR_LAND = mix(SCRUB_DRY, SCRUB, 0.35);
+  for (const [x0, x1, z0, z1] of [
+    [-3200, -720, -260, 3200],
+    [720, 3200, -260, 3200],
+    [-720, 720, 720, 3200],
+  ]) {
+    const q = [
+      [x0, -0.6, z0],
+      [x1, -0.6, z0],
+      [x1, -0.6, z1],
+      [x0, -0.6, z1],
+    ];
+    for (const k of [0, 1, 2, 0, 2, 3]) lit(q[k], [0, 1, 0], FAR_LAND);
+  }
+  for (let i = 0; i < seaZs.length - 1; i++)
+    for (let j = 0; j < seaXs.length - 1; j++) {
+      const q = [
+        [seaXs[j], seaZs[i]],
+        [seaXs[j + 1], seaZs[i]],
+        [seaXs[j + 1], seaZs[i + 1]],
+        [seaXs[j], seaZs[i + 1]],
+      ];
+      for (const k of [0, 1, 2, 0, 2, 3]) {
+        const [x, z] = q[k],
+          col = seaColor(x, z);
+        vertices.push(x, SEA_LEVEL, z, col[0] * 1.02, col[1] * 1.02, col[2] * 1.02);
+      }
+    }
+  // Espuma da arrebentação acompanhando a linha d'água.
+  const FOAM = [0.97, 0.98, 0.96];
+  for (let x = -700; x < 700; x += 8) {
+    const z1 = shoreZ(x),
+      z2 = shoreZ(x + 8),
+      y = SEA_LEVEL + 0.12,
+      ripple = 0.5 + noise(x / 20, 3) * 1.4;
+    triColored(
+      [
+        [x, y, z1 - ripple],
+        [x + 8, y, z2 - ripple],
+        [x + 8, y, z2 + 0.5],
+      ],
+      [FOAM, FOAM, FOAM],
+    );
+    triColored(
+      [
+        [x, y, z1 - ripple],
+        [x + 8, y, z2 + 0.5],
+        [x, y, z1 + 0.5],
+      ],
+      [FOAM, FOAM, FOAM],
+    );
+    // Segunda linha de onda, mais fraca, um pouco mar adentro.
+    if (noise(x / 30, 7) > 0.45) {
+      const wave = mix(LAGOON, FOAM, 0.55),
+        w1 = z1 - 9 - noise(x / 15, 9) * 4,
+        w2 = z2 - 9 - noise((x + 8) / 15, 9) * 4;
+      triColored(
+        [
+          [x, SEA_LEVEL + 0.06, w1 - 0.6],
+          [x + 8, SEA_LEVEL + 0.06, w2 - 0.6],
+          [x + 8, SEA_LEVEL + 0.06, w2 + 0.6],
+        ],
+        [wave, wave, wave],
+      );
+      triColored(
+        [
+          [x, SEA_LEVEL + 0.06, w1 - 0.6],
+          [x + 8, SEA_LEVEL + 0.06, w2 + 0.6],
+          [x, SEA_LEVEL + 0.06, w1 + 0.6],
+        ],
+        [wave, wave, wave],
+      );
+    }
+  }
+  // Estrada de acesso ao portão.
+  for (let z = 40; z < 620; z += 15) {
+    const y1 = terrainHeight(0, z) + 0.08,
+      y2 = terrainHeight(0, z + 15) + 0.08;
+    for (const [x0, x1, hex] of [
+      [-3.6, 3.6, '8f8a80'],
+      [-4.4, -3.6, 'd8d0bd'],
+      [3.6, 4.4, 'd8d0bd'],
+    ]) {
+      const c = color(hex),
+        a = [x0, y1, z],
+        b = [x1, y1, z],
+        c1 = [x1, y2, z + 15],
+        d1 = [x0, y2, z + 15];
+      tri(a, b, c1, c, 1, [0, 1, 0]);
+      tri(a, c1, d1, c, 1, [0, 1, 0]);
+    }
+  }
+  // Costão rochoso onde os morros encontram o mar.
+  const ROCKS = ['8e877b', '7e786d', '9a9283'];
+  for (const [hx, hz, r] of HILLS.slice(0, 3)) {
+    let placed = 0;
+    for (let tries = 0; tries < 80 && placed < 10; tries++) {
+      const a = random() * Math.PI * 2,
+        d = r * (0.6 + random() * 1.1),
+        x = hx + Math.cos(a) * d,
+        z = hz + Math.sin(a) * d,
+        h = terrainHeight(x, z);
+      if (h < SEA_LEVEL - 1.5 || h > SEA_LEVEL + 1.8 || z > shoreZ(x) + 6) continue;
+      const size = 2.2 + random() * 4.2;
+      foliage(x, SEA_LEVEL + size * 0.12, z, size, ROCKS[placed % 3], 3, 6, 0.55);
+      placed++;
+    }
+  }
+  // Coqueiros ao longo da praia.
+  for (let x = -280; x <= 280; x += 26 + random() * 22) {
+    const z = shoreZ(x) + 20 + random() * 16;
+    palm(x, terrainHeight(x, z) - 0.1, z);
+  }
+  // Restinga: arbustos baixos espalhados fora da praia e do condomínio.
+  const BUSHES = ['6f8a4c', '7f9a55', '5f7a42', '8fa463', '738f5a'];
+  for (let k = 0; k < 130; k++) {
+    // Mais perto do condomínio, onde a câmera vê de perto.
+    const spread = k < 70 ? 220 : 760,
+      x = (random() - 0.5) * spread,
+      z = -110 + random() * (k < 70 ? 260 : 560),
+      inland = z - shoreZ(x);
+    if (lotDistance(x, z) < 9 || (Math.abs(x) < 9 && z > 38) || inland < 38) continue;
+    const r = 0.7 + random() * 1.2;
+    foliage(x, terrainHeight(x, z) + r * 0.3, z, r, BUSHES[k % 5], 4, 7, 0.7);
+  }
+  // Mata nas encostas dos morros.
+  for (let k = 0; k < 55; k++) {
+    const [hx, hz, r] = HILLS[k % HILLS.length],
+      a = random() * Math.PI * 2,
+      d = random() * r * 0.75,
+      x = hx + Math.cos(a) * d,
+      z = hz + Math.sin(a) * d,
+      h = terrainHeight(x, z);
+    if (h < 3) continue;
+    const s = 2.6 + random() * 3;
+    foliage(x, h + s * 0.45, z, s, BUSHES[(k + 2) % 5], 3, 5, 0.8);
+  }
+  // Barcos de pesca coloridos, ancorados perto da praia.
+  for (const [x, z, stripe] of [
+    [-62, -228, 'c8473b'],
+    [28, -252, '2f6fb0'],
+    [96, -214, 'e2ae2f'],
+    [-150, -296, '3f8f5a'],
+    [182, -330, 'c8473b'],
+  ]) {
+    box(x, SEA_LEVEL - 0.35, z, 2.4, 1.2, 6.4, 'f4f1ea');
+    box(x, SEA_LEVEL - 0.3, z - 3.9, 1.4, 1.15, 1.6, 'f4f1ea');
+    box(x, SEA_LEVEL + 0.6, z, 2.5, 0.24, 6.5, stripe);
+    box(x, SEA_LEVEL + 0.84, z + 1.2, 1.7, 1.2, 2.2, 'faf8f2');
+    box(x, SEA_LEVEL + 2.04, z + 1.2, 1.9, 0.14, 2.4, stripe);
+    box(x, SEA_LEVEL + 0.84, z - 1.4, 0.14, 3.6, 0.14, '7a5a3c');
+  }
+  const sceneryCount = vertices.length / 6 - sceneryStart;
+  // ── Céu: degradê do horizonte enevoado ao azul do alto. Sem luz e sem neblina.
+  const domeStart = vertices.length / 6,
+    HAZE = [0.88, 0.93, 0.94],
+    SKY_LOW = [0.73, 0.87, 0.95],
+    ZENITH = [0.42, 0.68, 0.9],
+    skyColor = (e) =>
+      e <= 0 ? HAZE : e < 0.14 ? mix(HAZE, SKY_LOW, e / 0.14) : mix(SKY_LOW, ZENITH, (e - 0.14) / 1.1),
+    rings = [-0.25, 0, 0.03, 0.08, 0.16, 0.28, 0.45, 0.7, 1, 1.3, Math.PI / 2],
+    skyPoint = (e, a) => [
+      3300 * Math.cos(e) * Math.cos(a),
+      3300 * Math.sin(e),
+      3300 * Math.cos(e) * Math.sin(a),
+    ];
+  for (let i = 0; i < rings.length - 1; i++)
+    for (let j = 0; j < 36; j++) {
+      const a0 = (j / 36) * Math.PI * 2,
+        a1 = ((j + 1) / 36) * Math.PI * 2,
+        [e0, e1] = [rings[i], rings[i + 1]];
+      triColored(
+        [skyPoint(e0, a0), skyPoint(e0, a1), skyPoint(e1, a1)],
+        [skyColor(e0), skyColor(e0), skyColor(e1)],
+      );
+      triColored(
+        [skyPoint(e0, a0), skyPoint(e1, a1), skyPoint(e1, a0)],
+        [skyColor(e0), skyColor(e1), skyColor(e1)],
+      );
+    }
+  const domeCount = vertices.length / 6 - domeStart;
   const vertexData = new Float32Array(vertices),
     pick = createPickIndex(vertexData, exteriorCount, ranges),
     shaders = [];
@@ -373,7 +740,7 @@ export function createWorldRenderer(
       program,
       shader(
         gl.FRAGMENT_SHADER,
-        'precision mediump float;varying vec3 vColor;varying float vDepth;void main(){float fog=clamp((vDepth-65.0)/220.0,0.0,0.22);gl_FragColor=vec4(mix(vColor,vec3(0.84,0.90,0.85),fog),1.0);}',
+        'precision mediump float;varying vec3 vColor;varying float vDepth;uniform vec3 uFog;uniform vec3 uFogColor;void main(){float fog=clamp((vDepth-uFog.x)/uFog.y,0.0,uFog.z);gl_FragColor=vec4(mix(vColor,uFogColor,fog),1.0);}',
       ),
     );
     gl.linkProgram(program);
@@ -397,7 +764,22 @@ export function createWorldRenderer(
     throw error;
   }
   shaders.forEach((s) => gl.deleteShader(s));
-  const uniform = gl.getUniformLocation(program, 'uM');
+  const uniform = gl.getUniformLocation(program, 'uM'),
+    fogUniform = gl.getUniformLocation(program, 'uFog');
+  gl.uniform3f(gl.getUniformLocation(program, 'uFogColor'), HAZE[0], HAZE[1], HAZE[2]);
+  // Vista de cartão-postal do login: mais baixa, com o mar e o horizonte ao fundo. Em tela larga, o
+  // condomínio fica à esquerda, livre do cartão de acesso; no celular, o cartão sobe da base e a "lente" é
+  // deslocada para cima (shift), para condomínio e mar aparecerem acima dele.
+  function scenicView(w, h) {
+    if (w <= 600) return {yaw: 0.55, pitch: 0.13, distance: 230, x: 0, z: -20, shift: 0.5};
+    const aspect = w / h;
+    if (aspect <= 1.2) return {yaw: 0.4, pitch: 0.28, distance: 190, x: 16, z: -45, shift: 0};
+    const t = Math.max(0, Math.min(1, (aspect - 1.2) / 0.5));
+    return {yaw: 0.42, pitch: 0.27, distance: 170 - 20 * t, x: 6 + 14 * t, z: -52, shift: 0};
+  }
+  const lensShift = (m, shift) =>
+    shift ? multiply(new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, shift, 0, 1]), m) : m;
+  let scenic = false;
   let yaw = 0.22,
     pitch = 0.92,
     distance = 106,
@@ -473,25 +855,44 @@ export function createWorldRenderer(
       canvas.height = Math.round(h * dpr);
     }
     gl.viewport(0, 0, canvas.width, canvas.height);
-    gl.clearColor(0.84, 0.9, 0.85, 1);
+    gl.clearColor(HAZE[0], HAZE[1], HAZE[2], 1);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    const ground = walkHeight(z),
+    const orbit = scenic && !interior && !walk ? scenicView(w, h) : {yaw, pitch, distance, x, z, shift: 0},
+      ground = walkHeight(z),
       eye = interior
         ? [Math.sin(yaw) * 3, 2.7 + pitch * 0.3, Math.max(4, Math.min(9, distance))]
         : walk
           ? [x, ground + 2.1, z]
           : [
-              x + distance * Math.sin(yaw) * Math.cos(pitch),
-              distance * Math.sin(pitch),
-              z + distance * Math.cos(yaw) * Math.cos(pitch),
+              orbit.x + orbit.distance * Math.sin(orbit.yaw) * Math.cos(orbit.pitch),
+              orbit.distance * Math.sin(orbit.pitch),
+              orbit.z + orbit.distance * Math.cos(orbit.yaw) * Math.cos(orbit.pitch),
             ],
       target = interior
         ? [Math.sin(yaw) * 5, 1.8, -3]
         : walk
           ? [x - Math.sin(yaw) * 5, ground + 2.1 + Math.sin(pitch - 0.92) * 3, z - Math.cos(yaw) * 5]
-          : [x, 0, z];
-    matrix = multiply(perspective(w / h, walk ? fov : (Math.PI * 2) / 7), viewMatrix(eye, target));
+          : [orbit.x, 0, orbit.z],
+      view = viewMatrix(eye, target),
+      lens = walk ? fov : (Math.PI * 2) / 7;
+    if (!interior) {
+      // Céu e paisagem com projeção própria (vão até o horizonte); depois o condomínio por cima.
+      gl.uniformMatrix4fv(
+        uniform,
+        false,
+        lensShift(multiply(perspective(w / h, lens, walk ? 0.5 : 3, 4200), view), orbit.shift),
+      );
+      gl.uniform3f(fogUniform, 0, 1, 0);
+      gl.depthMask(false);
+      gl.drawArrays(gl.TRIANGLES, domeStart, domeCount);
+      gl.depthMask(true);
+      gl.uniform3f(fogUniform, 180, 1700, 0.92);
+      gl.drawArrays(gl.TRIANGLES, sceneryStart, sceneryCount);
+      gl.clear(gl.DEPTH_BUFFER_BIT);
+    }
+    matrix = lensShift(multiply(perspective(w / h, lens), view), orbit.shift);
     gl.uniformMatrix4fv(uniform, false, matrix);
+    gl.uniform3f(fogUniform, 110, 320, interior ? 0 : 0.14);
     gl.drawArrays(
       gl.TRIANGLES,
       interior ? (upper ? upperStart : exteriorCount) : 0,
@@ -732,6 +1133,13 @@ export function createWorldRenderer(
       }
     },
     renderStill,
+    // Login: câmera de cartão-postal; ao sair, a vista volta a seguir a câmera do passeio.
+    setScenic(on) {
+      if (scenic === !!on) return;
+      scenic = !!on;
+      if (paused) renderStill();
+      else invalidate();
+    },
     dispose() {
       disposed = true;
       clearInput();

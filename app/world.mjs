@@ -4,6 +4,7 @@ import {can, ROLES} from './permissions.mjs';
 // Cena local em WebGL, sem bibliotecas ou serviços externos.
 const SVG = {
   map: '<path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3zM9 3v15M15 6v15"/>',
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
   home: '<path d="m3 11 9-8 9 8M5 10v11h14V10M9 21v-7h6v7"/>',
   people:
     '<circle cx="9" cy="8" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3M16 5a3 3 0 0 1 0 6M18 15a5 5 0 0 1 3 5"/>',
@@ -171,7 +172,7 @@ export function mountWorld(root, options) {
     ...(can(user, 'materials') || role === 'zelador' ? [['list', 'Materiais', 'materials']] : []),
     ...(can(user, 'stays') || role === 'portaria' ? [['key', 'Acessos', 'access']] : []),
   ];
-  root.innerHTML = `<main class="world-shell" id="main"><canvas id="world-canvas" tabindex="0" aria-describedby="world-hint" aria-label="Passeio 3D ilustrativo. Arraste para olhar; no modo Passear, use as setas. Mapa e lista oferecem navegação sem 3D."></canvas><div class="world-vignette"></div><header class="world-top"><button class="world-menu-toggle" id="world-menu-toggle" aria-label="Abrir menu do condomínio" aria-controls="world-navigation" aria-expanded="false">${icon('menu')}</button><div class="world-brand"><span class="brand-icon">V</span><div><small>VILAZUNI · VIDA EM COMUNIDADE</small><strong role="heading" aria-level="1">Condomínio Chandra</strong></div></div><span class="world-mode"><i></i> Mundo interativo <b>DEMO</b></span><label class="world-profile"><span>Explorar como</span><select id="world-role">${Object.entries(
+  root.innerHTML = `<main class="world-shell" id="main"><canvas id="world-canvas" tabindex="0" aria-describedby="world-hint" aria-label="Passeio 3D ilustrativo. Arraste para olhar; no modo Passear, use as setas. Mapa e lista oferecem navegação sem 3D."></canvas><div class="world-vignette"></div><header class="world-top"><button class="world-menu-toggle" id="world-menu-toggle" aria-label="Abrir menu do condomínio" aria-controls="world-navigation" aria-expanded="false">${icon('menu')}</button><div class="world-brand"><span class="brand-icon">V</span><div><small>VILAZUNI · VIDA EM COMUNIDADE</small><strong role="heading" aria-level="1">Condomínio Chandra</strong><span class="world-place">${icon('sun')}Arraial do Cabo · RJ</span></div></div><span class="world-mode"><i></i> Mundo interativo <b>DEMO</b></span><label class="world-profile"><span>Explorar como</span><select id="world-role">${Object.entries(
     roles,
   )
     .map(([k, v]) => `<option value="${k}" ${role === k ? 'selected' : ''}>${v}</option>`)
@@ -304,6 +305,7 @@ export function mountWorld(root, options) {
     const locked = shell.classList.contains('is-locked');
     canvas.tabIndex = locked ? -1 : 0;
     canvas.setAttribute('aria-hidden', String(locked));
+    renderer?.setScenic(locked);
     renderer?.pause(mode !== '3d' || shell.classList.contains('has-overlay') || locked);
   }
   function lost() {

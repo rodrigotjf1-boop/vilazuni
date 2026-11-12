@@ -1,0 +1,411 @@
+/* Tela de entrada (login, convite, recuperação, primeiro acesso e "sem conexão").
+   Carregada por último: vence as regras antigas de .auth-entry espalhadas em immersive/navigation/panel.css.
+   Paleta litorânea (veraneio): mar turquesa/profundo e areia. Contrastes medidos: texto 13,3:1, apoio 5,8:1,
+   botão (branco sobre #0c7a87) 5,1:1, links 7:1. */
+.world-shell.is-locked {
+  --vz-ink: #0f2f38;
+  --vz-muted: #4a646c;
+  --vz-sea-900: #0b3a4a;
+  --vz-sea-700: #0a5d6c;
+  --vz-sea-600: #0c7a87;
+  --vz-sea-500: #139aa8;
+  --vz-sea-100: #def3f2;
+  --vz-sand-50: #fbf8f1;
+  --vz-sand-200: #ecdfc4;
+  --vz-line: #c9d8da;
+  /* Sem WebGL, o próprio fundo desenha céu, mar e areia. */
+  background: linear-gradient(
+    180deg,
+    #8fc6e6 0%,
+    #cfe7f1 38%,
+    #e3eef0 44%,
+    #2fb3bf 44.6%,
+    #1d93a6 54%,
+    #f1e4c6 54.6%,
+    #e2d2ad 100%
+  );
+}
+.world-shell.is-locked .world-vignette {
+  background: linear-gradient(180deg, #f3f9fbcc 0%, #f3f9fb33 16%, transparent 30%),
+    linear-gradient(0deg, #0b3a4a33 0%, transparent 22%);
+}
+
+/* Marca e lugar */
+.world-shell.is-locked .world-brand strong {
+  color: var(--vz-sea-900);
+  text-shadow: 0 1px 14px #ffffffb0;
+}
+.world-shell.is-locked .world-brand small {
+  color: var(--vz-sea-700);
+  font-weight: 700;
+}
+.world-shell.is-locked .brand-icon {
+  background: linear-gradient(150deg, #19b0b6, #0a5d6c);
+  color: #fff;
+  border-color: #ffffffb0;
+  box-shadow: 0 10px 26px #0b3a4a33;
+}
+.world-shell .world-place {
+  display: none;
+}
+.world-shell.is-locked .world-place {
+  display: flex;
+  width: fit-content;
+  align-items: center;
+  gap: 7px;
+  margin-top: 10px;
+  padding: 6px 12px 6px 9px;
+  border-radius: 999px;
+  background: #ffffffc4;
+  border: 1px solid #ffffff;
+  color: var(--vz-sea-700);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.1px;
+  box-shadow: 0 6px 18px #0b3a4a1a;
+  backdrop-filter: blur(10px);
+}
+.world-shell.is-locked .world-place svg {
+  width: 16px;
+  height: 16px;
+  color: #e3a12f;
+}
+.world-shell.is-locked .world-disclaimer {
+  background: #ffffffb3;
+  color: var(--vz-muted);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 11px;
+}
+
+/* Cartão */
+.world-shell.is-locked .auth-entry {
+  position: absolute;
+  z-index: 12;
+  top: 50%;
+  right: clamp(24px, 5vw, 80px);
+  left: auto;
+  bottom: auto;
+  transform: translateY(-50%);
+  width: min(400px, calc(100vw - 48px));
+  max-height: calc(100dvh - 48px);
+  overflow: auto;
+  padding: 36px 36px 26px;
+  border-radius: 26px;
+  background: #ffffffd6;
+  border: 1px solid #ffffff;
+  box-shadow:
+    0 30px 70px -28px #0b3a4a66,
+    0 2px 6px #0b3a4a14;
+  backdrop-filter: blur(18px) saturate(1.3);
+  color: var(--vz-ink);
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    sans-serif;
+  font-size: 15px;
+  line-height: 1.55;
+  animation: auth-rise 0.45s ease-out both;
+}
+@keyframes auth-rise {
+  from {
+    opacity: 0;
+    translate: 0 14px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+.world-shell.is-locked .auth-head {
+  margin-bottom: 22px;
+}
+.world-shell.is-locked .auth-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--vz-sea-700);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+}
+.world-shell.is-locked .auth-kicker::before {
+  content: '';
+  width: 18px;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--vz-sea-500), #e3a12f);
+}
+.world-shell.is-locked .auth-entry h1 {
+  margin: 12px 0 8px;
+  color: var(--vz-sea-900);
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.6px;
+}
+.world-shell.is-locked .auth-entry > p,
+.world-shell.is-locked .auth-entry .auth-lead {
+  margin: 0;
+  color: var(--vz-muted);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+/* Campos */
+.world-shell.is-locked .auth-entry form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.world-shell.is-locked .auth-entry .float-wizard label,
+.world-shell.is-locked .auth-field > label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin: 0;
+  color: var(--vz-ink);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.world-shell.is-locked .auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.world-shell.is-locked .auth-entry input {
+  width: 100%;
+  height: 50px;
+  min-height: 50px;
+  padding: 0 16px;
+  border: 1px solid var(--vz-line);
+  border-radius: 14px;
+  background: #fff;
+  color: var(--vz-ink);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: 0;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+.world-shell.is-locked .auth-entry input::placeholder {
+  color: #6b8188;
+}
+.world-shell.is-locked .auth-entry input:focus {
+  outline: none;
+  border-color: var(--vz-sea-500);
+  box-shadow: 0 0 0 4px #139aa82e;
+}
+.world-shell.is-locked .auth-password {
+  position: relative;
+}
+.world-shell.is-locked .auth-password input {
+  padding-right: 52px;
+}
+.world-shell.is-locked .auth-reveal {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 11px;
+  background: transparent;
+  color: var(--vz-sea-700);
+  cursor: pointer;
+}
+.world-shell.is-locked .auth-reveal:hover {
+  background: var(--vz-sea-100);
+}
+.world-shell.is-locked .auth-reveal:focus-visible {
+  outline: 3px solid var(--vz-sea-500);
+  outline-offset: -3px;
+}
+.world-shell.is-locked .auth-reveal svg {
+  width: 20px;
+  height: 20px;
+}
+.world-shell.is-locked .auth-reveal .eye-closed,
+.world-shell.is-locked .auth-reveal[aria-pressed='true'] .eye-open {
+  display: none;
+}
+.world-shell.is-locked .auth-reveal[aria-pressed='true'] .eye-closed {
+  display: block;
+}
+.world-shell.is-locked .auth-entry small {
+  display: block;
+  color: var(--vz-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.world-shell.is-locked .auth-entry details summary {
+  color: var(--vz-sea-700);
+  font-size: 14px;
+  cursor: pointer;
+}
+.world-shell.is-locked .auth-error:empty {
+  display: none;
+}
+.world-shell.is-locked .auth-error {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #fdf0ec;
+  border: 1px solid #f2c9bd;
+  color: #8f3622;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+/* Botão principal */
+.world-shell.is-locked .auth-entry .glass-primary {
+  width: 100%;
+  min-height: 52px;
+  margin: 4px 0 0;
+  border: 0;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--vz-sea-600), var(--vz-sea-700));
+  color: #fff;
+  font-size: 16px !important;
+  font-weight: 650;
+  letter-spacing: 0.1px;
+  box-shadow: 0 12px 24px -12px #0a5d6c99;
+  cursor: pointer;
+  transition:
+    filter 0.15s,
+    transform 0.15s;
+}
+.world-shell.is-locked .auth-entry .glass-primary:hover:not(:disabled) {
+  filter: brightness(1.07);
+  transform: translateY(-1px);
+}
+.world-shell.is-locked .auth-entry .glass-primary:focus-visible {
+  outline: 3px solid #e3a12f;
+  outline-offset: 3px;
+}
+
+/* Links: lado a lado, mesmo peso, alinhados às bordas do cartão. */
+.world-shell.is-locked .auth-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 16px;
+  margin-top: 18px;
+}
+.world-shell.is-locked .auth-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--vz-sea-700);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: #0a5d6c55;
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+.world-shell.is-locked .auth-link:hover {
+  text-decoration-color: currentColor;
+}
+.world-shell.is-locked .auth-link:focus-visible {
+  outline: 3px solid var(--vz-sea-500);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+.world-shell.is-locked .auth-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 14px 0 0;
+  padding-top: 14px;
+  border-top: 1px solid #dfe9ea;
+  color: var(--vz-muted);
+  font-size: 13px;
+}
+.world-shell.is-locked .auth-foot svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  color: var(--vz-sea-600);
+}
+.world-shell.is-locked .auth-status {
+  margin: 14px 0;
+  color: var(--vz-muted);
+  font-size: 14px;
+}
+.world-shell.is-locked .auth-status:empty {
+  display: none;
+}
+
+/* Tablet */
+@media (max-width: 900px) {
+  .world-shell.is-locked .auth-entry {
+    right: 24px;
+    width: min(400px, calc(100vw - 48px));
+  }
+}
+
+/* Celular: o cenário fica no alto e o cartão sobe da base, como uma folha. */
+@media (max-width: 600px) {
+  .world-shell.is-locked .auth-entry {
+    top: auto;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    transform: none;
+    width: auto;
+    max-height: 76dvh;
+    padding: 26px 22px max(22px, env(safe-area-inset-bottom));
+    border-radius: 26px 26px 0 0;
+    border-width: 1px 0 0;
+    box-shadow: 0 -18px 40px -24px #0b3a4a66;
+  }
+  .world-shell.is-locked .auth-entry h1 {
+    font-size: 26px;
+  }
+  .world-shell.is-locked .auth-head {
+    margin-bottom: 18px;
+  }
+  .world-shell.is-locked .world-place {
+    font-size: 12px;
+    margin-top: 8px;
+  }
+  .world-shell.is-locked .world-disclaimer {
+    display: none;
+  }
+}
+
+/* Tela baixa (notebook com zoom, celular deitado): o cartão rola dentro de si. */
+@media (max-height: 640px) and (min-width: 601px) {
+  .world-shell.is-locked .auth-entry {
+    padding: 24px 28px 20px;
+  }
+  .world-shell.is-locked .auth-head {
+    margin-bottom: 14px;
+  }
+  .world-shell.is-locked .auth-entry h1 {
+    font-size: 26px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .world-shell.is-locked .auth-entry {
+    animation: none;
+  }
+  .world-shell.is-locked .auth-entry .glass-primary {
+    transition: none;
+  }
+}
