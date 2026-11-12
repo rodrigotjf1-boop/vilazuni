@@ -1,0 +1,4 @@
+# Commits só de formatação: o `git blame` (e o GitHub) pulam estes e mostram o autor real de cada linha.
+# Uso local: git config blame.ignoreRevsFile .git-blame-ignore-revs
+# chore: formatar o código com prettier (sem mudança de comportamento) — PR #22
+c0e9620560ec76adc58f5080be52e042aaf4c5fe
