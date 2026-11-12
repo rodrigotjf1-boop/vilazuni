@@ -46,9 +46,9 @@ Definir antes do lançamento: frequência, destino externo separado, retenção,
 | MFA opcional | `MFA_ENABLED=true`; `REQUIRE_MANAGER_MFA=true` somente para exigir de gestores | Desabilitado por padrão; habilitar apenas com decisão explícita e autenticadores/códigos recuperáveis |
 | Recuperação por e-mail | `MAIL_API_KEY`, `MAIL_FROM` (adaptador Resend) | Remetente/domínio verificados e teste real de entrega; reset não remove MFA |
 | Web push | VAPID pública/privada e `VAPID_SUBJECT` mailto | Permissão e entrega nos aparelhos; inscrição voluntária |
-| Portão | `ACCESS_<CHAVE>_URL`, `_SECRET` | HTTPS, HMAC, idempotência, expiração, ambiente controlado e procedimento presencial |
-| Placa | `ACCESS_<CHAVE>_EVENT_SECRET` | HMAC do corpo exato, timestamp em milissegundos, nonce e conferência humana |
-| Câmera instantânea | `ACCESS_<CHAVE>_SNAPSHOT_URL`, `_CAMERA_TOKEN` | HTTPS autenticado, JPEG/PNG ≤ 2 MiB; não é vídeo contínuo |
+| Portão | `ACCESS_<CHAVE>_TENANT`, `ACCESS_<CHAVE>_URL`, `_SECRET` | `_TENANT` = id do condomínio dono do adaptador (obrigatório: sem ele, ou com outro condomínio, a chave não existe para ninguém). HTTPS, HMAC, idempotência, expiração, ambiente controlado e procedimento presencial |
+| Placa | `ACCESS_<CHAVE>_TENANT`, `ACCESS_<CHAVE>_EVENT_SECRET` | Mesmo `_TENANT` do adaptador. HMAC do corpo exato, timestamp em milissegundos, nonce e conferência humana |
+| Câmera instantânea | `ACCESS_<CHAVE>_TENANT`, `ACCESS_<CHAVE>_SNAPSHOT_URL`, `_CAMERA_TOKEN` | Mesmo `_TENANT`. HTTPS autenticado, JPEG/PNG ≤ 2 MiB; não é vídeo contínuo |
 | Android TWA | `ANDROID_SHA256_CERT_FINGERPRINTS` separados por vírgula | Impressão do certificado real, domínio e pacote br.com.vilazuni.app |
 
 Webhook Telegram: `POST /api/channels/telegram/webhook`, cabeçalho `X-Telegram-Bot-Api-Secret-Token`; cadastrar somente depois de conferir o domínio HTTPS e a configuração do grupo. API oficial do Telegram deve ser usada para registrar o webhook; token nunca vai em arquivo público. Não há envio a conversas comuns nem WhatsApp automatizado.

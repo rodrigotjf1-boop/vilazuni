@@ -258,7 +258,11 @@ test('equipamentos demonstrativos simulam localmente e não usam relés, placas 
     denied(),
   );
   assert.equal(sent, 0);
-  assert.doesNotThrow(() => saveDevice(s, live, {...input, mode: 'relay', adapterKey: 'REAL'}, now));
+  assert.doesNotThrow(() =>
+    saveDevice(s, live, {...input, mode: 'relay', adapterKey: 'REAL'}, now, {
+      ACCESS_REAL_TENANT: live.tenant,
+    }),
+  );
 });
 
 test('push demonstrativo não registra destino externo nem usa VAPID global; operação real continua disponível', async () => {

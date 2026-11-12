@@ -9,6 +9,13 @@ function operator(u) {
   if (!physicalOperator(u)) throw Error('Operação física exige permissão específica.');
 }
 const timestamp = (now) => new Date(now).toISOString();
+// Cada adaptador configurado no servidor pertence a UM condomínio: ACCESS_<CHAVE>_TENANT=<id do condomínio>.
+// Quem define é a distribuição (quem configura o servidor), não o síndico. Sem essa ligação, ou com a de outro
+// condomínio, a chave é tratada como inexistente — a mesma resposta nos dois casos, para não revelar chaves.
+const adapterBound = (env, key, tenant) =>
+  typeof key === 'string' && typeof tenant === 'string' && env['ACCESS_' + key + '_TENANT'] === tenant;
+const adapterValue = (env, key, tenant, suffix) =>
+  adapterBound(env, key, tenant) ? env['ACCESS_' + key + '_' + suffix] : undefined;
 function device(state, u, id) {
   const d = (state.accessDevices || []).find((d) => d.tenant === u.tenant && d.id === id && d.active);
   if (!d) throw Error('Equipamento indisponível.');
@@ -35,7 +42,7 @@ export function physicalView(state, u) {
       .reverse(),
   };
 }
-export function saveDevice(state, u, input, now = Date.now()) {
+export function saveDevice(state, u, input, now = Date.now(), env = process.env) {
   if (!can(u, 'physicalAccess')) throw Error('Cadastro exige gestão de equipamentos.');
   if (!['simulator', 'relay'].includes(input.mode)) throw Error('Selecione simulador ou relé homologado.');
   if (input.mode !== 'simulator') requireLiveTenant(state, u.tenant, 'O equipamento físico');
@@ -43,6 +50,10 @@ export function saveDevice(state, u, input, now = Date.now()) {
     input.mode === 'relay' ? text(input.adapterKey, 'Identificador da configuração no servidor', 80) : null;
   if (adapterKey && !/^[A-Z][A-Z0-9_]{2,79}$/.test(adapterKey))
     throw Error('Use identificador de configuração em maiúsculas.');
+  if (adapterKey && !adapterBound(env, adapterKey, u.tenant))
+    throw Error(
+      'Identificador de configuração não liberado para este condomínio. Peça a liberação ao suporte do Vilazuni.',
+    );
   const d = {
     id: randomUUID(),
     tenant: u.tenant,
@@ -143,8 +154,9 @@ export async function deliverGate(prepared, env = process.env, fetcher = fetch) 
   )
     return {status: 'simulated', notice: 'Simulação concluída. Nenhum equipamento recebeu comando.'};
   const key = prepared.device.adapterKey,
-    url = env['ACCESS_' + key + '_URL'],
-    secret = env['ACCESS_' + key + '_SECRET'];
+    tenant = prepared.device.tenant,
+    url = adapterValue(env, key, tenant, 'URL'),
+    secret = adapterValue(env, key, tenant, 'SECRET');
   if (!url || !secret)
     return {status: 'failed', notice: 'Adaptador não configurado. Use o procedimento presencial.'};
   let endpoint;
@@ -214,7 +226,7 @@ export function recordPassage(state, u, input, now = Date.now()) {
 export function plateEvent(state, deviceId, raw, signature, env = process.env, now = Date.now()) {
   const d = (state.accessDevices || []).find((d) => d.id === deviceId && d.active && d.mode === 'relay');
   if (d) requireLiveTenant(state, d.tenant, 'O recebimento de placas por equipamento');
-  const secret = d && env['ACCESS_' + d.adapterKey + '_EVENT_SECRET'];
+  const secret = d && adapterValue(env, d.adapterKey, d.tenant, 'EVENT_SECRET');
   if (!secret || !/^([a-f\d]{64})$/.test(signature || '')) throw Error('Evento não autenticado.');
   const expected = createHmac('sha256', secret).update(raw).digest('hex');
   if (!timingSafeEqual(Buffer.from(expected), Buffer.from(signature))) throw Error('Evento não autenticado.');
@@ -256,8 +268,8 @@ export async function cameraSnapshot(d, env = process.env, fetcher = fetch) {
       ),
       notice: 'Imagem sintética de teste.',
     };
-  const url = env['ACCESS_' + d.adapterKey + '_SNAPSHOT_URL'],
-    token = env['ACCESS_' + d.adapterKey + '_CAMERA_TOKEN'];
+  const url = adapterValue(env, d.adapterKey, d.tenant, 'SNAPSHOT_URL'),
+    token = adapterValue(env, d.adapterKey, d.tenant, 'CAMERA_TOKEN');
   let endpoint;
   try {
     endpoint = new URL(url);

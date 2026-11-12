@@ -224,17 +224,19 @@ test('portão exige autorização vigente e confirmação, despacha uma vez e se
 });
 test('relé sem confirmação não repete e eventos de placa verificam HMAC, relógio e nonce sem abrir portão', async () => {
   const {state} = physicalFixture(),
+    env = {
+      ACCESS_TEST_RELAY_TENANT: 'chandra',
+      ACCESS_TEST_RELAY_URL: 'https://adapter.example.test/pulse',
+      ACCESS_TEST_RELAY_SECRET: 'synthetic',
+      ACCESS_TEST_RELAY_EVENT_SECRET: 'event-synthetic',
+    },
     device = saveDevice(
       state,
       manager,
       {name: 'Relé sintético', mode: 'relay', adapterKey: 'TEST_RELAY', reason: 'Adaptador sintético'},
       now,
-    ),
-    env = {
-      ACCESS_TEST_RELAY_URL: 'https://adapter.example.test/pulse',
-      ACCESS_TEST_RELAY_SECRET: 'synthetic',
-      ACCESS_TEST_RELAY_EVENT_SECRET: 'event-synthetic',
-    };
+      env,
+    );
   const command = queueGate(
       state,
       manager,
