@@ -56,6 +56,27 @@ export function perspective(aspect, fov = (Math.PI * 2) / 7, near = 0.2, far = 2
     0,
   ]);
 }
+// Projeção ortográfica (luz do sol, que chega em raios paralelos): usada para o mapa de sombras.
+export function orthographic(left, right, bottom, top, near, far) {
+  return new Float32Array([
+    2 / (right - left),
+    0,
+    0,
+    0,
+    0,
+    2 / (top - bottom),
+    0,
+    0,
+    0,
+    0,
+    -2 / (far - near),
+    0,
+    -(right + left) / (right - left),
+    -(top + bottom) / (top - bottom),
+    -(far + near) / (far - near),
+    1,
+  ]);
+}
 export function transform(m, p) {
   return Array.from({length: 4}, (_, i) => p.reduce((n, v, k) => n + m[k * 4 + i] * v, 0));
 }
@@ -107,13 +128,17 @@ export function rayTriangle(ray, a, b, c) {
   const t = inv * dot(edge2, q);
   return t >= 0 ? t : null;
 }
-export function pickMesh(vertices, ranges, ray) {
+export function pickMesh(vertices, ranges, ray, stride = 6) {
   if (!ray) return null;
   let nearest = Infinity,
     id = null;
   for (const range of ranges)
     for (let i = range.start; i < range.start + range.count; i += 3) {
-      const point = (n) => [vertices[(i + n) * 6], vertices[(i + n) * 6 + 1], vertices[(i + n) * 6 + 2]],
+      const point = (n) => [
+          vertices[(i + n) * stride],
+          vertices[(i + n) * stride + 1],
+          vertices[(i + n) * stride + 2],
+        ],
         distance = rayTriangle(ray, point(0), point(1), point(2));
       if (distance !== null && distance < nearest) {
         nearest = distance;
@@ -138,7 +163,7 @@ function hitsBox(ray, min, max) {
   }
   return true;
 }
-export function createPickIndex(vertices, count, ranges) {
+export function createPickIndex(vertices, count, ranges, stride = 6) {
   const chunks = [];
   for (let start = 0; start < count; start += 192) {
     const end = Math.min(count, start + 192),
@@ -146,7 +171,7 @@ export function createPickIndex(vertices, count, ranges) {
       max = [-Infinity, -Infinity, -Infinity];
     for (let i = start; i < end; i++)
       for (let k = 0; k < 3; k++) {
-        const v = vertices[i * 6 + k];
+        const v = vertices[i * stride + k];
         min[k] = Math.min(min[k], v);
         max[k] = Math.max(max[k], v);
       }
@@ -159,7 +184,11 @@ export function createPickIndex(vertices, count, ranges) {
     for (const c of chunks) {
       if (!hitsBox(ray, c.min, c.max)) continue;
       for (let i = c.start; i < c.end; i += 3) {
-        const p = (n) => [vertices[(i + n) * 6], vertices[(i + n) * 6 + 1], vertices[(i + n) * 6 + 2]],
+        const p = (n) => [
+            vertices[(i + n) * stride],
+            vertices[(i + n) * stride + 1],
+            vertices[(i + n) * stride + 2],
+          ],
           t = rayTriangle(ray, p(0), p(1), p(2));
         if (t !== null && t < nearest) {
           nearest = t;
