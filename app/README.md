@@ -187,6 +187,8 @@ No modo local, dados sintéticos e arquivo JSON continuam disponíveis. Produç�
 
 `npm run test:browser` executa uma jornada sintética em Chromium. Instale o navegador com `npx playwright-core install chromium` ou informe `CHROMIUM_PATH`. Para testes de PostgreSQL, veja `scripts/prepare-pg-test.mjs`; nunca use banco com dados reais. Scripts operacionais: `npm run db:migrate`, `npm run db:import-json -- <store.json>`, `npm run backup -- create|restore <arquivo>`.
 
+Formatação: o código segue o prettier (configuração em `.prettierrc.json` na raiz). Rode `npm run format` antes do commit; o CI reprova o PR com `npm run format:check` se algum arquivo `.mjs`, `.js` ou `.css` estiver fora do padrão.
+
 
 ## Personagens, mural e menu
 

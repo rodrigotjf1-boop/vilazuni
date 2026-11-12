@@ -1,238 +1,2105 @@
-import {previewFullDemo,createFullDemo,fullDemoView,demoMembership,demoProfile,demoSource} from './full-demo.mjs';
+import {
+  previewFullDemo,
+  createFullDemo,
+  fullDemoView,
+  demoMembership,
+  demoProfile,
+  demoSource,
+} from './full-demo.mjs';
 import {isDemoTenant} from './demo-policy.mjs';
-import {previewPilotDemo,applyPilotDemo} from './pilot-demo.mjs';
-import {automationView,configureAutomation,authenticateAutomation,automationContext,queueAutomationNotice,prepareAutomationReminders,claimAutomationMessage,acknowledgeAutomation} from './automation.mjs';
+import {previewPilotDemo, applyPilotDemo} from './pilot-demo.mjs';
+import {
+  automationView,
+  configureAutomation,
+  authenticateAutomation,
+  automationContext,
+  queueAutomationNotice,
+  prepareAutomationReminders,
+  claimAutomationMessage,
+  acknowledgeAutomation,
+} from './automation.mjs';
 import {createAsaasService} from './asaas-service.mjs';
 import {createAsaasClient} from './asaas-client.mjs';
 import {asaasView} from './asaas.mjs';
-import {memberProfile,listMemberProfiles,saveMemberProfile,memberPhoto} from './member-profiles.mjs';
+import {memberProfile, listMemberProfiles, saveMemberProfile, memberPhoto} from './member-profiles.mjs';
 import {accessPeriod} from './access-periods.mjs';
-import {communityView,communitySummary,communityProfile,communityEditor,saveCommunityProfile,readCommunityPhoto,readCommunityNotice,saveCommunityNotice,markCommunityNoticeRead,archiveCommunityNotice} from './community.mjs';
-import {privacyView,requestPrivacy,decidePrivacy,supportSnapshot} from './privacy.mjs';
-import {pushConfig,saveSubscription,removeSubscription,sendPush} from './push.mjs';
-import {channelsView,saveChannel,prepareChannel,prepareDaily,scheduledChannels,telegramWebhook,claimChannelMessage,deliverTelegram} from './channels.mjs';
-import {cameraSnapshot,physicalView,saveDevice,toggleDevice,queueGate,claimGate,finishGate,deliverGate,recordPassage,plateEvent} from './physical.mjs';
+import {
+  communityView,
+  communitySummary,
+  communityProfile,
+  communityEditor,
+  saveCommunityProfile,
+  readCommunityPhoto,
+  readCommunityNotice,
+  saveCommunityNotice,
+  markCommunityNoticeRead,
+  archiveCommunityNotice,
+} from './community.mjs';
+import {privacyView, requestPrivacy, decidePrivacy, supportSnapshot} from './privacy.mjs';
+import {pushConfig, saveSubscription, removeSubscription, sendPush} from './push.mjs';
+import {
+  channelsView,
+  saveChannel,
+  prepareChannel,
+  prepareDaily,
+  scheduledChannels,
+  telegramWebhook,
+  claimChannelMessage,
+  deliverTelegram,
+} from './channels.mjs';
+import {
+  cameraSnapshot,
+  physicalView,
+  saveDevice,
+  toggleDevice,
+  queueGate,
+  claimGate,
+  finishGate,
+  deliverGate,
+  recordPassage,
+  plateEvent,
+} from './physical.mjs';
 import {privateFileStorage} from './private-files.mjs';
-import {runtimeConfig,clientAddress} from './runtime-config.mjs';
-import {credentialVault,newFactor,verifyTotp,recoveryCodes,checkFactor,createMailProvider} from './security.mjs';
-import {createOpenAiProvider,answerEvidence,reserveAnswer,validateAnswer} from './assistant.mjs';
+import {runtimeConfig, clientAddress} from './runtime-config.mjs';
+import {
+  credentialVault,
+  newFactor,
+  verifyTotp,
+  recoveryCodes,
+  checkFactor,
+  createMailProvider,
+} from './security.mjs';
+import {createOpenAiProvider, answerEvidence, reserveAnswer, validateAnswer} from './assistant.mjs';
 import {createTaskProposalStore} from './assisted-tasks.mjs';
-import {alertsView,prepareAlerts,createIncidentAlert,updateAlert} from './alerts.mjs';
-import {assembliesView,readAssembly,createAssembly,setRepresentation,publishAssembly,changeAssembly,declarePresence,openAgenda,voteAgenda,closeAgenda,closeAssembly,exportMinutes,proposeHandover,acceptHandover} from './assemblies.mjs';
-import {fileStorage,postgresStorage} from './storage.mjs';
-import {allBindings,usersInTenant,bindingFor,effectiveBinding,availableContexts,tenantSettings,tenantView,createTenant,updateTenant,closeTenant,configurePlan,saveUnit,exportTenant,previewMasterImport,importMasterData} from './tenants.mjs';
-import {knowledgeView,readSource,consultSources,createSource,reviseSource,publishSource,toggleSource} from './knowledge.mjs';
-import {previewBriefing,saveBriefing,visibleBriefings} from './briefings.mjs';
-import {pollsView,readPoll,createPoll,votePoll,closePoll} from './polls.mjs';
-import {tourView,tourPlace,linkTourFacility} from './tour.mjs';
-import {assignFinancialPayer,issueManualRequest,cancelManualRequest,setCollectionHold,createCollectionCase,updateCollectionCase,saveReminderPolicy,prepareFinancialReminders,visiblePayerCharges} from './finance-collection.mjs';
-import {createFeeRule,decideFeeRule,previewFeeAccrual,applyFeeAccrual,cancelFeeAccrual} from './finance-fees.mjs';
+import {alertsView, prepareAlerts, createIncidentAlert, updateAlert} from './alerts.mjs';
+import {
+  assembliesView,
+  readAssembly,
+  createAssembly,
+  setRepresentation,
+  publishAssembly,
+  changeAssembly,
+  declarePresence,
+  openAgenda,
+  voteAgenda,
+  closeAgenda,
+  closeAssembly,
+  exportMinutes,
+  proposeHandover,
+  acceptHandover,
+} from './assemblies.mjs';
+import {fileStorage, postgresStorage} from './storage.mjs';
+import {
+  allBindings,
+  usersInTenant,
+  bindingFor,
+  effectiveBinding,
+  availableContexts,
+  tenantSettings,
+  tenantView,
+  createTenant,
+  updateTenant,
+  closeTenant,
+  configurePlan,
+  saveUnit,
+  exportTenant,
+  previewMasterImport,
+  importMasterData,
+} from './tenants.mjs';
+import {
+  knowledgeView,
+  readSource,
+  consultSources,
+  createSource,
+  reviseSource,
+  publishSource,
+  toggleSource,
+} from './knowledge.mjs';
+import {previewBriefing, saveBriefing, visibleBriefings} from './briefings.mjs';
+import {pollsView, readPoll, createPoll, votePoll, closePoll} from './polls.mjs';
+import {tourView, tourPlace, linkTourFacility} from './tour.mjs';
+import {
+  assignFinancialPayer,
+  issueManualRequest,
+  cancelManualRequest,
+  setCollectionHold,
+  createCollectionCase,
+  updateCollectionCase,
+  saveReminderPolicy,
+  prepareFinancialReminders,
+  visiblePayerCharges,
+} from './finance-collection.mjs';
+import {
+  createFeeRule,
+  decideFeeRule,
+  previewFeeAccrual,
+  applyFeeAccrual,
+  cancelFeeAccrual,
+} from './finance-fees.mjs';
 import {previewStatement} from './finance-reconciliation.mjs';
-import {financeView,financialReport,financialClosureReport,createFund,createAccount,toggleFinancial,createEntry,transfer,createPayable,importPurchase,payPayable,changePayable,editPayable,reverseEntry,closeMonth,reopenMonth,createReceivable,receiveReceivable,changeReceivable,editReceivable,payPayablePartial,receiveReceivablePartial,saveBudget,saveAssessment,approveAssessment,cancelAssessment,generateAssessment,createAgreement,approveAgreement,activateAgreement,cancelAgreement,saveRecurringTemplate,toggleRecurringTemplate,prepareRecurringAssessment,importStatement,changeStatementRow,cancelStatement} from './finance.mjs';
-import {visibleDocuments,documentAlerts,createDocument,addDocumentVersion,toggleDocument,readDocumentFile} from './documents.mjs';
-import {visibleSuppliers,visiblePurchases,createSupplier,updateSupplier,toggleSupplier,createPurchase,addQuote,submitPurchase,decidePurchase,receivePurchase} from './purchases.mjs';
-import {visibleParcels,createParcel,updateParcel} from './parcels.mjs';
-import {visibleNotifications,notifyChanges,readNotifications} from './notifications.mjs';
-import {visibleFacilities,visibleReservations,createFacility,toggleFacility,createReservation,decideReservation} from './facilities.mjs';
-import {visibleMaintenance,createMaintenance,toggleMaintenance,generateMaintenance} from './maintenance.mjs';
-import {can,DELEGATIONS} from './permissions.mjs';
-import {prepareBinding,validBinding,reviseDelegation,reviseResidentialAccess} from './access.mjs';
-import {visibleMaterials,createMaterial,moveMaterial} from './materials.mjs';
-import {visibleIncidents,createIncident,updateIncident} from './incidents.mjs';
-import {visibleTasks,createTask,assignTask,advanceTask,addTaskPhoto,readTaskPhoto,checkTask} from './tasks.mjs';
-import {randomBytes,randomUUID,scrypt as scryptCallback,timingSafeEqual,createHash} from 'node:crypto';
+import {
+  financeView,
+  financialReport,
+  financialClosureReport,
+  createFund,
+  createAccount,
+  toggleFinancial,
+  createEntry,
+  transfer,
+  createPayable,
+  importPurchase,
+  payPayable,
+  changePayable,
+  editPayable,
+  reverseEntry,
+  closeMonth,
+  reopenMonth,
+  createReceivable,
+  receiveReceivable,
+  changeReceivable,
+  editReceivable,
+  payPayablePartial,
+  receiveReceivablePartial,
+  saveBudget,
+  saveAssessment,
+  approveAssessment,
+  cancelAssessment,
+  generateAssessment,
+  createAgreement,
+  approveAgreement,
+  activateAgreement,
+  cancelAgreement,
+  saveRecurringTemplate,
+  toggleRecurringTemplate,
+  prepareRecurringAssessment,
+  importStatement,
+  changeStatementRow,
+  cancelStatement,
+} from './finance.mjs';
+import {
+  visibleDocuments,
+  documentAlerts,
+  createDocument,
+  addDocumentVersion,
+  toggleDocument,
+  readDocumentFile,
+} from './documents.mjs';
+import {
+  visibleSuppliers,
+  visiblePurchases,
+  createSupplier,
+  updateSupplier,
+  toggleSupplier,
+  createPurchase,
+  addQuote,
+  submitPurchase,
+  decidePurchase,
+  receivePurchase,
+} from './purchases.mjs';
+import {visibleParcels, createParcel, updateParcel} from './parcels.mjs';
+import {visibleNotifications, notifyChanges, readNotifications} from './notifications.mjs';
+import {
+  visibleFacilities,
+  visibleReservations,
+  createFacility,
+  toggleFacility,
+  createReservation,
+  decideReservation,
+} from './facilities.mjs';
+import {
+  visibleMaintenance,
+  createMaintenance,
+  toggleMaintenance,
+  generateMaintenance,
+} from './maintenance.mjs';
+import {can, DELEGATIONS} from './permissions.mjs';
+import {prepareBinding, validBinding, reviseDelegation, reviseResidentialAccess} from './access.mjs';
+import {visibleMaterials, createMaterial, moveMaterial} from './materials.mjs';
+import {visibleIncidents, createIncident, updateIncident} from './incidents.mjs';
+import {
+  visibleTasks,
+  createTask,
+  assignTask,
+  advanceTask,
+  addTaskPhoto,
+  readTaskPhoto,
+  checkTask,
+} from './tasks.mjs';
+import {randomBytes, randomUUID, scrypt as scryptCallback, timingSafeEqual, createHash} from 'node:crypto';
 import {promisify} from 'node:util';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import {visibleResidents,createResident,updateResident,endResident,localDay,readResidentPhoto} from './residents.mjs';
+import {
+  visibleResidents,
+  createResident,
+  updateResident,
+  endResident,
+  localDay,
+  readResidentPhoto,
+} from './residents.mjs';
 import {houseHousehold} from './household.mjs';
-import {caregiverContactGrants,grantCaretakerContacts,revokeCaretakerContacts} from './household-access.mjs';
-import {seed,scopedHouses,visibleStays,readStayPhoto,createStay,changeStay} from './domain.mjs';
-const assemblyActions={'/api/assemblies/create':createAssembly,'/api/assemblies/publish':publishAssembly,'/api/assemblies/status':changeAssembly,'/api/assemblies/presence':declarePresence,'/api/assemblies/agenda/open':openAgenda,'/api/assemblies/vote':voteAgenda,'/api/assemblies/agenda/close':closeAgenda,'/api/assemblies/close':closeAssembly};
-const civicActions={'/api/knowledge/sources/create':createSource,'/api/knowledge/sources/revise':reviseSource,'/api/knowledge/sources/publish':publishSource,'/api/knowledge/sources/toggle':toggleSource,'/api/knowledge/briefings/save':saveBriefing,'/api/polls/create':createPoll,'/api/polls/vote':votePoll,'/api/polls/close':closePoll};
-const financeActions={'/api/finance/collection/issue':issueManualRequest,'/api/finance/collection/cancel':cancelManualRequest,'/api/finance/collection/hold':setCollectionHold,'/api/finance/collection/cases/create':createCollectionCase,'/api/finance/collection/cases/update':updateCollectionCase,'/api/finance/collection/reminders/policy':saveReminderPolicy,'/api/finance/fees/rules/create':createFeeRule,'/api/finance/fees/rules/decide':decideFeeRule,'/api/finance/fees/apply':applyFeeAccrual,'/api/finance/fees/cancel':cancelFeeAccrual,'/api/finance/statements/import':importStatement,'/api/finance/statements/row':changeStatementRow,'/api/finance/statements/cancel':cancelStatement,'/api/finance/agreements/create':createAgreement,'/api/finance/agreements/approve':approveAgreement,'/api/finance/agreements/activate':activateAgreement,'/api/finance/agreements/cancel':cancelAgreement,'/api/finance/recurring/save':saveRecurringTemplate,'/api/finance/recurring/toggle':toggleRecurringTemplate,'/api/finance/recurring/prepare':prepareRecurringAssessment,'/api/finance/payables/partial':payPayablePartial,'/api/finance/receivables/partial':receiveReceivablePartial,'/api/finance/assessments/save':saveAssessment,'/api/finance/assessments/approve':approveAssessment,'/api/finance/assessments/cancel':cancelAssessment,'/api/finance/assessments/generate':generateAssessment,'/api/finance/receivables/create':createReceivable,'/api/finance/receivables/record':receiveReceivable,'/api/finance/receivables/status':changeReceivable,'/api/finance/receivables/edit':editReceivable,'/api/finance/budgets/save':saveBudget,'/api/finance/funds/create':createFund,'/api/finance/accounts/create':createAccount,'/api/finance/toggle':toggleFinancial,'/api/finance/entries/create':createEntry,'/api/finance/transfer':transfer,'/api/finance/payables/create':createPayable,'/api/finance/payables/import':importPurchase,'/api/finance/payables/record':payPayable,'/api/finance/payables/status':changePayable,'/api/finance/payables/edit':editPayable,'/api/finance/reverse':reverseEntry,'/api/finance/close':closeMonth,'/api/finance/reopen':reopenMonth};
-const scrypt=promisify(scryptCallback),digest=v=>createHash('sha256').update(v).digest('hex');
-const fail=(status,message)=>{throw Object.assign(new Error(message),{status});};
-const publicUser=u=>({id:u.id,name:u.name,email:u.email,role:u.role,tenant:u.tenant,houses:u.houses,active:u.active,validUntil:u.validUntil,delegations:u.delegations||[],delegationReason:u.delegationReason||null,delegatedBy:u.delegatedBy||null,residentId:u.residentId||null,stayId:u.stayId||null,accessVersion:u.accessVersion||0,purchaseLimitCents:u.purchaseLimitCents??null});
-function identity(input){const name=String(input.name||'').trim(),email=String(input.email||'').trim().toLowerCase();if(name.length<3||name.length>120||email.length>200||!/^\S+@\S+\.\S+$/.test(email))fail(400,'Informe nome e e-mail válidos.');return {name,email};}
-async function passwordHash(password){if(typeof password!=='string'||password.length<12||password.length>128)fail(400,'Use uma senha entre 12 e 128 caracteres.');const salt=randomBytes(16).toString('hex');const hash=await scrypt(password,salt,64,{N:32768,r:8,p:1,maxmem:64*1024*1024});return {salt,hash:hash.toString('hex')};}
-async function passwordMatches(password,record){if(typeof password!=='string'||password.length>128)return false;const hash=await scrypt(password,record.salt,64,{N:32768,r:8,p:1,maxmem:64*1024*1024});return timingSafeEqual(hash,Buffer.from(record.hash,'hex'));}
-export async function createAuthApi({directory,now=()=>Date.now(),sessionMs=8*3600000,idleMs=30*60000,databaseUrl=process.env.DATABASE_URL,storage:providedStorage,assistantProvider=createOpenAiProvider(),config=runtimeConfig(),vault=credentialVault(process.env.MFA_SECRET_KEY),mailProvider=createMailProvider(),asaasClientFactory=createAsaasClient}={}){
- const mfaAvailable=config.mfaEnabled===true,requireManagerMfa=mfaAvailable&&config.requireManagerMfa===true;
- const initial=()=>({schema:1,users:[],invites:[],events:[],state:config.production?Object.fromEntries(Object.entries(seed()).map(([key,value])=>[key,Array.isArray(value)?[]:value])):seed()});
- const baseStorage=providedStorage||(databaseUrl?await postgresStorage(databaseUrl,initial):await fileStorage(directory,initial));const storage=directory?privateFileStorage(baseStorage,path.join(directory,'private-files')):baseStorage;let db=await storage.load();
- db.state.residents??=[];
- const proposals=createTaskProposalStore(),assistantInFlight=new Set();
- const sessions=new Map(),attempts=new Map();let queue=Promise.resolve();const dummy=await passwordHash(randomBytes(32).toString('hex'));
- function sessionActor(s,identity){if(!identity||identity.demoIdentity)return null;if(!s.demoUserId)return effectiveBinding(db,identity,s.tenant||identity.tenant);try{return demoProfile(db,identity,s.tenant,s.demoUserId,now());}catch{return null;}}
- async function persist(next){await storage.save(next);db=next;for(const [key,s] of sessions){const identity=db.users.find(u=>u.id===s.userId),binding=sessionActor(s,identity);if(!validBinding(db.state,binding,now())||s.accessVersion!==(binding?.accessVersion||0)||s.credentialVersion!==(identity?.credentialVersion||0))sessions.delete(key);}}
- function event(next,user,action){next.events.push({at:new Date(now()).toISOString(),actor:user.id,tenant:user.tenant,action});}
- const valid=u=>validBinding(db.state,u,now());
- function getSession(req,{touch=true}={}){const token=(req.headers.cookie||'').split(';').map(x=>x.trim()).find(x=>x.startsWith('vilazuni_session='))?.slice(17),key=token?digest(token):'',s=sessions.get(key),identity=s&&db.users.find(u=>u.id===s.userId),u=s&&sessionActor(s,identity);if(!s||s.until<=now()||s.last+idleMs<=now()||!valid(u)||s.credentialVersion!==(identity?.credentialVersion||0)||s.accessVersion!==(u.accessVersion||0)){sessions.delete(key);return null;}if(touch)s.last=now();return {key,user:u,identity};}
- function issue(res,u,{identityId=u.id,demoUserId=null}={}){const token=randomBytes(32).toString('base64url'),identity=db.users.find(p=>p.id===identityId);sessions.set(digest(token),{userId:identityId,demoUserId,tenant:u.tenant,credentialVersion:identity?.credentialVersion||0,accessVersion:u.accessVersion||0,until:now()+sessionMs,last:now()});res.setHeader('Set-Cookie',`vilazuni_session=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${Math.floor(sessionMs/1000)}${config.secure?'; Secure':''}`);}
- function describe(u){const t=tenantSettings(db.state,u.tenant),identity=db.users.find(x=>x.id===(u.demoIdentity?t.demoOwnerId:u.id));return {...publicUser(u),demoMode:t.demoMode===true,demoIdentity:u.demoIdentity===true,enabledModules:t.features||Object.keys(DELEGATIONS),tenantName:t.name,accessPeriod:accessPeriod(db.state,u),mfaAvailable,mfaEnabled:mfaAvailable&&!!identity?.mfa,mfaRequired:requireManagerMfa&&['sindico','subsindico','administradora'].includes(u.role)&&!identity?.mfa};}
+import {
+  caregiverContactGrants,
+  grantCaretakerContacts,
+  revokeCaretakerContacts,
+} from './household-access.mjs';
+import {seed, scopedHouses, visibleStays, readStayPhoto, createStay, changeStay} from './domain.mjs';
+const assemblyActions = {
+  '/api/assemblies/create': createAssembly,
+  '/api/assemblies/publish': publishAssembly,
+  '/api/assemblies/status': changeAssembly,
+  '/api/assemblies/presence': declarePresence,
+  '/api/assemblies/agenda/open': openAgenda,
+  '/api/assemblies/vote': voteAgenda,
+  '/api/assemblies/agenda/close': closeAgenda,
+  '/api/assemblies/close': closeAssembly,
+};
+const civicActions = {
+  '/api/knowledge/sources/create': createSource,
+  '/api/knowledge/sources/revise': reviseSource,
+  '/api/knowledge/sources/publish': publishSource,
+  '/api/knowledge/sources/toggle': toggleSource,
+  '/api/knowledge/briefings/save': saveBriefing,
+  '/api/polls/create': createPoll,
+  '/api/polls/vote': votePoll,
+  '/api/polls/close': closePoll,
+};
+const financeActions = {
+  '/api/finance/collection/issue': issueManualRequest,
+  '/api/finance/collection/cancel': cancelManualRequest,
+  '/api/finance/collection/hold': setCollectionHold,
+  '/api/finance/collection/cases/create': createCollectionCase,
+  '/api/finance/collection/cases/update': updateCollectionCase,
+  '/api/finance/collection/reminders/policy': saveReminderPolicy,
+  '/api/finance/fees/rules/create': createFeeRule,
+  '/api/finance/fees/rules/decide': decideFeeRule,
+  '/api/finance/fees/apply': applyFeeAccrual,
+  '/api/finance/fees/cancel': cancelFeeAccrual,
+  '/api/finance/statements/import': importStatement,
+  '/api/finance/statements/row': changeStatementRow,
+  '/api/finance/statements/cancel': cancelStatement,
+  '/api/finance/agreements/create': createAgreement,
+  '/api/finance/agreements/approve': approveAgreement,
+  '/api/finance/agreements/activate': activateAgreement,
+  '/api/finance/agreements/cancel': cancelAgreement,
+  '/api/finance/recurring/save': saveRecurringTemplate,
+  '/api/finance/recurring/toggle': toggleRecurringTemplate,
+  '/api/finance/recurring/prepare': prepareRecurringAssessment,
+  '/api/finance/payables/partial': payPayablePartial,
+  '/api/finance/receivables/partial': receiveReceivablePartial,
+  '/api/finance/assessments/save': saveAssessment,
+  '/api/finance/assessments/approve': approveAssessment,
+  '/api/finance/assessments/cancel': cancelAssessment,
+  '/api/finance/assessments/generate': generateAssessment,
+  '/api/finance/receivables/create': createReceivable,
+  '/api/finance/receivables/record': receiveReceivable,
+  '/api/finance/receivables/status': changeReceivable,
+  '/api/finance/receivables/edit': editReceivable,
+  '/api/finance/budgets/save': saveBudget,
+  '/api/finance/funds/create': createFund,
+  '/api/finance/accounts/create': createAccount,
+  '/api/finance/toggle': toggleFinancial,
+  '/api/finance/entries/create': createEntry,
+  '/api/finance/transfer': transfer,
+  '/api/finance/payables/create': createPayable,
+  '/api/finance/payables/import': importPurchase,
+  '/api/finance/payables/record': payPayable,
+  '/api/finance/payables/status': changePayable,
+  '/api/finance/payables/edit': editPayable,
+  '/api/finance/reverse': reverseEntry,
+  '/api/finance/close': closeMonth,
+  '/api/finance/reopen': reopenMonth,
+};
+const scrypt = promisify(scryptCallback),
+  digest = (v) => createHash('sha256').update(v).digest('hex');
+const fail = (status, message) => {
+  throw Object.assign(new Error(message), {status});
+};
+const publicUser = (u) => ({
+  id: u.id,
+  name: u.name,
+  email: u.email,
+  role: u.role,
+  tenant: u.tenant,
+  houses: u.houses,
+  active: u.active,
+  validUntil: u.validUntil,
+  delegations: u.delegations || [],
+  delegationReason: u.delegationReason || null,
+  delegatedBy: u.delegatedBy || null,
+  residentId: u.residentId || null,
+  stayId: u.stayId || null,
+  accessVersion: u.accessVersion || 0,
+  purchaseLimitCents: u.purchaseLimitCents ?? null,
+});
+function identity(input) {
+  const name = String(input.name || '').trim(),
+    email = String(input.email || '')
+      .trim()
+      .toLowerCase();
+  if (name.length < 3 || name.length > 120 || email.length > 200 || !/^\S+@\S+\.\S+$/.test(email))
+    fail(400, 'Informe nome e e-mail válidos.');
+  return {name, email};
+}
+async function passwordHash(password) {
+  if (typeof password !== 'string' || password.length < 12 || password.length > 128)
+    fail(400, 'Use uma senha entre 12 e 128 caracteres.');
+  const salt = randomBytes(16).toString('hex');
+  const hash = await scrypt(password, salt, 64, {N: 32768, r: 8, p: 1, maxmem: 64 * 1024 * 1024});
+  return {salt, hash: hash.toString('hex')};
+}
+async function passwordMatches(password, record) {
+  if (typeof password !== 'string' || password.length > 128) return false;
+  const hash = await scrypt(password, record.salt, 64, {N: 32768, r: 8, p: 1, maxmem: 64 * 1024 * 1024});
+  return timingSafeEqual(hash, Buffer.from(record.hash, 'hex'));
+}
+export async function createAuthApi({
+  directory,
+  now = () => Date.now(),
+  sessionMs = 8 * 3600000,
+  idleMs = 30 * 60000,
+  databaseUrl = process.env.DATABASE_URL,
+  storage: providedStorage,
+  assistantProvider = createOpenAiProvider(),
+  config = runtimeConfig(),
+  vault = credentialVault(process.env.MFA_SECRET_KEY),
+  mailProvider = createMailProvider(),
+  asaasClientFactory = createAsaasClient,
+} = {}) {
+  const mfaAvailable = config.mfaEnabled === true,
+    requireManagerMfa = mfaAvailable && config.requireManagerMfa === true;
+  const initial = () => ({
+    schema: 1,
+    users: [],
+    invites: [],
+    events: [],
+    state: config.production
+      ? Object.fromEntries(
+          Object.entries(seed()).map(([key, value]) => [key, Array.isArray(value) ? [] : value]),
+        )
+      : seed(),
+  });
+  const baseStorage =
+    providedStorage ||
+    (databaseUrl ? await postgresStorage(databaseUrl, initial) : await fileStorage(directory, initial));
+  const storage = directory
+    ? privateFileStorage(baseStorage, path.join(directory, 'private-files'))
+    : baseStorage;
+  let db = await storage.load();
+  db.state.residents ??= [];
+  const proposals = createTaskProposalStore(),
+    assistantInFlight = new Set();
+  const sessions = new Map(),
+    attempts = new Map();
+  let queue = Promise.resolve();
+  const dummy = await passwordHash(randomBytes(32).toString('hex'));
+  function sessionActor(s, identity) {
+    if (!identity || identity.demoIdentity) return null;
+    if (!s.demoUserId) return effectiveBinding(db, identity, s.tenant || identity.tenant);
+    try {
+      return demoProfile(db, identity, s.tenant, s.demoUserId, now());
+    } catch {
+      return null;
+    }
+  }
+  async function persist(next) {
+    await storage.save(next);
+    db = next;
+    for (const [key, s] of sessions) {
+      const identity = db.users.find((u) => u.id === s.userId),
+        binding = sessionActor(s, identity);
+      if (
+        !validBinding(db.state, binding, now()) ||
+        s.accessVersion !== (binding?.accessVersion || 0) ||
+        s.credentialVersion !== (identity?.credentialVersion || 0)
+      )
+        sessions.delete(key);
+    }
+  }
+  function event(next, user, action) {
+    next.events.push({at: new Date(now()).toISOString(), actor: user.id, tenant: user.tenant, action});
+  }
+  const valid = (u) => validBinding(db.state, u, now());
+  function getSession(req, {touch = true} = {}) {
+    const token = (req.headers.cookie || '')
+        .split(';')
+        .map((x) => x.trim())
+        .find((x) => x.startsWith('vilazuni_session='))
+        ?.slice(17),
+      key = token ? digest(token) : '',
+      s = sessions.get(key),
+      identity = s && db.users.find((u) => u.id === s.userId),
+      u = s && sessionActor(s, identity);
+    if (
+      !s ||
+      s.until <= now() ||
+      s.last + idleMs <= now() ||
+      !valid(u) ||
+      s.credentialVersion !== (identity?.credentialVersion || 0) ||
+      s.accessVersion !== (u.accessVersion || 0)
+    ) {
+      sessions.delete(key);
+      return null;
+    }
+    if (touch) s.last = now();
+    return {key, user: u, identity};
+  }
+  function issue(res, u, {identityId = u.id, demoUserId = null} = {}) {
+    const token = randomBytes(32).toString('base64url'),
+      identity = db.users.find((p) => p.id === identityId);
+    sessions.set(digest(token), {
+      userId: identityId,
+      demoUserId,
+      tenant: u.tenant,
+      credentialVersion: identity?.credentialVersion || 0,
+      accessVersion: u.accessVersion || 0,
+      until: now() + sessionMs,
+      last: now(),
+    });
+    res.setHeader(
+      'Set-Cookie',
+      `vilazuni_session=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${Math.floor(sessionMs / 1000)}${config.secure ? '; Secure' : ''}`,
+    );
+  }
+  function describe(u) {
+    const t = tenantSettings(db.state, u.tenant),
+      identity = db.users.find((x) => x.id === (u.demoIdentity ? t.demoOwnerId : u.id));
+    return {
+      ...publicUser(u),
+      demoMode: t.demoMode === true,
+      demoIdentity: u.demoIdentity === true,
+      enabledModules: t.features || Object.keys(DELEGATIONS),
+      tenantName: t.name,
+      accessPeriod: accessPeriod(db.state, u),
+      mfaAvailable,
+      mfaEnabled: mfaAvailable && !!identity?.mfa,
+      mfaRequired:
+        requireManagerMfa && ['sindico', 'subsindico', 'administradora'].includes(u.role) && !identity?.mfa,
+    };
+  }
 
- function revoke(id){for(const [key,s] of sessions)if(s.userId===id||s.demoUserId===id)sessions.delete(key);}
- function limit(req){const key=clientAddress(req,config),t=now();for(const [k,v] of attempts)if(v.until<=t)attempts.delete(k);const a=attempts.get(key)||{count:0,until:t+15*60000};if(++a.count>25)fail(429,'Muitas tentativas. Aguarde 15 minutos.');attempts.set(key,a);}
- function projection(u){let houses=scopedHouses(db.state,u,now()).map(h=>{const owners=db.state.residents.filter(r=>r.tenant===u.tenant&&r.houseId===h.id&&r.kind==='owner');return owners.length?{...h,owners:owners.filter(r=>!r.endedOn&&r.startDate<=localDay(now())).map(r=>r.name)}:h;}),stays=visibleStays(db.state,u,now());if((can(u,'facilities')||can(u,'parcels'))&&!can(u,'residents')&&!can(u,'stays')&&!['proprietario','imobiliaria','ocupante','temporario'].includes(u.role))houses=db.state.houses.filter(h=>h.tenant===u.tenant).map(({id,tenant,number})=>({id,tenant,number,owners:[]}));if(['ocupante','temporario'].includes(u.role)||!can(u,'residents')&&!['proprietario','imobiliaria','portaria'].includes(u.role)){houses=houses.map(({owners,...h})=>({...h,owners:[]}));}if(u.role==='portaria'){houses=houses.map(h=>({id:h.id,tenant:h.tenant,number:h.number,parking:h.parking,parkingType:h.parkingType}));stays=stays.filter(s=>s.status==='approved').map(s=>({id:s.id,tenant:s.tenant,houseId:s.houseId,responsible:s.responsible,people:s.people,vehicles:s.vehicles,start:s.start,end:s.end,status:s.status}));}return {deployment:{production:config.production,illustrativeTour:true,demoMode:isDemoTenant(db.state,u.tenant)},tenant:tenantView(db.state,u),community:communitySummary(db.state,u,now()),tour:tourView(db.state,u,now()),myCharges:visiblePayerCharges(db.state,u),payments:asaasView(db.state,u,usersInTenant(db.users,u.tenant),now()),version:1,houses,stays,households:Object.fromEntries(houses.map(h=>[h.id,houseHousehold(db.state,u,h.id,now())]).filter(([,v])=>v)),residents:visibleResidents(db.state,u,now()),tasks:visibleTasks(db.state,u),incidents:visibleIncidents(db.state,u),materials:visibleMaterials(db.state,u),maintenance:visibleMaintenance(db.state,u),facilities:visibleFacilities(db.state,u),reservations:visibleReservations(db.state,u),parcels:visibleParcels(db.state,u),notifications:visibleNotifications(db.state,u),suppliers:visibleSuppliers(db.state,u),purchases:visiblePurchases(db.state,u),documents:visibleDocuments(db.state,u),documentAlerts:documentAlerts(db.state,u,now()),finance:financeView(db.state,u,now()),audit:[]};}
- async function body(req,maxBytes=32768){if(!String(req.headers['content-type']||'').startsWith('application/json'))fail(415,'Envie dados no formato JSON.');const chunks=[];let size=0;for await(const chunk of req){size+=chunk.length;if(size>maxBytes)fail(413,'Solicitação muito grande.');chunks.push(chunk);}try{const raw=new TextDecoder('utf-8',{fatal:true}).decode(Buffer.concat(chunks)),obj=JSON.parse(raw||'{}');if(!obj||typeof obj!=='object'||Array.isArray(obj))throw Error();return obj;}catch{fail(400,'Dados inválidos.');}}
- function send(res,status,value){res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});res.end(JSON.stringify(value));}
- async function handle(req,res){try{
-  if(storage.kind==='postgres')db=await storage.load();
-  const url=new URL(req.url,'http://localhost'),route=url.pathname,method=req.method;
-  const expectedHost=config.origin?new URL(config.origin).host:'127.0.0.1:'+req.socket.localPort;
-  if(req.headers.host!==expectedHost)fail(403,'Endereço local não autorizado.');
-  if(method!=='GET'&&!['/api/physical/plate-event','/api/channels/telegram/webhook','/api/automation/claim','/api/automation/ack'].includes(route)&&req.headers.origin!==(config.origin||'http://'+expectedHost))fail(403,'Origem não autorizada.');
-  if(method==='POST'&&route==='/api/physical/plate-event'){const chunks=[];let size=0;for await(const c of req){size+=c.length;if(size>4096)fail(413,'Evento muito grande.');chunks.push(c);}const next=structuredClone(db);try{plateEvent(next.state,url.searchParams.get('device'),Buffer.concat(chunks).toString('utf8'),req.headers['x-vilazuni-signature'],process.env,now());}catch{fail(403,'Evento não autenticado ou repetido.');}await persist(next);return send(res,200,{accepted:true});}
-  if(method==='POST'&&route==='/api/channels/telegram/webhook'){const input=await body(req,16384),next=structuredClone(db);let result;try{result=telegramWebhook(next.state,input,req.headers['x-telegram-bot-api-secret-token'],process.env,now());}catch{fail(403,'Webhook não autenticado ou inválido.');}if(result.accepted)await persist(next);return send(res,200,result);}
-  if(['/api/automation/context','/api/automation/claim','/api/automation/ack'].includes(route)){
-   const c=authenticateAutomation(db.state,req.headers['x-vilazuni-token']);if(method==='GET'&&route.endsWith('/context'))return send(res,200,automationContext(db.state,c,now()));if(method!=='POST'||route.endsWith('/context'))fail(405,'Método não permitido.');const input=await body(req),next=structuredClone(db),result=route.endsWith('/claim')?claimAutomationMessage(next.state,c,allBindings(next.users),now()):acknowledgeAutomation(next.state,c,input,now());await persist(next);return send(res,200,result);
+  function revoke(id) {
+    for (const [key, s] of sessions) if (s.userId === id || s.demoUserId === id) sessions.delete(key);
   }
-  const session=getSession(req,{touch:route!=='/api/community/summary'});
-  if(method==='GET'&&route==='/api/session')return send(res,200,{setupRequired:db.users.length===0,production:config.production,mfaAvailable,user:session?describe(session.user):null});
-  if(method==='POST'&&route==='/api/recovery/request'){
-   limit(req);const input=await body(req),person=db.users.find(u=>!u.demoIdentity&&u.email===String(input.email||'').trim().toLowerCase());
-   if(person&&mailProvider){const token=randomBytes(32).toString('base64url'),next=structuredClone(db),target=next.users.find(u=>u.id===person.id);target.reset={hash:digest(token),until:now()+20*60000};await persist(next);mailProvider.sendReset(person.email,token).catch(()=>{});}
-   return send(res,200,{notice:'Se a conta existir e a entrega estiver configurada, você receberá as instruções.'});
+  function limit(req) {
+    const key = clientAddress(req, config),
+      t = now();
+    for (const [k, v] of attempts) if (v.until <= t) attempts.delete(k);
+    const a = attempts.get(key) || {count: 0, until: t + 15 * 60000};
+    if (++a.count > 25) fail(429, 'Muitas tentativas. Aguarde 15 minutos.');
+    attempts.set(key, a);
   }
-  if(method==='POST'&&route==='/api/recovery/reset'){
-   limit(req);const input=await body(req),person=db.users.find(u=>!u.demoIdentity&&u.reset?.hash===digest(String(input.token||''))&&u.reset.until>now());if(!person)fail(400,'Recuperação inválida ou expirada.');const next=structuredClone(db),target=next.users.find(u=>u.id===person.id);Object.assign(target,await passwordHash(input.password),{credentialVersion:(target.credentialVersion||0)+1});delete target.reset;await persist(next);revoke(person.id);return send(res,200,{ok:true});
+  function projection(u) {
+    let houses = scopedHouses(db.state, u, now()).map((h) => {
+        const owners = db.state.residents.filter(
+          (r) => r.tenant === u.tenant && r.houseId === h.id && r.kind === 'owner',
+        );
+        return owners.length
+          ? {
+              ...h,
+              owners: owners.filter((r) => !r.endedOn && r.startDate <= localDay(now())).map((r) => r.name),
+            }
+          : h;
+      }),
+      stays = visibleStays(db.state, u, now());
+    if (
+      (can(u, 'facilities') || can(u, 'parcels')) &&
+      !can(u, 'residents') &&
+      !can(u, 'stays') &&
+      !['proprietario', 'imobiliaria', 'ocupante', 'temporario'].includes(u.role)
+    )
+      houses = db.state.houses
+        .filter((h) => h.tenant === u.tenant)
+        .map(({id, tenant, number}) => ({id, tenant, number, owners: []}));
+    if (
+      ['ocupante', 'temporario'].includes(u.role) ||
+      (!can(u, 'residents') && !['proprietario', 'imobiliaria', 'portaria'].includes(u.role))
+    ) {
+      houses = houses.map(({owners, ...h}) => ({...h, owners: []}));
+    }
+    if (u.role === 'portaria') {
+      houses = houses.map((h) => ({
+        id: h.id,
+        tenant: h.tenant,
+        number: h.number,
+        parking: h.parking,
+        parkingType: h.parkingType,
+      }));
+      stays = stays
+        .filter((s) => s.status === 'approved')
+        .map((s) => ({
+          id: s.id,
+          tenant: s.tenant,
+          houseId: s.houseId,
+          responsible: s.responsible,
+          people: s.people,
+          vehicles: s.vehicles,
+          start: s.start,
+          end: s.end,
+          status: s.status,
+        }));
+    }
+    return {
+      deployment: {
+        production: config.production,
+        illustrativeTour: true,
+        demoMode: isDemoTenant(db.state, u.tenant),
+      },
+      tenant: tenantView(db.state, u),
+      community: communitySummary(db.state, u, now()),
+      tour: tourView(db.state, u, now()),
+      myCharges: visiblePayerCharges(db.state, u),
+      payments: asaasView(db.state, u, usersInTenant(db.users, u.tenant), now()),
+      version: 1,
+      houses,
+      stays,
+      households: Object.fromEntries(
+        houses.map((h) => [h.id, houseHousehold(db.state, u, h.id, now())]).filter(([, v]) => v),
+      ),
+      residents: visibleResidents(db.state, u, now()),
+      tasks: visibleTasks(db.state, u),
+      incidents: visibleIncidents(db.state, u),
+      materials: visibleMaterials(db.state, u),
+      maintenance: visibleMaintenance(db.state, u),
+      facilities: visibleFacilities(db.state, u),
+      reservations: visibleReservations(db.state, u),
+      parcels: visibleParcels(db.state, u),
+      notifications: visibleNotifications(db.state, u),
+      suppliers: visibleSuppliers(db.state, u),
+      purchases: visiblePurchases(db.state, u),
+      documents: visibleDocuments(db.state, u),
+      documentAlerts: documentAlerts(db.state, u, now()),
+      finance: financeView(db.state, u, now()),
+      audit: [],
+    };
   }
-  if(method==='POST'&&['/api/setup','/api/login','/api/activate'].includes(route)){
-   limit(req);const input=await body(req);let user;
-   if(route==='/api/setup'){
-    if(db.users.length)fail(409,'A conta inicial já foi configurada.');if(config.bootstrapToken&&digest(String(input.bootstrapToken||''))!==digest(config.bootstrapToken))fail(403,'Código de instalação inválido.');const who=identity(input),credential=await passwordHash(input.password);const next=structuredClone(db);user={id:randomUUID(),...who,...credential,tenant:'chandra',role:'sindico',houses:[],active:true,validUntil:null};next.users.push(user);event(next,user,'Conta inicial local configurada');await persist(next);
-   }else if(route==='/api/login'){
-    const email=String(input.email||'').trim().toLowerCase();user=db.users.find(u=>!u.demoIdentity&&u.email===email);const matches=await passwordMatches(input.password,user||dummy);if(!matches||!user)fail(401,'E-mail, senha ou vínculo inválido.');if(mfaAvailable&&user.mfa){const next=structuredClone(db),target=next.users.find(x=>x.id===user.id);if(!checkFactor(target,input,vault,now()))fail(401,'Informe o segundo fator ou um código de recuperação válido.');await persist(next);user=target;}const context=availableContexts(db,user,now()).find(c=>c.tenant===input.tenant)||availableContexts(db,user,now())[0];if(!context)fail(401,'E-mail, senha ou vínculo inválido.');user=effectiveBinding(db,user,context.tenant);
-   }else{
-    const token=String(input.code||''),invite=db.invites.find(i=>i.hash===digest(token)&&!i.used&&i.expires>now());if(!invite||isDemoTenant(db.state,invite.tenant))fail(400,'Convite inválido ou expirado.');const who=identity(input);if(who.email!==invite.email)fail(400,'Use o e-mail indicado no convite.');const existing=db.users.find(u=>u.email===who.email);if(existing?.demoIdentity)fail(403,'Perfis fictícios são acessados pelo painel da demonstração.');if(existing&&bindingFor(existing,invite.tenant))fail(409,'Essa conta já possui vínculo neste condomínio.');const next=structuredClone(db),member={id:existing?.id||randomUUID(),name:existing?.name||who.name,email:who.email,tenant:invite.tenant,role:invite.role,houses:invite.houses,active:true,validUntil:invite.validUntil,residentId:invite.residentId||null,stayId:invite.stayId||null,delegations:invite.delegations||[],delegationReason:invite.delegationReason||null,delegatedBy:invite.delegatedBy||null,accessVersion:0,purchaseLimitCents:invite.purchaseLimitCents??null};if(!valid(member))fail(400,'O vínculo não está vigente. Confira o início e o fim do período.');
-    if(existing){if(!await passwordMatches(input.password,existing))fail(401,'Use a senha atual da conta para aceitar o novo vínculo.');const target=next.users.find(u=>u.id===existing.id);if(mfaAvailable&&!checkFactor(target,input,vault,now()))fail(401,'Informe o segundo fator atual da conta.');target.memberships??=[];target.memberships.push(member);user=member;}else{user={...member,...await passwordHash(input.password)};next.users.push(user);}next.invites.find(i=>i.id===invite.id).used=true;event(next,user,'Convite ativado');await persist(next);
-   }
-   if(session)sessions.delete(session.key);issue(res,user);return send(res,200,{user:describe(user)});
+  async function body(req, maxBytes = 32768) {
+    if (!String(req.headers['content-type'] || '').startsWith('application/json'))
+      fail(415, 'Envie dados no formato JSON.');
+    const chunks = [];
+    let size = 0;
+    for await (const chunk of req) {
+      size += chunk.length;
+      if (size > maxBytes) fail(413, 'Solicitação muito grande.');
+      chunks.push(chunk);
+    }
+    try {
+      const raw = new TextDecoder('utf-8', {fatal: true}).decode(Buffer.concat(chunks)),
+        obj = JSON.parse(raw || '{}');
+      if (!obj || typeof obj !== 'object' || Array.isArray(obj)) throw Error();
+      return obj;
+    } catch {
+      fail(400, 'Dados inválidos.');
+    }
   }
-  if(!session)fail(401,'Entre para continuar.');const u=session.user;
-  if(isDemoTenant(db.state,u.tenant)&&method==='POST'&&['/api/mfa/enroll','/api/mfa/confirm','/api/password','/api/admin/invites','/api/tenants/create','/api/tenants/plan','/api/tenants/close','/api/management/handover/propose','/api/management/handover/accept'].includes(route))fail(409,'Na demonstração, use Trocar de perfil. Contas reais e implantações são gerenciadas no seu condomínio.');
-  if(method==='POST'&&route==='/api/mfa/enroll'){limit(req);if(!mfaAvailable)fail(409,'O acesso por autenticador está desativado neste ambiente.');const input=await body(req);if(!vault)fail(409,'A proteção do segundo fator ainda não foi configurada no servidor.');if(session.identity.mfa)fail(409,'O segundo fator já está ativo.');if(!await passwordMatches(input.password,session.identity))fail(403,'Senha atual inválida.');const factor=newFactor(vault,session.identity.email),next=structuredClone(db);next.users.find(p=>p.id===u.id).pendingMfa={sealed:factor.sealed,until:now()+10*60000};await persist(next);return send(res,200,{secret:factor.secret,uri:factor.uri});}
-  if(method==='POST'&&route==='/api/mfa/confirm'){limit(req);if(!mfaAvailable)fail(409,'O acesso por autenticador está desativado neste ambiente.');const input=await body(req),pending=session.identity.pendingMfa,step=pending&&pending.until>now()&&vault?verifyTotp(vault.open(pending.sealed),input.otp,now()):null;if(step===null||step===false)fail(400,'Código inválido ou cadastro expirado.');const next=structuredClone(db),target=next.users.find(p=>p.id===u.id),recovery=recoveryCodes();target.mfa={sealed:pending.sealed,lastStep:step,recoveryHashes:recovery.hashes};delete target.pendingMfa;target.credentialVersion=(target.credentialVersion||0)+1;event(next,u,'Segundo fator ativado');await persist(next);revoke(u.id);issue(res,u);return send(res,200,{codes:recovery.codes});}
-  if(requireManagerMfa&&['sindico','subsindico','administradora'].includes(u.role)&&!session.identity.mfa&&!['/api/logout','/api/password','/api/session'].includes(route))fail(403,'Ative o segundo fator na sua conta para continuar a gestão.');
-  if(method==='GET'&&route==='/api/demo/preview')return send(res,200,previewFullDemo(db,u));
-  if(method==='POST'&&route==='/api/demo/create'){const input=await body(req),next=structuredClone(db),result=createFullDemo(next,u,input,now());await persist(next);return send(res,200,result);}
-  if(method==='GET'&&route==='/api/demo')return send(res,200,fullDemoView(db,session.identity,u,now()));
-  if(method==='POST'&&route==='/api/demo/enter'){const input=await body(req),target=demoMembership(db,session.identity,input.tenantId);sessions.delete(session.key);issue(res,target);return send(res,200,{user:describe(target)});}
-  if(method==='POST'&&route==='/api/demo/profile'){const input=await body(req),target=demoProfile(db,session.identity,u.tenant,input.userId,now());sessions.delete(session.key);issue(res,target,{identityId:session.identity.id,demoUserId:target.id});return send(res,200,{user:describe(target)});}
-  if(method==='POST'&&route==='/api/demo/exit'){await body(req);const target=demoSource(db,session.identity,u.tenant);sessions.delete(session.key);issue(res,target);return send(res,200,{user:describe(target)});}
-  if(method==='GET'&&route==='/api/automation/settings')return send(res,200,automationView(db.state,u));
-  if(method==='GET'&&route==='/api/tenants/demo/preview')return send(res,200,previewPilotDemo(db,u));
-  if(method==='POST'&&route==='/api/tenants/demo/apply'){const input=await body(req),next=structuredClone(db),result=applyPilotDemo(next,u,input,now());event(next,u,'Preenchimento fictício do piloto solicitado');await persist(next);return send(res,200,result);}
-  if(method==='GET'&&route==='/api/tenants')return send(res,200,{contexts:availableContexts(db,session.identity,now()),tenant:tenantView(db.state,u),platformOwner:u.id===(db.platformOwnerId||db.users[0]?.id)});
-  if(method==='POST'&&route==='/api/session/context'){const input=await body(req),target=effectiveBinding(db,session.identity,input.tenant);if(!target||!valid(target))fail(403,'Condomínio fora dos vínculos atuais.');sessions.delete(session.key);issue(res,target);return send(res,200,{user:describe(target)});}
-  if(method==='GET'&&route==='/api/tenants/export'){const result=exportTenant(db,u,now());res.writeHead(200,{'Content-Type':'application/json; charset=utf-8','Content-Disposition':'attachment; filename="vilazuni-condominio.json"','Cache-Control':'no-store'});return res.end(JSON.stringify(result,null,2));}
-  if(method==='POST'&&route==='/api/tenants/import/preview'){const input=await body(req,1024*1024);try{return send(res,200,previewMasterImport(db,u,input));}catch(e){fail(403,e.message);}}
-  if(method==='POST'&&['/api/tenants/create','/api/tenants/update','/api/tenants/close','/api/tenants/plan','/api/tenants/units/save','/api/tenants/import'].includes(route)){const input=await body(req,1024*1024),next=structuredClone(db);let result;try{result=({'/api/tenants/create':createTenant,'/api/tenants/update':updateTenant,'/api/tenants/close':closeTenant,'/api/tenants/plan':configurePlan,'/api/tenants/units/save':saveUnit,'/api/tenants/import':importMasterData})[route](next,u,input,now());}catch(e){fail(403,e.message);}event(next,u,'Configuração/implantação: '+route);await persist(next);return send(res,200,result);}
-  if(method==='GET'&&route==='/api/assemblies')return send(res,200,assembliesView(db.state,u));
-  if(method==='GET'&&route==='/api/assemblies/detail')return send(res,200,{assembly:readAssembly(db.state,u,url.searchParams.get('id'))});
-  if(method==='GET'&&route==='/api/assemblies/team'){if(!can(u,'assemblies'))fail(403,'Equipe de assembleia indisponível.');return send(res,200,{users:usersInTenant(db.users,u.tenant).filter(valid).map(({id,name,role})=>({id,name,role}))});}
-  if(method==='GET'&&route==='/api/assemblies/minutes'){try{return send(res,200,exportMinutes(db.state,u,url.searchParams.get('id')));}catch(e){fail(e.status||403,e.message);}}
-  if(method==='GET'&&route==='/api/management/handovers')return send(res,200,{proposals:(db.state.managementHandovers||[]).filter(p=>p.tenant===u.tenant&&(u.role==='sindico'||p.to===u.id)).map(p=>structuredClone(p))});
-  if(method==='POST'&&['/api/management/handover/propose','/api/management/handover/accept'].includes(route)){const input=await body(req),next=structuredClone(db);let result;try{result=(route.endsWith('/propose')?proposeHandover:acceptHandover)(next,u,input,now());}catch(e){fail(403,e.message);}event(next,u,'Transição de gestão: '+route);await persist(next);for(const id of result.revokeUserIds||[])revoke(id);return send(res,200,{id:result.id,status:result.status});}
-  if(method==='GET'&&route==='/api/assistant/capabilities')return send(res,200,{generated:!isDemoTenant(db.state,u.tenant)&&!!assistantProvider,provider:isDemoTenant(db.state,u.tenant)?null:assistantProvider?.name||null,model:isDemoTenant(db.state,u.tenant)?null:assistantProvider?.model||null});
-  if(method==='POST'&&route==='/api/assistant/tasks/preview'){const input=await body(req);try{return send(res,200,proposals.preview(db.state,usersInTenant(db.users,u.tenant),u,input,now()));}catch(e){fail(403,e.message);}}
-  if(method==='POST'&&route==='/api/assistant/tasks/confirm'){const input=await body(req),next=structuredClone(db),result=(()=>{try{return proposals.confirm(next.state,usersInTenant(next.users,u.tenant),u,input,now());}catch(e){fail(403,e.message);}})();event(next,u,'Tarefa assistida confirmada');notifyChanges(db.state,next.state,allBindings(next.users).filter(p=>validBinding(next.state,p,now())),u,now());await persist(next);result.consume();return send(res,200,{task:result.task});}
-  if(method==='GET'&&route==='/api/privacy')return send(res,200,{requests:privacyView(db.state,u)});
-  if(method==='GET'&&route==='/api/support')return send(res,200,supportSnapshot(db,u,now()));
-  if(method==='GET'&&route==='/api/mobile')return send(res,200,{push:pushConfig(),subscriptions:(db.state.pushSubscriptions||[]).filter(r=>r.tenant===u.tenant&&r.userId===u.id).map(({id,createdAt})=>({id,createdAt}))});
-  if(method==='GET'&&route==='/api/channels')return send(res,200,channelsView(db.state,u));
-  if(method==='GET'&&route==='/api/physical')return send(res,200,physicalView(db.state,u));
-  if(method==='GET'&&route==='/api/alerts')return send(res,200,{alerts:alertsView(db.state,u)});
-  if(method==='GET'&&route==='/api/alerts/recipients'){if(!can(u,'communications')||!can(u,'incidents'))fail(403,'Triagem indisponível.');return send(res,200,{users:usersInTenant(db.users,u.tenant).filter(valid).filter(p=>can(p,'communications')&&can(p,'incidents')||['proprietario','imobiliaria','ocupante','temporario'].includes(p.role)).map(({id,name,houses})=>({id,name,houses}))});}
-  if(method==='GET'&&route==='/api/knowledge')return send(res,200,{knowledge:knowledgeView(db.state,u,now())});
-  if(method==='GET'&&route==='/api/knowledge/source')return send(res,200,{source:readSource(db.state,u,url.searchParams.get('id'),now())});
-  if(method==='GET'&&route==='/api/knowledge/briefings')return send(res,200,{briefings:visibleBriefings(db.state,u,now())});
-  if(method==='GET'&&route==='/api/polls')return send(res,200,{governance:pollsView(db.state,u,now())});
-  if(method==='GET'&&route==='/api/polls/detail')return send(res,200,{poll:readPoll(db.state,u,url.searchParams.get('id'),now())});
-  if(method==='POST'&&['/api/knowledge/consult','/api/knowledge/briefings/preview'].includes(route)){const input=await body(req);try{return send(res,200,route.endsWith('/consult')?consultSources(db.state,u,input,now()):previewBriefing(db.state,u,input,now()));}catch(e){fail(e.status||403,e.message);}}
-  if(method==='GET'&&route==='/api/profiles')return send(res,200,{profile:memberProfile(db.state,usersInTenant(db.users,u.tenant),u,url.searchParams.get('id'),now())});
-  if(method==='GET'&&route==='/api/profiles/directory')return send(res,200,{profiles:listMemberProfiles(db.state,usersInTenant(db.users,u.tenant),u,now())});
-  if(method==='GET'&&route==='/api/profiles/photo'){const photo=memberPhoto(db.state,usersInTenant(db.users,u.tenant),u,url.searchParams.get('id'),url.searchParams.get('version'),now());res.writeHead(200,{'Content-Type':photo.mime,'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Content-Security-Policy':"default-src 'none'"});return res.end(photo.bytes);}
-  if(method==='GET'&&route==='/api/residents/contacts')return send(res,200,caregiverContactGrants(db.state,usersInTenant(db.users,u.tenant).filter(valid),u,url.searchParams.get('houseId'),now()));
-  if(method==='GET'&&['/api/residents/photo','/api/stays/photo'].includes(route)){const read=route==='/api/residents/photo'?readResidentPhoto:readStayPhoto,photo=read(db.state,u,url.searchParams.get('id'),url.searchParams.get('version'),now());res.writeHead(200,{'Content-Type':photo.mime,'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Content-Security-Policy':"default-src 'none'"});return res.end(photo.bytes);}
-  if(method==='GET'&&route==='/api/community')return send(res,200,communityView(db.state,usersInTenant(db.users,u.tenant),u,now()));
-  if(method==='GET'&&route==='/api/community/summary')return send(res,200,communitySummary(db.state,u,now()));
-  if(method==='GET'&&route==='/api/community/profile')return send(res,200,communityProfile(db.state,usersInTenant(db.users,u.tenant),u,url.searchParams.get('slot'),now()));
-  if(method==='GET'&&route==='/api/community/editor')return send(res,200,communityEditor(db.state,usersInTenant(db.users,u.tenant),u,url.searchParams.get('slot'),now()));
-  if(method==='GET'&&route==='/api/community/notices/detail')return send(res,200,{notice:readCommunityNotice(db.state,u,url.searchParams.get('id'),now())});
-  if(method==='GET'&&route==='/api/community/profile/photo'){const photo=readCommunityPhoto(db.state,usersInTenant(db.users,u.tenant),u,url.searchParams.get('slot'),url.searchParams.get('version'),now());res.writeHead(200,{'Content-Type':photo.mime,'Content-Length':photo.bytes.length,'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Content-Security-Policy':"default-src 'none'"});return res.end(photo.bytes);}
-  if(method==='GET'&&route==='/api/tour/place')return send(res,200,{place:tourPlace(db.state,u,url.searchParams.get('id'),now())});
-  if(method==='GET'&&route==='/api/tour')return send(res,200,{tour:tourView(db.state,u,now())});
-  if(method==='GET'&&route==='/api/finance/payers'){if(!can(u,'financeClose'))fail(403,'Vínculos financeiros exigem controle.');return send(res,200,{users:usersInTenant(db.users,u.tenant).filter(p=>p.tenant===u.tenant&&valid(p)&&['proprietario','imobiliaria','ocupante','temporario'].includes(p.role)).map(({id,name,houses})=>({id,name,houses}))});}
-  if(method==='GET'&&route==='/api/parcels/recipients'){if(!can(u,'parcels')&&u.role!=='portaria')fail(403,'Destinatários indisponíveis.');return send(res,200,{users:usersInTenant(db.users,u.tenant).filter(p=>p.tenant===u.tenant&&valid(p)&&['proprietario','imobiliaria','ocupante','temporario'].includes(p.role)).map(({id,name,houses})=>({id,name,houses}))});}
-  if(method==='GET'&&route==='/api/documents/owners'){if(!can(u,'documents'))fail(403,'Responsáveis indisponíveis.');return send(res,200,{users:usersInTenant(db.users,u.tenant).filter(p=>p.tenant===u.tenant&&valid(p)&&can(p,'documents')).map(({id,name})=>({id,name}))});}
-  if(method==='GET'&&route==='/api/documents/file'){const file=readDocumentFile(db.state,u,url.searchParams.get('id'),url.searchParams.get('version'));res.writeHead(200,{'Content-Type':file.mime,'Content-Length':file.bytes.length,'Content-Disposition':'attachment; filename="documento.pdf"; filename*=UTF-8\'\''+encodeURIComponent(file.fileName).replace(/['()*]/g,c=>'%'+c.charCodeAt(0).toString(16).toUpperCase()),'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Content-Security-Policy':"default-src 'none'; sandbox"});return res.end(file.bytes);}
-  if(method==='GET'&&route==='/api/team'){if(!['tasks','incidents','maintenance'].some(module=>can(u,module)))fail(403,'Equipe indisponível.');return send(res,200,{users:usersInTenant(db.users,u.tenant).filter(p=>p.tenant===u.tenant&&valid(p)&&(p.role==='zelador'&&['tasks','maintenance'].some(module=>can(u,module))||can(u,'incidents')&&can(p,'incidents'))).map(p=>({id:p.id,name:p.name,role:p.role,active:p.active,validUntil:p.validUntil,delegations:p.delegations||[]}))});}
-  if(method==='GET'&&route==='/api/tasks/photo'){let photo;try{photo=readTaskPhoto(db.state,u,url.searchParams.get('task'),url.searchParams.get('photo'));}catch(e){fail(403,e.message);}res.writeHead(200,{'Content-Type':photo.mime,'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Content-Security-Policy':"default-src 'none'"});return res.end(photo.bytes);}
-  if(method==='POST'&&route==='/api/logout'){sessions.delete(session.key);res.setHeader('Set-Cookie','vilazuni_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0');return send(res,200,{ok:true});}
-  if(method==='GET'&&['/api/finance/report','/api/finance/export'].includes(route)){if(route.endsWith('/export')&&!can(u,'financeExport'))fail(403,'Exportação financeira não autorizada.');const result=url.searchParams.has('closureId')?financialClosureReport(db.state,u,url.searchParams.get('closureId')):financialReport(db.state,u,url.searchParams.get('month'));if(route.endsWith('/report'))return send(res,200,result);res.writeHead(200,{'Content-Type':'application/json; charset=utf-8','Content-Disposition':'attachment; filename="vilazuni-financeiro-'+result.report.month+'.json"','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});return res.end(JSON.stringify(result,null,2));}
-  if(method==='GET'&&route==='/api/state')return send(res,200,{state:projection(u),user:describe(u)});
-  if(method==='POST'&&route==='/api/password'){limit(req);const input=await body(req);if(!await passwordMatches(input.currentPassword,session.identity))fail(400,'Senha atual inválida.');const credential=await passwordHash(input.password),next=structuredClone(db);Object.assign(next.users.find(x=>x.id===u.id),credential,{credentialVersion:(session.identity.credentialVersion||0)+1});event(next,u,'Senha alterada; sessões encerradas');await persist(next);revoke(u.id);issue(res,u);return send(res,200,{ok:true});}
-  if(route.startsWith('/api/admin/')){
-   if(u.role!=='sindico')fail(403,'Acesso restrito à gestão.');
-   if(method==='GET'&&route==='/api/admin/users')return send(res,200,{users:usersInTenant(db.users,u.tenant).map(publicUser),invites:db.invites.filter(i=>i.tenant===u.tenant&&!i.used&&i.expires>now()).map(({hash,...i})=>i)});
-   const input=await body(req),next=structuredClone(db);
-   if(method==='POST'&&route==='/api/admin/invites'){
-    const email=identity({name:'Convidado',email:input.email}).email;if(usersInTenant(next.users,u.tenant).some(x=>x.email===email))fail(409,'Essa conta já existe neste condomínio.');if(usersInTenant(next.users,u.tenant).length>=tenantSettings(next.state,u.tenant).limits.users)fail(403,'Limite de contas do plano atingido.');let binding;try{binding=prepareBinding(next.state,u,input,now());}catch(e){fail(400,e.message);}const code=randomBytes(24).toString('base64url');next.invites.filter(i=>i.email===email&&i.tenant===u.tenant).forEach(i=>i.used=true);next.invites.push({id:randomUUID(),hash:digest(code),email,...binding,tenant:u.tenant,expires:now()+48*3600000,used:false});event(next,u,'Convite criado: '+email+' · '+binding.role+' · '+binding.delegations.join(', '));await persist(next);return send(res,201,{code,expiresInHours:48});
-   }
-   if(method==='POST'&&route==='/api/admin/residential-access'){let target;try{target=reviseResidentialAccess(next.state,usersInTenant(next.users,u.tenant),u,input,now());}catch(e){fail(403,e.message);}event(next,u,'Vínculo de acesso revisado: '+target.id+' · '+target.accessReason);await persist(next);revoke(target.id);return send(res,200,{user:publicUser(target)});}
-   if(method==='POST'&&route==='/api/admin/delegation'){let target;try{target=reviseDelegation(next.state,usersInTenant(next.users,u.tenant),u,input,now());}catch(e){fail(400,e.message);}event(next,u,'Delegação atualizada: '+target.id+' · '+target.delegations.join(', ')+' · '+target.delegationReason);await persist(next);revoke(target.id);return send(res,200,{user:publicUser(target)});}
-   if(method==='POST'&&route==='/api/admin/suspend'){
-    const target=usersInTenant(next.users,u.tenant).find(x=>x.id===input.id);if(!target||target.role==='sindico')fail(400,'Conta indisponível para esta ação.');target.active=false;event(next,u,'Conta suspensa: '+target.id);await persist(next);revoke(target.id);return send(res,200,{ok:true});
-   }
-   if(method==='POST'&&route==='/api/admin/revoke-invite'){const invite=next.invites.find(i=>i.id===input.id&&i.tenant===u.tenant);if(!invite)fail(404,'Convite indisponível.');invite.used=true;event(next,u,'Convite revogado');await persist(next);return send(res,200,{ok:true});}
-   fail(404,'Ação não encontrada.');
+  function send(res, status, value) {
+    res.writeHead(status, {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Cache-Control': 'no-store',
+      'X-Content-Type-Options': 'nosniff',
+    });
+    res.end(JSON.stringify(value));
   }
-  if(method==='POST'&&route==='/api/finance/fees/preview'){const input=await body(req);try{return send(res,200,previewFeeAccrual(db.state,u,input,now()));}catch(e){fail(e.status||403,e.message);}}
-  if(method==='POST'&&route==='/api/finance/statements/preview'){const input=await body(req,1024*1024);try{return send(res,200,previewStatement(db.state,u,input,now()));}catch(e){fail(e.status||403,e.message);}}
-  if(method==='POST'){
-   const input=await body(req,['/api/residents','/api/residents/update','/api/stays','/api/profiles/save','/api/community/profile/save','/api/tasks/photo','/api/documents/create','/api/documents/version'].includes(route)?3*1024*1024:route==='/api/finance/statements/import'?1024*1024:['/api/knowledge/sources/create','/api/knowledge/sources/revise','/api/assemblies/create','/api/assemblies/close','/api/assemblies/representation'].includes(route)?1024*1024:32768),next=structuredClone(db);let result;
-   try{if(route==='/api/automation/save'){result=configureAutomation(next.state,u,input);}else if(route==='/api/automation/queue'){result=queueAutomationNotice(next.state,u,input,now());}else if(route==='/api/profiles/save'){result=saveMemberProfile(next.state,usersInTenant(next.users,u.tenant),u,input,now());}else if(route==='/api/community/profile/save'){result=saveCommunityProfile(next.state,usersInTenant(next.users,u.tenant),u,input,now());}else if(route==='/api/community/notices/save'){result=saveCommunityNotice(next.state,u,input,now());}else if(route==='/api/community/notices/read'){result=markCommunityNoticeRead(next.state,u,input,now());}else if(route==='/api/community/notices/archive'){result=archiveCommunityNotice(next.state,u,input,now());}else if(route==='/api/privacy/request'){result=requestPrivacy(next.state,u,input,now());}else if(route==='/api/privacy/decide'){result=decidePrivacy(next.state,u,input,now());}else if(route==='/api/mobile/subscribe'){if(!pushConfig().ready)fail(409,'Notificações ainda não configuradas.');result=saveSubscription(next.state,u,input,now());}else if(route==='/api/mobile/unsubscribe'){result=removeSubscription(next.state,u,input);}else if(route==='/api/channels/save'){result=saveChannel(next.state,u,input,now());}else if(route==='/api/channels/prepare'){result=prepareChannel(next.state,u,input,now());}else if(route==='/api/physical/toggle'){result=toggleDevice(next.state,u,input,now());}else if(route==='/api/physical/devices'){result=saveDevice(next.state,u,input,now());}else if(route==='/api/physical/queue'){result=queueGate(next.state,u,input,now());}else if(route==='/api/physical/passage'){result=recordPassage(next.state,u,input,now());}else if(route==='/api/alerts/prepare'){result=prepareAlerts(next.state,usersInTenant(next.users,u.tenant),u,input,now());}else if(route==='/api/alerts/incident'){result=createIncidentAlert(next.state,usersInTenant(next.users,u.tenant),u,input,now());}else if(route==='/api/alerts/update'){result=updateAlert(next.state,u,input,now());}else if(Object.hasOwn(assemblyActions,route)){result=assemblyActions[route](next.state,u,input,now());}else if(route==='/api/assemblies/representation'){result=setRepresentation(next.state,usersInTenant(next.users,u.tenant),u,input,now());}else if(Object.hasOwn(civicActions,route)){result=civicActions[route](next.state,u,input,now());}else if(route==='/api/tour/link'){result=linkTourFacility(next.state,u,input,now());}else if(route==='/api/finance/collection/assign'){result=assignFinancialPayer(next.state,allBindings(next.users).filter(p=>validBinding(next.state,p,now())),u,input,now());}else if(route==='/api/finance/collection/reminders/prepare'){result=prepareFinancialReminders(next.state,allBindings(next.users).filter(p=>validBinding(next.state,p,now())),u,input,now());}else if(Object.hasOwn(financeActions,route)){result=financeActions[route](next.state,u,input,now());}else if(route==='/api/residents/contacts/grant'){result=grantCaretakerContacts(next.state,usersInTenant(next.users,u.tenant).filter(valid),u,input,now());}else if(route==='/api/residents/contacts/revoke'){result=revokeCaretakerContacts(next.state,u,input,now());}else if(['/api/residents','/api/residents/update','/api/residents/end'].includes(route)){const handler=route.endsWith('/update')?updateResident:route.endsWith('/end')?endResident:createResident;const r=handler(next.state,u,input,now());result={id:r.record.id};}else if(route==='/api/incidents/create'){result={incident:createIncident(next.state,u,input,now())};}else if(route==='/api/incidents/update'){result={incident:updateIncident(next.state,usersInTenant(next.users,u.tenant),u,input,now())};}else if(route==='/api/materials/create'){result={material:createMaterial(next.state,u,input)};}else if(route==='/api/materials/move'){result=moveMaterial(next.state,u,input,now());}else if(route==='/api/maintenance/create'){result={plan:createMaintenance(next.state,usersInTenant(next.users,u.tenant),u,input,now())};}else if(route==='/api/maintenance/toggle'){result={plan:toggleMaintenance(next.state,u,input,now())};}else if(route==='/api/maintenance/generate'){result=generateMaintenance(next.state,usersInTenant(next.users,u.tenant),u,input,now());}else if(route==='/api/tasks/check'){result={task:checkTask(next.state,u,input,now())};}else if(route==='/api/facilities/create'){result={facility:createFacility(next.state,u,input,now())};}else if(route==='/api/facilities/toggle'){result={facility:toggleFacility(next.state,u,input,now())};}else if(route==='/api/reservations/create'){result={reservation:createReservation(next.state,u,input,now())};}else if(route==='/api/reservations/decision'){result={reservation:decideReservation(next.state,u,input,now())};}else if(route==='/api/parcels/create'){result={parcel:createParcel(next.state,usersInTenant(next.users,u.tenant).filter(valid),u,input,now())};}else if(route==='/api/parcels/update'){result={parcel:updateParcel(next.state,u,input,now())};}else if(route==='/api/notifications/read'){result=readNotifications(next.state,u,input,now());}else if(route==='/api/suppliers/create'){result={supplier:createSupplier(next.state,u,input,now())};}else if(route==='/api/suppliers/update'){result={supplier:updateSupplier(next.state,u,input,now())};}else if(route==='/api/suppliers/toggle'){result={supplier:toggleSupplier(next.state,u,input,now())};}else if(route==='/api/purchases/create'){result={purchase:createPurchase(next.state,u,input,now())};}else if(route==='/api/purchases/quote'){result={purchase:addQuote(next.state,u,input,now())};}else if(route==='/api/purchases/submit'){result={purchase:submitPurchase(next.state,u,input,now())};}else if(route==='/api/purchases/decision'){result={purchase:decidePurchase(next.state,u,input,now())};}else if(route==='/api/purchases/receive'){result={purchase:receivePurchase(next.state,u,input,now())};}else if(route==='/api/documents/create'){result={document:createDocument(next.state,usersInTenant(next.users,u.tenant).filter(valid),u,input,now())};}else if(route==='/api/documents/version'){result={document:addDocumentVersion(next.state,usersInTenant(next.users,u.tenant).filter(valid),u,input,now())};}else if(route==='/api/documents/toggle'){result={document:toggleDocument(next.state,u,input,now())};}else if(route==='/api/stays'){const created=createStay(next.state,u,input,now());result={stay:visibleStays(next.state,u,now()).find(s=>s.id===created.stay.id),warnings:created.warnings};}else if(route==='/api/stays/decision'){changeStay(next.state,u,input.id,input.status,input.reason,now());result={ok:true};}else if(route==='/api/tasks/create'){result={task:createTask(next.state,usersInTenant(next.users,u.tenant),u,input,now())};}else if(route==='/api/tasks/assign'){result={task:assignTask(next.state,usersInTenant(next.users,u.tenant),u,input,now())};}else if(route==='/api/tasks'){result={task:advanceTask(next.state,u,input,now())};}else if(route==='/api/tasks/photo'){result={task:addTaskPhoto(next.state,u,input,now())};}else fail(404,'Ação não encontrada.');}catch(e){if(e.status)throw e;fail(403,e.message);}
-   notifyChanges(db.state,next.state,allBindings(next.users).filter(p=>validBinding(next.state,p,now())),u,now());await persist(next);return send(res,200,result);
+  async function handle(req, res) {
+    try {
+      if (storage.kind === 'postgres') db = await storage.load();
+      const url = new URL(req.url, 'http://localhost'),
+        route = url.pathname,
+        method = req.method;
+      const expectedHost = config.origin ? new URL(config.origin).host : '127.0.0.1:' + req.socket.localPort;
+      if (req.headers.host !== expectedHost) fail(403, 'Endereço local não autorizado.');
+      if (
+        method !== 'GET' &&
+        ![
+          '/api/physical/plate-event',
+          '/api/channels/telegram/webhook',
+          '/api/automation/claim',
+          '/api/automation/ack',
+        ].includes(route) &&
+        req.headers.origin !== (config.origin || 'http://' + expectedHost)
+      )
+        fail(403, 'Origem não autorizada.');
+      if (method === 'POST' && route === '/api/physical/plate-event') {
+        const chunks = [];
+        let size = 0;
+        for await (const c of req) {
+          size += c.length;
+          if (size > 4096) fail(413, 'Evento muito grande.');
+          chunks.push(c);
+        }
+        const next = structuredClone(db);
+        try {
+          plateEvent(
+            next.state,
+            url.searchParams.get('device'),
+            Buffer.concat(chunks).toString('utf8'),
+            req.headers['x-vilazuni-signature'],
+            process.env,
+            now(),
+          );
+        } catch {
+          fail(403, 'Evento não autenticado ou repetido.');
+        }
+        await persist(next);
+        return send(res, 200, {accepted: true});
+      }
+      if (method === 'POST' && route === '/api/channels/telegram/webhook') {
+        const input = await body(req, 16384),
+          next = structuredClone(db);
+        let result;
+        try {
+          result = telegramWebhook(
+            next.state,
+            input,
+            req.headers['x-telegram-bot-api-secret-token'],
+            process.env,
+            now(),
+          );
+        } catch {
+          fail(403, 'Webhook não autenticado ou inválido.');
+        }
+        if (result.accepted) await persist(next);
+        return send(res, 200, result);
+      }
+      if (['/api/automation/context', '/api/automation/claim', '/api/automation/ack'].includes(route)) {
+        const c = authenticateAutomation(db.state, req.headers['x-vilazuni-token']);
+        if (method === 'GET' && route.endsWith('/context'))
+          return send(res, 200, automationContext(db.state, c, now()));
+        if (method !== 'POST' || route.endsWith('/context')) fail(405, 'Método não permitido.');
+        const input = await body(req),
+          next = structuredClone(db),
+          result = route.endsWith('/claim')
+            ? claimAutomationMessage(next.state, c, allBindings(next.users), now())
+            : acknowledgeAutomation(next.state, c, input, now());
+        await persist(next);
+        return send(res, 200, result);
+      }
+      const session = getSession(req, {touch: route !== '/api/community/summary'});
+      if (method === 'GET' && route === '/api/session')
+        return send(res, 200, {
+          setupRequired: db.users.length === 0,
+          production: config.production,
+          mfaAvailable,
+          user: session ? describe(session.user) : null,
+        });
+      if (method === 'POST' && route === '/api/recovery/request') {
+        limit(req);
+        const input = await body(req),
+          person = db.users.find(
+            (u) =>
+              !u.demoIdentity &&
+              u.email ===
+                String(input.email || '')
+                  .trim()
+                  .toLowerCase(),
+          );
+        if (person && mailProvider) {
+          const token = randomBytes(32).toString('base64url'),
+            next = structuredClone(db),
+            target = next.users.find((u) => u.id === person.id);
+          target.reset = {hash: digest(token), until: now() + 20 * 60000};
+          await persist(next);
+          mailProvider.sendReset(person.email, token).catch(() => {});
+        }
+        return send(res, 200, {
+          notice: 'Se a conta existir e a entrega estiver configurada, você receberá as instruções.',
+        });
+      }
+      if (method === 'POST' && route === '/api/recovery/reset') {
+        limit(req);
+        const input = await body(req),
+          person = db.users.find(
+            (u) =>
+              !u.demoIdentity && u.reset?.hash === digest(String(input.token || '')) && u.reset.until > now(),
+          );
+        if (!person) fail(400, 'Recuperação inválida ou expirada.');
+        const next = structuredClone(db),
+          target = next.users.find((u) => u.id === person.id);
+        Object.assign(target, await passwordHash(input.password), {
+          credentialVersion: (target.credentialVersion || 0) + 1,
+        });
+        delete target.reset;
+        await persist(next);
+        revoke(person.id);
+        return send(res, 200, {ok: true});
+      }
+      if (method === 'POST' && ['/api/setup', '/api/login', '/api/activate'].includes(route)) {
+        limit(req);
+        const input = await body(req);
+        let user;
+        if (route === '/api/setup') {
+          if (db.users.length) fail(409, 'A conta inicial já foi configurada.');
+          if (
+            config.bootstrapToken &&
+            digest(String(input.bootstrapToken || '')) !== digest(config.bootstrapToken)
+          )
+            fail(403, 'Código de instalação inválido.');
+          const who = identity(input),
+            credential = await passwordHash(input.password);
+          const next = structuredClone(db);
+          user = {
+            id: randomUUID(),
+            ...who,
+            ...credential,
+            tenant: 'chandra',
+            role: 'sindico',
+            houses: [],
+            active: true,
+            validUntil: null,
+          };
+          next.users.push(user);
+          event(next, user, 'Conta inicial local configurada');
+          await persist(next);
+        } else if (route === '/api/login') {
+          const email = String(input.email || '')
+            .trim()
+            .toLowerCase();
+          user = db.users.find((u) => !u.demoIdentity && u.email === email);
+          const matches = await passwordMatches(input.password, user || dummy);
+          if (!matches || !user) fail(401, 'E-mail, senha ou vínculo inválido.');
+          if (mfaAvailable && user.mfa) {
+            const next = structuredClone(db),
+              target = next.users.find((x) => x.id === user.id);
+            if (!checkFactor(target, input, vault, now()))
+              fail(401, 'Informe o segundo fator ou um código de recuperação válido.');
+            await persist(next);
+            user = target;
+          }
+          const context =
+            availableContexts(db, user, now()).find((c) => c.tenant === input.tenant) ||
+            availableContexts(db, user, now())[0];
+          if (!context) fail(401, 'E-mail, senha ou vínculo inválido.');
+          user = effectiveBinding(db, user, context.tenant);
+        } else {
+          const token = String(input.code || ''),
+            invite = db.invites.find((i) => i.hash === digest(token) && !i.used && i.expires > now());
+          if (!invite || isDemoTenant(db.state, invite.tenant)) fail(400, 'Convite inválido ou expirado.');
+          const who = identity(input);
+          if (who.email !== invite.email) fail(400, 'Use o e-mail indicado no convite.');
+          const existing = db.users.find((u) => u.email === who.email);
+          if (existing?.demoIdentity)
+            fail(403, 'Perfis fictícios são acessados pelo painel da demonstração.');
+          if (existing && bindingFor(existing, invite.tenant))
+            fail(409, 'Essa conta já possui vínculo neste condomínio.');
+          const next = structuredClone(db),
+            member = {
+              id: existing?.id || randomUUID(),
+              name: existing?.name || who.name,
+              email: who.email,
+              tenant: invite.tenant,
+              role: invite.role,
+              houses: invite.houses,
+              active: true,
+              validUntil: invite.validUntil,
+              residentId: invite.residentId || null,
+              stayId: invite.stayId || null,
+              delegations: invite.delegations || [],
+              delegationReason: invite.delegationReason || null,
+              delegatedBy: invite.delegatedBy || null,
+              accessVersion: 0,
+              purchaseLimitCents: invite.purchaseLimitCents ?? null,
+            };
+          if (!valid(member)) fail(400, 'O vínculo não está vigente. Confira o início e o fim do período.');
+          if (existing) {
+            if (!(await passwordMatches(input.password, existing)))
+              fail(401, 'Use a senha atual da conta para aceitar o novo vínculo.');
+            const target = next.users.find((u) => u.id === existing.id);
+            if (mfaAvailable && !checkFactor(target, input, vault, now()))
+              fail(401, 'Informe o segundo fator atual da conta.');
+            target.memberships ??= [];
+            target.memberships.push(member);
+            user = member;
+          } else {
+            user = {...member, ...(await passwordHash(input.password))};
+            next.users.push(user);
+          }
+          next.invites.find((i) => i.id === invite.id).used = true;
+          event(next, user, 'Convite ativado');
+          await persist(next);
+        }
+        if (session) sessions.delete(session.key);
+        issue(res, user);
+        return send(res, 200, {user: describe(user)});
+      }
+      if (!session) fail(401, 'Entre para continuar.');
+      const u = session.user;
+      if (
+        isDemoTenant(db.state, u.tenant) &&
+        method === 'POST' &&
+        [
+          '/api/mfa/enroll',
+          '/api/mfa/confirm',
+          '/api/password',
+          '/api/admin/invites',
+          '/api/tenants/create',
+          '/api/tenants/plan',
+          '/api/tenants/close',
+          '/api/management/handover/propose',
+          '/api/management/handover/accept',
+        ].includes(route)
+      )
+        fail(
+          409,
+          'Na demonstração, use Trocar de perfil. Contas reais e implantações são gerenciadas no seu condomínio.',
+        );
+      if (method === 'POST' && route === '/api/mfa/enroll') {
+        limit(req);
+        if (!mfaAvailable) fail(409, 'O acesso por autenticador está desativado neste ambiente.');
+        const input = await body(req);
+        if (!vault) fail(409, 'A proteção do segundo fator ainda não foi configurada no servidor.');
+        if (session.identity.mfa) fail(409, 'O segundo fator já está ativo.');
+        if (!(await passwordMatches(input.password, session.identity))) fail(403, 'Senha atual inválida.');
+        const factor = newFactor(vault, session.identity.email),
+          next = structuredClone(db);
+        next.users.find((p) => p.id === u.id).pendingMfa = {sealed: factor.sealed, until: now() + 10 * 60000};
+        await persist(next);
+        return send(res, 200, {secret: factor.secret, uri: factor.uri});
+      }
+      if (method === 'POST' && route === '/api/mfa/confirm') {
+        limit(req);
+        if (!mfaAvailable) fail(409, 'O acesso por autenticador está desativado neste ambiente.');
+        const input = await body(req),
+          pending = session.identity.pendingMfa,
+          step =
+            pending && pending.until > now() && vault
+              ? verifyTotp(vault.open(pending.sealed), input.otp, now())
+              : null;
+        if (step === null || step === false) fail(400, 'Código inválido ou cadastro expirado.');
+        const next = structuredClone(db),
+          target = next.users.find((p) => p.id === u.id),
+          recovery = recoveryCodes();
+        target.mfa = {sealed: pending.sealed, lastStep: step, recoveryHashes: recovery.hashes};
+        delete target.pendingMfa;
+        target.credentialVersion = (target.credentialVersion || 0) + 1;
+        event(next, u, 'Segundo fator ativado');
+        await persist(next);
+        revoke(u.id);
+        issue(res, u);
+        return send(res, 200, {codes: recovery.codes});
+      }
+      if (
+        requireManagerMfa &&
+        ['sindico', 'subsindico', 'administradora'].includes(u.role) &&
+        !session.identity.mfa &&
+        !['/api/logout', '/api/password', '/api/session'].includes(route)
+      )
+        fail(403, 'Ative o segundo fator na sua conta para continuar a gestão.');
+      if (method === 'GET' && route === '/api/demo/preview') return send(res, 200, previewFullDemo(db, u));
+      if (method === 'POST' && route === '/api/demo/create') {
+        const input = await body(req),
+          next = structuredClone(db),
+          result = createFullDemo(next, u, input, now());
+        await persist(next);
+        return send(res, 200, result);
+      }
+      if (method === 'GET' && route === '/api/demo')
+        return send(res, 200, fullDemoView(db, session.identity, u, now()));
+      if (method === 'POST' && route === '/api/demo/enter') {
+        const input = await body(req),
+          target = demoMembership(db, session.identity, input.tenantId);
+        sessions.delete(session.key);
+        issue(res, target);
+        return send(res, 200, {user: describe(target)});
+      }
+      if (method === 'POST' && route === '/api/demo/profile') {
+        const input = await body(req),
+          target = demoProfile(db, session.identity, u.tenant, input.userId, now());
+        sessions.delete(session.key);
+        issue(res, target, {identityId: session.identity.id, demoUserId: target.id});
+        return send(res, 200, {user: describe(target)});
+      }
+      if (method === 'POST' && route === '/api/demo/exit') {
+        await body(req);
+        const target = demoSource(db, session.identity, u.tenant);
+        sessions.delete(session.key);
+        issue(res, target);
+        return send(res, 200, {user: describe(target)});
+      }
+      if (method === 'GET' && route === '/api/automation/settings')
+        return send(res, 200, automationView(db.state, u));
+      if (method === 'GET' && route === '/api/tenants/demo/preview')
+        return send(res, 200, previewPilotDemo(db, u));
+      if (method === 'POST' && route === '/api/tenants/demo/apply') {
+        const input = await body(req),
+          next = structuredClone(db),
+          result = applyPilotDemo(next, u, input, now());
+        event(next, u, 'Preenchimento fictício do piloto solicitado');
+        await persist(next);
+        return send(res, 200, result);
+      }
+      if (method === 'GET' && route === '/api/tenants')
+        return send(res, 200, {
+          contexts: availableContexts(db, session.identity, now()),
+          tenant: tenantView(db.state, u),
+          platformOwner: u.id === (db.platformOwnerId || db.users[0]?.id),
+        });
+      if (method === 'POST' && route === '/api/session/context') {
+        const input = await body(req),
+          target = effectiveBinding(db, session.identity, input.tenant);
+        if (!target || !valid(target)) fail(403, 'Condomínio fora dos vínculos atuais.');
+        sessions.delete(session.key);
+        issue(res, target);
+        return send(res, 200, {user: describe(target)});
+      }
+      if (method === 'GET' && route === '/api/tenants/export') {
+        const result = exportTenant(db, u, now());
+        res.writeHead(200, {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Content-Disposition': 'attachment; filename="vilazuni-condominio.json"',
+          'Cache-Control': 'no-store',
+        });
+        return res.end(JSON.stringify(result, null, 2));
+      }
+      if (method === 'POST' && route === '/api/tenants/import/preview') {
+        const input = await body(req, 1024 * 1024);
+        try {
+          return send(res, 200, previewMasterImport(db, u, input));
+        } catch (e) {
+          fail(403, e.message);
+        }
+      }
+      if (
+        method === 'POST' &&
+        [
+          '/api/tenants/create',
+          '/api/tenants/update',
+          '/api/tenants/close',
+          '/api/tenants/plan',
+          '/api/tenants/units/save',
+          '/api/tenants/import',
+        ].includes(route)
+      ) {
+        const input = await body(req, 1024 * 1024),
+          next = structuredClone(db);
+        let result;
+        try {
+          result = {
+            '/api/tenants/create': createTenant,
+            '/api/tenants/update': updateTenant,
+            '/api/tenants/close': closeTenant,
+            '/api/tenants/plan': configurePlan,
+            '/api/tenants/units/save': saveUnit,
+            '/api/tenants/import': importMasterData,
+          }[route](next, u, input, now());
+        } catch (e) {
+          fail(403, e.message);
+        }
+        event(next, u, 'Configuração/implantação: ' + route);
+        await persist(next);
+        return send(res, 200, result);
+      }
+      if (method === 'GET' && route === '/api/assemblies') return send(res, 200, assembliesView(db.state, u));
+      if (method === 'GET' && route === '/api/assemblies/detail')
+        return send(res, 200, {assembly: readAssembly(db.state, u, url.searchParams.get('id'))});
+      if (method === 'GET' && route === '/api/assemblies/team') {
+        if (!can(u, 'assemblies')) fail(403, 'Equipe de assembleia indisponível.');
+        return send(res, 200, {
+          users: usersInTenant(db.users, u.tenant)
+            .filter(valid)
+            .map(({id, name, role}) => ({id, name, role})),
+        });
+      }
+      if (method === 'GET' && route === '/api/assemblies/minutes') {
+        try {
+          return send(res, 200, exportMinutes(db.state, u, url.searchParams.get('id')));
+        } catch (e) {
+          fail(e.status || 403, e.message);
+        }
+      }
+      if (method === 'GET' && route === '/api/management/handovers')
+        return send(res, 200, {
+          proposals: (db.state.managementHandovers || [])
+            .filter((p) => p.tenant === u.tenant && (u.role === 'sindico' || p.to === u.id))
+            .map((p) => structuredClone(p)),
+        });
+      if (
+        method === 'POST' &&
+        ['/api/management/handover/propose', '/api/management/handover/accept'].includes(route)
+      ) {
+        const input = await body(req),
+          next = structuredClone(db);
+        let result;
+        try {
+          result = (route.endsWith('/propose') ? proposeHandover : acceptHandover)(next, u, input, now());
+        } catch (e) {
+          fail(403, e.message);
+        }
+        event(next, u, 'Transição de gestão: ' + route);
+        await persist(next);
+        for (const id of result.revokeUserIds || []) revoke(id);
+        return send(res, 200, {id: result.id, status: result.status});
+      }
+      if (method === 'GET' && route === '/api/assistant/capabilities')
+        return send(res, 200, {
+          generated: !isDemoTenant(db.state, u.tenant) && !!assistantProvider,
+          provider: isDemoTenant(db.state, u.tenant) ? null : assistantProvider?.name || null,
+          model: isDemoTenant(db.state, u.tenant) ? null : assistantProvider?.model || null,
+        });
+      if (method === 'POST' && route === '/api/assistant/tasks/preview') {
+        const input = await body(req);
+        try {
+          return send(
+            res,
+            200,
+            proposals.preview(db.state, usersInTenant(db.users, u.tenant), u, input, now()),
+          );
+        } catch (e) {
+          fail(403, e.message);
+        }
+      }
+      if (method === 'POST' && route === '/api/assistant/tasks/confirm') {
+        const input = await body(req),
+          next = structuredClone(db),
+          result = (() => {
+            try {
+              return proposals.confirm(next.state, usersInTenant(next.users, u.tenant), u, input, now());
+            } catch (e) {
+              fail(403, e.message);
+            }
+          })();
+        event(next, u, 'Tarefa assistida confirmada');
+        notifyChanges(
+          db.state,
+          next.state,
+          allBindings(next.users).filter((p) => validBinding(next.state, p, now())),
+          u,
+          now(),
+        );
+        await persist(next);
+        result.consume();
+        return send(res, 200, {task: result.task});
+      }
+      if (method === 'GET' && route === '/api/privacy')
+        return send(res, 200, {requests: privacyView(db.state, u)});
+      if (method === 'GET' && route === '/api/support') return send(res, 200, supportSnapshot(db, u, now()));
+      if (method === 'GET' && route === '/api/mobile')
+        return send(res, 200, {
+          push: pushConfig(),
+          subscriptions: (db.state.pushSubscriptions || [])
+            .filter((r) => r.tenant === u.tenant && r.userId === u.id)
+            .map(({id, createdAt}) => ({id, createdAt})),
+        });
+      if (method === 'GET' && route === '/api/channels') return send(res, 200, channelsView(db.state, u));
+      if (method === 'GET' && route === '/api/physical') return send(res, 200, physicalView(db.state, u));
+      if (method === 'GET' && route === '/api/alerts')
+        return send(res, 200, {alerts: alertsView(db.state, u)});
+      if (method === 'GET' && route === '/api/alerts/recipients') {
+        if (!can(u, 'communications') || !can(u, 'incidents')) fail(403, 'Triagem indisponível.');
+        return send(res, 200, {
+          users: usersInTenant(db.users, u.tenant)
+            .filter(valid)
+            .filter(
+              (p) =>
+                (can(p, 'communications') && can(p, 'incidents')) ||
+                ['proprietario', 'imobiliaria', 'ocupante', 'temporario'].includes(p.role),
+            )
+            .map(({id, name, houses}) => ({id, name, houses})),
+        });
+      }
+      if (method === 'GET' && route === '/api/knowledge')
+        return send(res, 200, {knowledge: knowledgeView(db.state, u, now())});
+      if (method === 'GET' && route === '/api/knowledge/source')
+        return send(res, 200, {source: readSource(db.state, u, url.searchParams.get('id'), now())});
+      if (method === 'GET' && route === '/api/knowledge/briefings')
+        return send(res, 200, {briefings: visibleBriefings(db.state, u, now())});
+      if (method === 'GET' && route === '/api/polls')
+        return send(res, 200, {governance: pollsView(db.state, u, now())});
+      if (method === 'GET' && route === '/api/polls/detail')
+        return send(res, 200, {poll: readPoll(db.state, u, url.searchParams.get('id'), now())});
+      if (
+        method === 'POST' &&
+        ['/api/knowledge/consult', '/api/knowledge/briefings/preview'].includes(route)
+      ) {
+        const input = await body(req);
+        try {
+          return send(
+            res,
+            200,
+            route.endsWith('/consult')
+              ? consultSources(db.state, u, input, now())
+              : previewBriefing(db.state, u, input, now()),
+          );
+        } catch (e) {
+          fail(e.status || 403, e.message);
+        }
+      }
+      if (method === 'GET' && route === '/api/profiles')
+        return send(res, 200, {
+          profile: memberProfile(
+            db.state,
+            usersInTenant(db.users, u.tenant),
+            u,
+            url.searchParams.get('id'),
+            now(),
+          ),
+        });
+      if (method === 'GET' && route === '/api/profiles/directory')
+        return send(res, 200, {
+          profiles: listMemberProfiles(db.state, usersInTenant(db.users, u.tenant), u, now()),
+        });
+      if (method === 'GET' && route === '/api/profiles/photo') {
+        const photo = memberPhoto(
+          db.state,
+          usersInTenant(db.users, u.tenant),
+          u,
+          url.searchParams.get('id'),
+          url.searchParams.get('version'),
+          now(),
+        );
+        res.writeHead(200, {
+          'Content-Type': photo.mime,
+          'Cache-Control': 'no-store',
+          'X-Content-Type-Options': 'nosniff',
+          'Content-Security-Policy': "default-src 'none'",
+        });
+        return res.end(photo.bytes);
+      }
+      if (method === 'GET' && route === '/api/residents/contacts')
+        return send(
+          res,
+          200,
+          caregiverContactGrants(
+            db.state,
+            usersInTenant(db.users, u.tenant).filter(valid),
+            u,
+            url.searchParams.get('houseId'),
+            now(),
+          ),
+        );
+      if (method === 'GET' && ['/api/residents/photo', '/api/stays/photo'].includes(route)) {
+        const read = route === '/api/residents/photo' ? readResidentPhoto : readStayPhoto,
+          photo = read(db.state, u, url.searchParams.get('id'), url.searchParams.get('version'), now());
+        res.writeHead(200, {
+          'Content-Type': photo.mime,
+          'Cache-Control': 'no-store',
+          'X-Content-Type-Options': 'nosniff',
+          'Content-Security-Policy': "default-src 'none'",
+        });
+        return res.end(photo.bytes);
+      }
+      if (method === 'GET' && route === '/api/community')
+        return send(res, 200, communityView(db.state, usersInTenant(db.users, u.tenant), u, now()));
+      if (method === 'GET' && route === '/api/community/summary')
+        return send(res, 200, communitySummary(db.state, u, now()));
+      if (method === 'GET' && route === '/api/community/profile')
+        return send(
+          res,
+          200,
+          communityProfile(
+            db.state,
+            usersInTenant(db.users, u.tenant),
+            u,
+            url.searchParams.get('slot'),
+            now(),
+          ),
+        );
+      if (method === 'GET' && route === '/api/community/editor')
+        return send(
+          res,
+          200,
+          communityEditor(
+            db.state,
+            usersInTenant(db.users, u.tenant),
+            u,
+            url.searchParams.get('slot'),
+            now(),
+          ),
+        );
+      if (method === 'GET' && route === '/api/community/notices/detail')
+        return send(res, 200, {notice: readCommunityNotice(db.state, u, url.searchParams.get('id'), now())});
+      if (method === 'GET' && route === '/api/community/profile/photo') {
+        const photo = readCommunityPhoto(
+          db.state,
+          usersInTenant(db.users, u.tenant),
+          u,
+          url.searchParams.get('slot'),
+          url.searchParams.get('version'),
+          now(),
+        );
+        res.writeHead(200, {
+          'Content-Type': photo.mime,
+          'Content-Length': photo.bytes.length,
+          'Cache-Control': 'no-store',
+          'X-Content-Type-Options': 'nosniff',
+          'Content-Security-Policy': "default-src 'none'",
+        });
+        return res.end(photo.bytes);
+      }
+      if (method === 'GET' && route === '/api/tour/place')
+        return send(res, 200, {place: tourPlace(db.state, u, url.searchParams.get('id'), now())});
+      if (method === 'GET' && route === '/api/tour')
+        return send(res, 200, {tour: tourView(db.state, u, now())});
+      if (method === 'GET' && route === '/api/finance/payers') {
+        if (!can(u, 'financeClose')) fail(403, 'Vínculos financeiros exigem controle.');
+        return send(res, 200, {
+          users: usersInTenant(db.users, u.tenant)
+            .filter(
+              (p) =>
+                p.tenant === u.tenant &&
+                valid(p) &&
+                ['proprietario', 'imobiliaria', 'ocupante', 'temporario'].includes(p.role),
+            )
+            .map(({id, name, houses}) => ({id, name, houses})),
+        });
+      }
+      if (method === 'GET' && route === '/api/parcels/recipients') {
+        if (!can(u, 'parcels') && u.role !== 'portaria') fail(403, 'Destinatários indisponíveis.');
+        return send(res, 200, {
+          users: usersInTenant(db.users, u.tenant)
+            .filter(
+              (p) =>
+                p.tenant === u.tenant &&
+                valid(p) &&
+                ['proprietario', 'imobiliaria', 'ocupante', 'temporario'].includes(p.role),
+            )
+            .map(({id, name, houses}) => ({id, name, houses})),
+        });
+      }
+      if (method === 'GET' && route === '/api/documents/owners') {
+        if (!can(u, 'documents')) fail(403, 'Responsáveis indisponíveis.');
+        return send(res, 200, {
+          users: usersInTenant(db.users, u.tenant)
+            .filter((p) => p.tenant === u.tenant && valid(p) && can(p, 'documents'))
+            .map(({id, name}) => ({id, name})),
+        });
+      }
+      if (method === 'GET' && route === '/api/documents/file') {
+        const file = readDocumentFile(
+          db.state,
+          u,
+          url.searchParams.get('id'),
+          url.searchParams.get('version'),
+        );
+        res.writeHead(200, {
+          'Content-Type': file.mime,
+          'Content-Length': file.bytes.length,
+          'Content-Disposition':
+            'attachment; filename="documento.pdf"; filename*=UTF-8\'\'' +
+            encodeURIComponent(file.fileName).replace(
+              /['()*]/g,
+              (c) => '%' + c.charCodeAt(0).toString(16).toUpperCase(),
+            ),
+          'Cache-Control': 'no-store',
+          'X-Content-Type-Options': 'nosniff',
+          'Content-Security-Policy': "default-src 'none'; sandbox",
+        });
+        return res.end(file.bytes);
+      }
+      if (method === 'GET' && route === '/api/team') {
+        if (!['tasks', 'incidents', 'maintenance'].some((module) => can(u, module)))
+          fail(403, 'Equipe indisponível.');
+        return send(res, 200, {
+          users: usersInTenant(db.users, u.tenant)
+            .filter(
+              (p) =>
+                p.tenant === u.tenant &&
+                valid(p) &&
+                ((p.role === 'zelador' && ['tasks', 'maintenance'].some((module) => can(u, module))) ||
+                  (can(u, 'incidents') && can(p, 'incidents'))),
+            )
+            .map((p) => ({
+              id: p.id,
+              name: p.name,
+              role: p.role,
+              active: p.active,
+              validUntil: p.validUntil,
+              delegations: p.delegations || [],
+            })),
+        });
+      }
+      if (method === 'GET' && route === '/api/tasks/photo') {
+        let photo;
+        try {
+          photo = readTaskPhoto(db.state, u, url.searchParams.get('task'), url.searchParams.get('photo'));
+        } catch (e) {
+          fail(403, e.message);
+        }
+        res.writeHead(200, {
+          'Content-Type': photo.mime,
+          'Cache-Control': 'no-store',
+          'X-Content-Type-Options': 'nosniff',
+          'Content-Security-Policy': "default-src 'none'",
+        });
+        return res.end(photo.bytes);
+      }
+      if (method === 'POST' && route === '/api/logout') {
+        sessions.delete(session.key);
+        res.setHeader('Set-Cookie', 'vilazuni_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0');
+        return send(res, 200, {ok: true});
+      }
+      if (method === 'GET' && ['/api/finance/report', '/api/finance/export'].includes(route)) {
+        if (route.endsWith('/export') && !can(u, 'financeExport'))
+          fail(403, 'Exportação financeira não autorizada.');
+        const result = url.searchParams.has('closureId')
+          ? financialClosureReport(db.state, u, url.searchParams.get('closureId'))
+          : financialReport(db.state, u, url.searchParams.get('month'));
+        if (route.endsWith('/report')) return send(res, 200, result);
+        res.writeHead(200, {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Content-Disposition':
+            'attachment; filename="vilazuni-financeiro-' + result.report.month + '.json"',
+          'Cache-Control': 'no-store',
+          'X-Content-Type-Options': 'nosniff',
+        });
+        return res.end(JSON.stringify(result, null, 2));
+      }
+      if (method === 'GET' && route === '/api/state')
+        return send(res, 200, {state: projection(u), user: describe(u)});
+      if (method === 'POST' && route === '/api/password') {
+        limit(req);
+        const input = await body(req);
+        if (!(await passwordMatches(input.currentPassword, session.identity)))
+          fail(400, 'Senha atual inválida.');
+        const credential = await passwordHash(input.password),
+          next = structuredClone(db);
+        Object.assign(
+          next.users.find((x) => x.id === u.id),
+          credential,
+          {credentialVersion: (session.identity.credentialVersion || 0) + 1},
+        );
+        event(next, u, 'Senha alterada; sessões encerradas');
+        await persist(next);
+        revoke(u.id);
+        issue(res, u);
+        return send(res, 200, {ok: true});
+      }
+      if (route.startsWith('/api/admin/')) {
+        if (u.role !== 'sindico') fail(403, 'Acesso restrito à gestão.');
+        if (method === 'GET' && route === '/api/admin/users')
+          return send(res, 200, {
+            users: usersInTenant(db.users, u.tenant).map(publicUser),
+            invites: db.invites
+              .filter((i) => i.tenant === u.tenant && !i.used && i.expires > now())
+              .map(({hash, ...i}) => i),
+          });
+        const input = await body(req),
+          next = structuredClone(db);
+        if (method === 'POST' && route === '/api/admin/invites') {
+          const email = identity({name: 'Convidado', email: input.email}).email;
+          if (usersInTenant(next.users, u.tenant).some((x) => x.email === email))
+            fail(409, 'Essa conta já existe neste condomínio.');
+          if (usersInTenant(next.users, u.tenant).length >= tenantSettings(next.state, u.tenant).limits.users)
+            fail(403, 'Limite de contas do plano atingido.');
+          let binding;
+          try {
+            binding = prepareBinding(next.state, u, input, now());
+          } catch (e) {
+            fail(400, e.message);
+          }
+          const code = randomBytes(24).toString('base64url');
+          next.invites
+            .filter((i) => i.email === email && i.tenant === u.tenant)
+            .forEach((i) => (i.used = true));
+          next.invites.push({
+            id: randomUUID(),
+            hash: digest(code),
+            email,
+            ...binding,
+            tenant: u.tenant,
+            expires: now() + 48 * 3600000,
+            used: false,
+          });
+          event(
+            next,
+            u,
+            'Convite criado: ' + email + ' · ' + binding.role + ' · ' + binding.delegations.join(', '),
+          );
+          await persist(next);
+          return send(res, 201, {code, expiresInHours: 48});
+        }
+        if (method === 'POST' && route === '/api/admin/residential-access') {
+          let target;
+          try {
+            target = reviseResidentialAccess(
+              next.state,
+              usersInTenant(next.users, u.tenant),
+              u,
+              input,
+              now(),
+            );
+          } catch (e) {
+            fail(403, e.message);
+          }
+          event(next, u, 'Vínculo de acesso revisado: ' + target.id + ' · ' + target.accessReason);
+          await persist(next);
+          revoke(target.id);
+          return send(res, 200, {user: publicUser(target)});
+        }
+        if (method === 'POST' && route === '/api/admin/delegation') {
+          let target;
+          try {
+            target = reviseDelegation(next.state, usersInTenant(next.users, u.tenant), u, input, now());
+          } catch (e) {
+            fail(400, e.message);
+          }
+          event(
+            next,
+            u,
+            'Delegação atualizada: ' +
+              target.id +
+              ' · ' +
+              target.delegations.join(', ') +
+              ' · ' +
+              target.delegationReason,
+          );
+          await persist(next);
+          revoke(target.id);
+          return send(res, 200, {user: publicUser(target)});
+        }
+        if (method === 'POST' && route === '/api/admin/suspend') {
+          const target = usersInTenant(next.users, u.tenant).find((x) => x.id === input.id);
+          if (!target || target.role === 'sindico') fail(400, 'Conta indisponível para esta ação.');
+          target.active = false;
+          event(next, u, 'Conta suspensa: ' + target.id);
+          await persist(next);
+          revoke(target.id);
+          return send(res, 200, {ok: true});
+        }
+        if (method === 'POST' && route === '/api/admin/revoke-invite') {
+          const invite = next.invites.find((i) => i.id === input.id && i.tenant === u.tenant);
+          if (!invite) fail(404, 'Convite indisponível.');
+          invite.used = true;
+          event(next, u, 'Convite revogado');
+          await persist(next);
+          return send(res, 200, {ok: true});
+        }
+        fail(404, 'Ação não encontrada.');
+      }
+      if (method === 'POST' && route === '/api/finance/fees/preview') {
+        const input = await body(req);
+        try {
+          return send(res, 200, previewFeeAccrual(db.state, u, input, now()));
+        } catch (e) {
+          fail(e.status || 403, e.message);
+        }
+      }
+      if (method === 'POST' && route === '/api/finance/statements/preview') {
+        const input = await body(req, 1024 * 1024);
+        try {
+          return send(res, 200, previewStatement(db.state, u, input, now()));
+        } catch (e) {
+          fail(e.status || 403, e.message);
+        }
+      }
+      if (method === 'POST') {
+        const input = await body(
+            req,
+            [
+              '/api/residents',
+              '/api/residents/update',
+              '/api/stays',
+              '/api/profiles/save',
+              '/api/community/profile/save',
+              '/api/tasks/photo',
+              '/api/documents/create',
+              '/api/documents/version',
+            ].includes(route)
+              ? 3 * 1024 * 1024
+              : route === '/api/finance/statements/import'
+                ? 1024 * 1024
+                : [
+                      '/api/knowledge/sources/create',
+                      '/api/knowledge/sources/revise',
+                      '/api/assemblies/create',
+                      '/api/assemblies/close',
+                      '/api/assemblies/representation',
+                    ].includes(route)
+                  ? 1024 * 1024
+                  : 32768,
+          ),
+          next = structuredClone(db);
+        let result;
+        try {
+          if (route === '/api/automation/save') {
+            result = configureAutomation(next.state, u, input);
+          } else if (route === '/api/automation/queue') {
+            result = queueAutomationNotice(next.state, u, input, now());
+          } else if (route === '/api/profiles/save') {
+            result = saveMemberProfile(next.state, usersInTenant(next.users, u.tenant), u, input, now());
+          } else if (route === '/api/community/profile/save') {
+            result = saveCommunityProfile(next.state, usersInTenant(next.users, u.tenant), u, input, now());
+          } else if (route === '/api/community/notices/save') {
+            result = saveCommunityNotice(next.state, u, input, now());
+          } else if (route === '/api/community/notices/read') {
+            result = markCommunityNoticeRead(next.state, u, input, now());
+          } else if (route === '/api/community/notices/archive') {
+            result = archiveCommunityNotice(next.state, u, input, now());
+          } else if (route === '/api/privacy/request') {
+            result = requestPrivacy(next.state, u, input, now());
+          } else if (route === '/api/privacy/decide') {
+            result = decidePrivacy(next.state, u, input, now());
+          } else if (route === '/api/mobile/subscribe') {
+            if (!pushConfig().ready) fail(409, 'Notificações ainda não configuradas.');
+            result = saveSubscription(next.state, u, input, now());
+          } else if (route === '/api/mobile/unsubscribe') {
+            result = removeSubscription(next.state, u, input);
+          } else if (route === '/api/channels/save') {
+            result = saveChannel(next.state, u, input, now());
+          } else if (route === '/api/channels/prepare') {
+            result = prepareChannel(next.state, u, input, now());
+          } else if (route === '/api/physical/toggle') {
+            result = toggleDevice(next.state, u, input, now());
+          } else if (route === '/api/physical/devices') {
+            result = saveDevice(next.state, u, input, now());
+          } else if (route === '/api/physical/queue') {
+            result = queueGate(next.state, u, input, now());
+          } else if (route === '/api/physical/passage') {
+            result = recordPassage(next.state, u, input, now());
+          } else if (route === '/api/alerts/prepare') {
+            result = prepareAlerts(next.state, usersInTenant(next.users, u.tenant), u, input, now());
+          } else if (route === '/api/alerts/incident') {
+            result = createIncidentAlert(next.state, usersInTenant(next.users, u.tenant), u, input, now());
+          } else if (route === '/api/alerts/update') {
+            result = updateAlert(next.state, u, input, now());
+          } else if (Object.hasOwn(assemblyActions, route)) {
+            result = assemblyActions[route](next.state, u, input, now());
+          } else if (route === '/api/assemblies/representation') {
+            result = setRepresentation(next.state, usersInTenant(next.users, u.tenant), u, input, now());
+          } else if (Object.hasOwn(civicActions, route)) {
+            result = civicActions[route](next.state, u, input, now());
+          } else if (route === '/api/tour/link') {
+            result = linkTourFacility(next.state, u, input, now());
+          } else if (route === '/api/finance/collection/assign') {
+            result = assignFinancialPayer(
+              next.state,
+              allBindings(next.users).filter((p) => validBinding(next.state, p, now())),
+              u,
+              input,
+              now(),
+            );
+          } else if (route === '/api/finance/collection/reminders/prepare') {
+            result = prepareFinancialReminders(
+              next.state,
+              allBindings(next.users).filter((p) => validBinding(next.state, p, now())),
+              u,
+              input,
+              now(),
+            );
+          } else if (Object.hasOwn(financeActions, route)) {
+            result = financeActions[route](next.state, u, input, now());
+          } else if (route === '/api/residents/contacts/grant') {
+            result = grantCaretakerContacts(
+              next.state,
+              usersInTenant(next.users, u.tenant).filter(valid),
+              u,
+              input,
+              now(),
+            );
+          } else if (route === '/api/residents/contacts/revoke') {
+            result = revokeCaretakerContacts(next.state, u, input, now());
+          } else if (['/api/residents', '/api/residents/update', '/api/residents/end'].includes(route)) {
+            const handler = route.endsWith('/update')
+              ? updateResident
+              : route.endsWith('/end')
+                ? endResident
+                : createResident;
+            const r = handler(next.state, u, input, now());
+            result = {id: r.record.id};
+          } else if (route === '/api/incidents/create') {
+            result = {incident: createIncident(next.state, u, input, now())};
+          } else if (route === '/api/incidents/update') {
+            result = {
+              incident: updateIncident(next.state, usersInTenant(next.users, u.tenant), u, input, now()),
+            };
+          } else if (route === '/api/materials/create') {
+            result = {material: createMaterial(next.state, u, input)};
+          } else if (route === '/api/materials/move') {
+            result = moveMaterial(next.state, u, input, now());
+          } else if (route === '/api/maintenance/create') {
+            result = {
+              plan: createMaintenance(next.state, usersInTenant(next.users, u.tenant), u, input, now()),
+            };
+          } else if (route === '/api/maintenance/toggle') {
+            result = {plan: toggleMaintenance(next.state, u, input, now())};
+          } else if (route === '/api/maintenance/generate') {
+            result = generateMaintenance(next.state, usersInTenant(next.users, u.tenant), u, input, now());
+          } else if (route === '/api/tasks/check') {
+            result = {task: checkTask(next.state, u, input, now())};
+          } else if (route === '/api/facilities/create') {
+            result = {facility: createFacility(next.state, u, input, now())};
+          } else if (route === '/api/facilities/toggle') {
+            result = {facility: toggleFacility(next.state, u, input, now())};
+          } else if (route === '/api/reservations/create') {
+            result = {reservation: createReservation(next.state, u, input, now())};
+          } else if (route === '/api/reservations/decision') {
+            result = {reservation: decideReservation(next.state, u, input, now())};
+          } else if (route === '/api/parcels/create') {
+            result = {
+              parcel: createParcel(
+                next.state,
+                usersInTenant(next.users, u.tenant).filter(valid),
+                u,
+                input,
+                now(),
+              ),
+            };
+          } else if (route === '/api/parcels/update') {
+            result = {parcel: updateParcel(next.state, u, input, now())};
+          } else if (route === '/api/notifications/read') {
+            result = readNotifications(next.state, u, input, now());
+          } else if (route === '/api/suppliers/create') {
+            result = {supplier: createSupplier(next.state, u, input, now())};
+          } else if (route === '/api/suppliers/update') {
+            result = {supplier: updateSupplier(next.state, u, input, now())};
+          } else if (route === '/api/suppliers/toggle') {
+            result = {supplier: toggleSupplier(next.state, u, input, now())};
+          } else if (route === '/api/purchases/create') {
+            result = {purchase: createPurchase(next.state, u, input, now())};
+          } else if (route === '/api/purchases/quote') {
+            result = {purchase: addQuote(next.state, u, input, now())};
+          } else if (route === '/api/purchases/submit') {
+            result = {purchase: submitPurchase(next.state, u, input, now())};
+          } else if (route === '/api/purchases/decision') {
+            result = {purchase: decidePurchase(next.state, u, input, now())};
+          } else if (route === '/api/purchases/receive') {
+            result = {purchase: receivePurchase(next.state, u, input, now())};
+          } else if (route === '/api/documents/create') {
+            result = {
+              document: createDocument(
+                next.state,
+                usersInTenant(next.users, u.tenant).filter(valid),
+                u,
+                input,
+                now(),
+              ),
+            };
+          } else if (route === '/api/documents/version') {
+            result = {
+              document: addDocumentVersion(
+                next.state,
+                usersInTenant(next.users, u.tenant).filter(valid),
+                u,
+                input,
+                now(),
+              ),
+            };
+          } else if (route === '/api/documents/toggle') {
+            result = {document: toggleDocument(next.state, u, input, now())};
+          } else if (route === '/api/stays') {
+            const created = createStay(next.state, u, input, now());
+            result = {
+              stay: visibleStays(next.state, u, now()).find((s) => s.id === created.stay.id),
+              warnings: created.warnings,
+            };
+          } else if (route === '/api/stays/decision') {
+            changeStay(next.state, u, input.id, input.status, input.reason, now());
+            result = {ok: true};
+          } else if (route === '/api/tasks/create') {
+            result = {task: createTask(next.state, usersInTenant(next.users, u.tenant), u, input, now())};
+          } else if (route === '/api/tasks/assign') {
+            result = {task: assignTask(next.state, usersInTenant(next.users, u.tenant), u, input, now())};
+          } else if (route === '/api/tasks') {
+            result = {task: advanceTask(next.state, u, input, now())};
+          } else if (route === '/api/tasks/photo') {
+            result = {task: addTaskPhoto(next.state, u, input, now())};
+          } else fail(404, 'Ação não encontrada.');
+        } catch (e) {
+          if (e.status) throw e;
+          fail(403, e.message);
+        }
+        notifyChanges(
+          db.state,
+          next.state,
+          allBindings(next.users).filter((p) => validBinding(next.state, p, now())),
+          u,
+          now(),
+        );
+        await persist(next);
+        return send(res, 200, result);
+      }
+      fail(404, 'Ação não encontrada.');
+    } catch (e) {
+      send(res, e.status || 500, {
+        error: e.status ? e.message : 'Não foi possível concluir. Tente novamente.',
+      });
+    }
   }
-  fail(404,'Ação não encontrada.');
- }catch(e){send(res,e.status||500,{error:e.status?e.message:'Não foi possível concluir. Tente novamente.'});}}
- function enqueue(fn){const run=queue.then(fn);queue=run.catch(()=>{});return run;}
- async function generated(req,res){let reservedKey;
-  try{
-   const prepared=await enqueue(async()=>{
-    if(storage.kind==='postgres')db=await storage.load();
-    const host=config.origin?new URL(config.origin).host:'127.0.0.1:'+req.socket.localPort;if(req.headers.host!==host||req.headers.origin!==(config.origin||'http://'+host))fail(403,'Origem não autorizada.');
-    const session=getSession(req);if(!session)fail(401,'Entre para continuar.');if(requireManagerMfa&&['sindico','subsindico','administradora'].includes(session.user.role)&&!session.identity.mfa)fail(403,'Ative o segundo fator.');const input=await body(req),e=answerEvidence(db.state,session.user,input,now());
-    if(isDemoTenant(db.state,session.user.tenant)||!assistantProvider||!e.evidence.length)return {local:{...e.local,mode:'extractive',answer:null}};
-    const key=session.user.id+':'+session.user.tenant;if(assistantInFlight.has(key)||assistantInFlight.size>=4)fail(429,'Aguarde a síntese em andamento.');
-    const next=structuredClone(db);reserveAnswer(next.state,session.user,now());await persist(next);assistantInFlight.add(key);reservedKey=key;
-    return {e,input,userId:session.user.id,tenant:session.user.tenant,accessVersion:session.user.accessVersion||0,credentialVersion:session.identity.credentialVersion||0};
-   });
-   if(prepared.local)return send(res,200,prepared.local);
-   let result,providerError=false;try{result=await assistantProvider.answer(prepared.e);}catch{providerError=true;}
-   const output=await enqueue(async()=>{
-    if(storage.kind==='postgres')db=await storage.load();const s=getSession(req);
-    if(!s||s.user.id!==prepared.userId||s.user.tenant!==prepared.tenant||(s.user.accessVersion||0)!==prepared.accessVersion||(s.identity.credentialVersion||0)!==prepared.credentialVersion)fail(401,'O acesso mudou durante a consulta.');
-    const fresh=answerEvidence(db.state,s.user,prepared.input,now());if(fresh.fingerprint!==prepared.e.fingerprint)fail(409,'As fontes mudaram durante a síntese. Consulte novamente.');
-    try{if(providerError)throw Error();return validateAnswer(result,fresh,now());}catch{return {...fresh.local,mode:'extractive',answer:null,notice:'A síntese ficou indisponível ou sem referências verificáveis. Confira os trechos autorizados abaixo.'};}
-   });return send(res,200,output);
-  }catch(e){return send(res,e.status||403,{error:e.status?e.message:'Não foi possível preparar a consulta.'});}finally{if(reservedKey)assistantInFlight.delete(reservedKey);}
- }
- const cameraInFlight=new Set();async function showCamera(req,res){let key;try{const prepared=await enqueue(async()=>{if(storage.kind==='postgres')db=await storage.load();const host=config.origin?new URL(config.origin).host:'127.0.0.1:'+req.socket.localPort;if(req.headers.host!==host)fail(403,'Origem não autorizada.');const session=getSession(req);if(!session)fail(401,'Entre para continuar.');if(requireManagerMfa&&['sindico','subsindico','administradora'].includes(session.user.role)&&!session.identity.mfa)fail(403,'Ative o segundo fator.');const data=physicalView(db.state,session.user),id=new URL(req.url,'http://localhost').searchParams.get('id'),d=data.devices.find(d=>d.id===id&&d.active&&d.kind==='camera');if(!d)fail(403,'Câmera indisponível.');const context=session.user.id+':'+session.user.tenant;if(cameraInFlight.has(context)||cameraInFlight.size>=4)fail(429,'Aguarde a imagem em andamento.');cameraInFlight.add(context);key=context;return {device:d,userId:session.user.id,tenant:session.user.tenant};});
- const frame=await cameraSnapshot(prepared.device);await enqueue(async()=>{if(storage.kind==='postgres')db=await storage.load();const session=getSession(req);if(!session||session.user.id!==prepared.userId||session.user.tenant!==prepared.tenant)fail(401,'O acesso mudou.');const data=physicalView(db.state,session.user);if(!data.devices.some(d=>d.id===prepared.device.id&&d.active&&d.version===prepared.device.version))fail(403,'Câmera indisponível.');const next=structuredClone(db);event(next,session.user,'Consulta autorizada de imagem da câmera: '+prepared.device.id);await persist(next);});res.writeHead(200,{'Content-Type':frame.mime,'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Content-Security-Policy':"default-src 'none'; sandbox"});res.end(frame.bytes);
- }catch(e){send(res,e.status||403,{error:e.status?e.message:'Imagem da câmera indisponível.'});}finally{if(key)cameraInFlight.delete(key);}}
- async function dispatchChannel(req,res){try{
-  const outgoing=await enqueue(async()=>{if(storage.kind==='postgres')db=await storage.load();const host=config.origin?new URL(config.origin).host:'127.0.0.1:'+req.socket.localPort;if(req.headers.host!==host||req.headers.origin!==(config.origin||'http://'+host))fail(403,'Origem não autorizada.');const s=getSession(req);if(!s)fail(401,'Entre para continuar.');if(requireManagerMfa&&['sindico','subsindico','administradora'].includes(s.user.role)&&!s.identity.mfa)fail(403,'Ative o segundo fator.');channelsView(db.state,s.user);const input=await body(req),next=structuredClone(db),o=claimChannelMessage(next.state,s.user.tenant,input.id,now());await persist(next);return o;});
-  const result=await deliverTelegram(outgoing);await enqueue(async()=>{if(storage.kind==='postgres')db=await storage.load();const next=structuredClone(db),o=next.state.channelOutbox.find(o=>o.tenant===outgoing.tenant&&o.id===outgoing.id);Object.assign(o,result,{completedAt:new Date(now()).toISOString()});o.version++;await persist(next);});return send(res,200,result);
- }catch(e){send(res,e.status||403,{error:e.message});}}
- async function dispatchGate(req,res){try{
-  const prepared=await enqueue(async()=>{if(storage.kind==='postgres')db=await storage.load();const host=config.origin?new URL(config.origin).host:'127.0.0.1:'+req.socket.localPort;if(req.headers.host!==host||req.headers.origin!==(config.origin||'http://'+host))fail(403,'Origem não autorizada.');const s=getSession(req);if(!s)fail(401,'Entre para continuar.');if(requireManagerMfa&&['sindico','subsindico','administradora'].includes(s.user.role)&&!s.identity.mfa)fail(403,'Ative o segundo fator.');const input=await body(req),next=structuredClone(db),value=claimGate(next.state,s.user,input,now());event(next,s.user,'Comando de acesso despachado para conferência');await persist(next);return value;});
-  const result=await deliverGate(prepared);const command=await enqueue(async()=>{if(storage.kind==='postgres')db=await storage.load();const next=structuredClone(db),c=finishGate(next.state,prepared.command.tenant,prepared.command.id,result,now());await persist(next);return c;});return send(res,200,{command});
- }catch(e){send(res,e.status||403,{error:e.message||'Comando indisponível.'});}}
- const paymentService=createAsaasService({read:()=>db,save:async(next,u)=>{notifyChanges(db.state,next.state,allBindings(next.users).filter(p=>validBinding(next.state,p,now())),u,now());await persist(next);},run:fn=>enqueue(async()=>{if(storage.kind==='postgres')db=await storage.load();return fn();}),transport(req,webhook=false){const host=config.origin?new URL(config.origin).host:'127.0.0.1:'+req.socket.localPort;if(req.headers.host!==host||req.method!=='GET'&&!webhook&&req.headers.origin!==(config.origin||'http://'+host))fail(403,'Origem não autorizada.');},authorize(req){const session=getSession(req);if(!session)fail(401,'Entre para continuar.');if(requireManagerMfa&&['sindico','subsindico','administradora'].includes(session.user.role)&&!session.identity.mfa)fail(403,'Ative o segundo fator.');return session;},body,send,users:db=>allBindings(db.users),vault,now,origin:req=>config.origin||'http://127.0.0.1:'+req.socket.localPort,clientFactory:asaasClientFactory});
- const api=(req,res)=>new URL(req.url,'http://localhost').pathname.startsWith('/api/payments')?paymentService.perform(req,res):req.method==='GET'&&new URL(req.url,'http://localhost').pathname==='/api/physical/camera'?showCamera(req,res):req.method==='POST'&&new URL(req.url,'http://localhost').pathname==='/api/assistant/answer'?generated(req,res):req.method==='POST'&&new URL(req.url,'http://localhost').pathname==='/api/physical/dispatch'?dispatchGate(req,res):req.method==='POST'&&new URL(req.url,'http://localhost').pathname==='/api/channels/send'?dispatchChannel(req,res):enqueue(()=>handle(req,res));api.paymentTick=paymentService.tick;api.automationTick=()=>enqueue(async()=>{if(storage.kind==='postgres')db=await storage.load();const next=structuredClone(db);let changed=prepareAutomationReminders(next.state,allBindings(next.users),now());for(const m of next.state.automationMessages||[])if(m.status==='leased'&&m.leaseUntil<=now()){m.status='uncertain';m.version++;changed++;}if(changed)await persist(next);});let closing;api.close=()=>closing??=storage.close();api.ready=()=>enqueue(async()=>{await storage.load();});api.storageKind=storage.kind;let ticking=false;api.tick=async()=>{if(ticking||process.env.TELEGRAM_ENABLED!=='true')return;ticking=true;try{
- const outgoing=await enqueue(async()=>{if(storage.kind==='postgres')db=await storage.load();const next=structuredClone(db);for(const c of scheduledChannels(next.state,now()).filter(c=>{const t=tenantSettings(next.state,c.tenant);return t.status!=='closed'&&(!t.features||['knowledge','communications'].every(m=>t.features.includes(m)));}))prepareDaily(next.state,c,now());const o=next.state.channelOutbox?.find(o=>o.status==='pending'&&!isDemoTenant(next.state,o.tenant));let claimed=null;if(o){try{claimed=claimChannelMessage(next.state,o.tenant,o.id,now());}catch{o.status='cancelled';o.version++;}}await persist(next);return claimed;});if(outgoing){const result=await deliverTelegram(outgoing);await enqueue(async()=>{if(storage.kind==='postgres')db=await storage.load();const next=structuredClone(db),o=next.state.channelOutbox.find(o=>o.id===outgoing.id&&o.tenant===outgoing.tenant);Object.assign(o,result);o.version++;await persist(next);});}
- }finally{ticking=false;}};let pushing=false;api.pushTick=async()=>{if(pushing||!pushConfig().ready)return;pushing=true;try{const pending=await enqueue(async()=>{if(storage.kind==='postgres')db=await storage.load();const next=structuredClone(db),messages=[];for(const sub of next.state.pushSubscriptions||[]){if(isDemoTenant(next.state,sub.tenant))continue;const person=effectiveBinding(next,next.users.find(u=>u.id===sub.userId),sub.tenant);if(!validBinding(next.state,person,now()))continue;const notification=visibleNotifications(next.state,person).find(n=>!n.readAt);if(!notification||sub.lastNotification===notification.id)continue;sub.lastNotification=notification.id;messages.push(structuredClone(sub));}if(messages.length)await persist(next);return messages;});for(const sub of pending){const result=await sendPush(sub.subscription,process.env,undefined,{state:db.state,tenant:sub.tenant});if(result.status==='expired')await enqueue(async()=>{if(storage.kind==='postgres')db=await storage.load();const next=structuredClone(db);next.state.pushSubscriptions=next.state.pushSubscriptions.filter(s=>s.id!==sub.id);await persist(next);});}}finally{pushing=false;}};return api;
+  function enqueue(fn) {
+    const run = queue.then(fn);
+    queue = run.catch(() => {});
+    return run;
+  }
+  async function generated(req, res) {
+    let reservedKey;
+    try {
+      const prepared = await enqueue(async () => {
+        if (storage.kind === 'postgres') db = await storage.load();
+        const host = config.origin ? new URL(config.origin).host : '127.0.0.1:' + req.socket.localPort;
+        if (req.headers.host !== host || req.headers.origin !== (config.origin || 'http://' + host))
+          fail(403, 'Origem não autorizada.');
+        const session = getSession(req);
+        if (!session) fail(401, 'Entre para continuar.');
+        if (
+          requireManagerMfa &&
+          ['sindico', 'subsindico', 'administradora'].includes(session.user.role) &&
+          !session.identity.mfa
+        )
+          fail(403, 'Ative o segundo fator.');
+        const input = await body(req),
+          e = answerEvidence(db.state, session.user, input, now());
+        if (isDemoTenant(db.state, session.user.tenant) || !assistantProvider || !e.evidence.length)
+          return {local: {...e.local, mode: 'extractive', answer: null}};
+        const key = session.user.id + ':' + session.user.tenant;
+        if (assistantInFlight.has(key) || assistantInFlight.size >= 4)
+          fail(429, 'Aguarde a síntese em andamento.');
+        const next = structuredClone(db);
+        reserveAnswer(next.state, session.user, now());
+        await persist(next);
+        assistantInFlight.add(key);
+        reservedKey = key;
+        return {
+          e,
+          input,
+          userId: session.user.id,
+          tenant: session.user.tenant,
+          accessVersion: session.user.accessVersion || 0,
+          credentialVersion: session.identity.credentialVersion || 0,
+        };
+      });
+      if (prepared.local) return send(res, 200, prepared.local);
+      let result,
+        providerError = false;
+      try {
+        result = await assistantProvider.answer(prepared.e);
+      } catch {
+        providerError = true;
+      }
+      const output = await enqueue(async () => {
+        if (storage.kind === 'postgres') db = await storage.load();
+        const s = getSession(req);
+        if (
+          !s ||
+          s.user.id !== prepared.userId ||
+          s.user.tenant !== prepared.tenant ||
+          (s.user.accessVersion || 0) !== prepared.accessVersion ||
+          (s.identity.credentialVersion || 0) !== prepared.credentialVersion
+        )
+          fail(401, 'O acesso mudou durante a consulta.');
+        const fresh = answerEvidence(db.state, s.user, prepared.input, now());
+        if (fresh.fingerprint !== prepared.e.fingerprint)
+          fail(409, 'As fontes mudaram durante a síntese. Consulte novamente.');
+        try {
+          if (providerError) throw Error();
+          return validateAnswer(result, fresh, now());
+        } catch {
+          return {
+            ...fresh.local,
+            mode: 'extractive',
+            answer: null,
+            notice:
+              'A síntese ficou indisponível ou sem referências verificáveis. Confira os trechos autorizados abaixo.',
+          };
+        }
+      });
+      return send(res, 200, output);
+    } catch (e) {
+      return send(res, e.status || 403, {
+        error: e.status ? e.message : 'Não foi possível preparar a consulta.',
+      });
+    } finally {
+      if (reservedKey) assistantInFlight.delete(reservedKey);
+    }
+  }
+  const cameraInFlight = new Set();
+  async function showCamera(req, res) {
+    let key;
+    try {
+      const prepared = await enqueue(async () => {
+        if (storage.kind === 'postgres') db = await storage.load();
+        const host = config.origin ? new URL(config.origin).host : '127.0.0.1:' + req.socket.localPort;
+        if (req.headers.host !== host) fail(403, 'Origem não autorizada.');
+        const session = getSession(req);
+        if (!session) fail(401, 'Entre para continuar.');
+        if (
+          requireManagerMfa &&
+          ['sindico', 'subsindico', 'administradora'].includes(session.user.role) &&
+          !session.identity.mfa
+        )
+          fail(403, 'Ative o segundo fator.');
+        const data = physicalView(db.state, session.user),
+          id = new URL(req.url, 'http://localhost').searchParams.get('id'),
+          d = data.devices.find((d) => d.id === id && d.active && d.kind === 'camera');
+        if (!d) fail(403, 'Câmera indisponível.');
+        const context = session.user.id + ':' + session.user.tenant;
+        if (cameraInFlight.has(context) || cameraInFlight.size >= 4)
+          fail(429, 'Aguarde a imagem em andamento.');
+        cameraInFlight.add(context);
+        key = context;
+        return {device: d, userId: session.user.id, tenant: session.user.tenant};
+      });
+      const frame = await cameraSnapshot(prepared.device);
+      await enqueue(async () => {
+        if (storage.kind === 'postgres') db = await storage.load();
+        const session = getSession(req);
+        if (!session || session.user.id !== prepared.userId || session.user.tenant !== prepared.tenant)
+          fail(401, 'O acesso mudou.');
+        const data = physicalView(db.state, session.user);
+        if (
+          !data.devices.some(
+            (d) => d.id === prepared.device.id && d.active && d.version === prepared.device.version,
+          )
+        )
+          fail(403, 'Câmera indisponível.');
+        const next = structuredClone(db);
+        event(next, session.user, 'Consulta autorizada de imagem da câmera: ' + prepared.device.id);
+        await persist(next);
+      });
+      res.writeHead(200, {
+        'Content-Type': frame.mime,
+        'Cache-Control': 'no-store',
+        'X-Content-Type-Options': 'nosniff',
+        'Content-Security-Policy': "default-src 'none'; sandbox",
+      });
+      res.end(frame.bytes);
+    } catch (e) {
+      send(res, e.status || 403, {error: e.status ? e.message : 'Imagem da câmera indisponível.'});
+    } finally {
+      if (key) cameraInFlight.delete(key);
+    }
+  }
+  async function dispatchChannel(req, res) {
+    try {
+      const outgoing = await enqueue(async () => {
+        if (storage.kind === 'postgres') db = await storage.load();
+        const host = config.origin ? new URL(config.origin).host : '127.0.0.1:' + req.socket.localPort;
+        if (req.headers.host !== host || req.headers.origin !== (config.origin || 'http://' + host))
+          fail(403, 'Origem não autorizada.');
+        const s = getSession(req);
+        if (!s) fail(401, 'Entre para continuar.');
+        if (
+          requireManagerMfa &&
+          ['sindico', 'subsindico', 'administradora'].includes(s.user.role) &&
+          !s.identity.mfa
+        )
+          fail(403, 'Ative o segundo fator.');
+        channelsView(db.state, s.user);
+        const input = await body(req),
+          next = structuredClone(db),
+          o = claimChannelMessage(next.state, s.user.tenant, input.id, now());
+        await persist(next);
+        return o;
+      });
+      const result = await deliverTelegram(outgoing);
+      await enqueue(async () => {
+        if (storage.kind === 'postgres') db = await storage.load();
+        const next = structuredClone(db),
+          o = next.state.channelOutbox.find((o) => o.tenant === outgoing.tenant && o.id === outgoing.id);
+        Object.assign(o, result, {completedAt: new Date(now()).toISOString()});
+        o.version++;
+        await persist(next);
+      });
+      return send(res, 200, result);
+    } catch (e) {
+      send(res, e.status || 403, {error: e.message});
+    }
+  }
+  async function dispatchGate(req, res) {
+    try {
+      const prepared = await enqueue(async () => {
+        if (storage.kind === 'postgres') db = await storage.load();
+        const host = config.origin ? new URL(config.origin).host : '127.0.0.1:' + req.socket.localPort;
+        if (req.headers.host !== host || req.headers.origin !== (config.origin || 'http://' + host))
+          fail(403, 'Origem não autorizada.');
+        const s = getSession(req);
+        if (!s) fail(401, 'Entre para continuar.');
+        if (
+          requireManagerMfa &&
+          ['sindico', 'subsindico', 'administradora'].includes(s.user.role) &&
+          !s.identity.mfa
+        )
+          fail(403, 'Ative o segundo fator.');
+        const input = await body(req),
+          next = structuredClone(db),
+          value = claimGate(next.state, s.user, input, now());
+        event(next, s.user, 'Comando de acesso despachado para conferência');
+        await persist(next);
+        return value;
+      });
+      const result = await deliverGate(prepared);
+      const command = await enqueue(async () => {
+        if (storage.kind === 'postgres') db = await storage.load();
+        const next = structuredClone(db),
+          c = finishGate(next.state, prepared.command.tenant, prepared.command.id, result, now());
+        await persist(next);
+        return c;
+      });
+      return send(res, 200, {command});
+    } catch (e) {
+      send(res, e.status || 403, {error: e.message || 'Comando indisponível.'});
+    }
+  }
+  const paymentService = createAsaasService({
+    read: () => db,
+    save: async (next, u) => {
+      notifyChanges(
+        db.state,
+        next.state,
+        allBindings(next.users).filter((p) => validBinding(next.state, p, now())),
+        u,
+        now(),
+      );
+      await persist(next);
+    },
+    run: (fn) =>
+      enqueue(async () => {
+        if (storage.kind === 'postgres') db = await storage.load();
+        return fn();
+      }),
+    transport(req, webhook = false) {
+      const host = config.origin ? new URL(config.origin).host : '127.0.0.1:' + req.socket.localPort;
+      if (
+        req.headers.host !== host ||
+        (req.method !== 'GET' && !webhook && req.headers.origin !== (config.origin || 'http://' + host))
+      )
+        fail(403, 'Origem não autorizada.');
+    },
+    authorize(req) {
+      const session = getSession(req);
+      if (!session) fail(401, 'Entre para continuar.');
+      if (
+        requireManagerMfa &&
+        ['sindico', 'subsindico', 'administradora'].includes(session.user.role) &&
+        !session.identity.mfa
+      )
+        fail(403, 'Ative o segundo fator.');
+      return session;
+    },
+    body,
+    send,
+    users: (db) => allBindings(db.users),
+    vault,
+    now,
+    origin: (req) => config.origin || 'http://127.0.0.1:' + req.socket.localPort,
+    clientFactory: asaasClientFactory,
+  });
+  const api = (req, res) => {
+    let route;
+    try {
+      route = new URL(req.url, 'http://localhost').pathname;
+    } catch {
+      send(res, 400, {error: 'Endereço inválido.'});
+      return Promise.resolve();
+    }
+    return route.startsWith('/api/payments')
+      ? paymentService.perform(req, res)
+      : req.method === 'GET' && route === '/api/physical/camera'
+        ? showCamera(req, res)
+        : req.method === 'POST' && route === '/api/assistant/answer'
+          ? generated(req, res)
+          : req.method === 'POST' && route === '/api/physical/dispatch'
+            ? dispatchGate(req, res)
+            : req.method === 'POST' && route === '/api/channels/send'
+              ? dispatchChannel(req, res)
+              : enqueue(() => handle(req, res));
+  };
+  api.paymentTick = paymentService.tick;
+  api.automationTick = () =>
+    enqueue(async () => {
+      if (storage.kind === 'postgres') db = await storage.load();
+      const next = structuredClone(db);
+      let changed = prepareAutomationReminders(next.state, allBindings(next.users), now());
+      for (const m of next.state.automationMessages || [])
+        if (m.status === 'leased' && m.leaseUntil <= now()) {
+          m.status = 'uncertain';
+          m.version++;
+          changed++;
+        }
+      if (changed) await persist(next);
+    });
+  let closing;
+  api.close = () => (closing ??= storage.close());
+  api.ready = () =>
+    enqueue(async () => {
+      await storage.load();
+    });
+  api.storageKind = storage.kind;
+  let ticking = false;
+  api.tick = async () => {
+    if (ticking || process.env.TELEGRAM_ENABLED !== 'true') return;
+    ticking = true;
+    try {
+      const outgoing = await enqueue(async () => {
+        if (storage.kind === 'postgres') db = await storage.load();
+        const next = structuredClone(db);
+        for (const c of scheduledChannels(next.state, now()).filter((c) => {
+          const t = tenantSettings(next.state, c.tenant);
+          return (
+            t.status !== 'closed' &&
+            (!t.features || ['knowledge', 'communications'].every((m) => t.features.includes(m)))
+          );
+        }))
+          prepareDaily(next.state, c, now());
+        const o = next.state.channelOutbox?.find(
+          (o) => o.status === 'pending' && !isDemoTenant(next.state, o.tenant),
+        );
+        let claimed = null;
+        if (o) {
+          try {
+            claimed = claimChannelMessage(next.state, o.tenant, o.id, now());
+          } catch {
+            o.status = 'cancelled';
+            o.version++;
+          }
+        }
+        await persist(next);
+        return claimed;
+      });
+      if (outgoing) {
+        const result = await deliverTelegram(outgoing);
+        await enqueue(async () => {
+          if (storage.kind === 'postgres') db = await storage.load();
+          const next = structuredClone(db),
+            o = next.state.channelOutbox.find((o) => o.id === outgoing.id && o.tenant === outgoing.tenant);
+          Object.assign(o, result);
+          o.version++;
+          await persist(next);
+        });
+      }
+    } finally {
+      ticking = false;
+    }
+  };
+  let pushing = false;
+  api.pushTick = async () => {
+    if (pushing || !pushConfig().ready) return;
+    pushing = true;
+    try {
+      const pending = await enqueue(async () => {
+        if (storage.kind === 'postgres') db = await storage.load();
+        const next = structuredClone(db),
+          messages = [];
+        for (const sub of next.state.pushSubscriptions || []) {
+          if (isDemoTenant(next.state, sub.tenant)) continue;
+          const person = effectiveBinding(
+            next,
+            next.users.find((u) => u.id === sub.userId),
+            sub.tenant,
+          );
+          if (!validBinding(next.state, person, now())) continue;
+          const notification = visibleNotifications(next.state, person).find((n) => !n.readAt);
+          if (!notification || sub.lastNotification === notification.id) continue;
+          sub.lastNotification = notification.id;
+          messages.push(structuredClone(sub));
+        }
+        if (messages.length) await persist(next);
+        return messages;
+      });
+      for (const sub of pending) {
+        const result = await sendPush(sub.subscription, process.env, undefined, {
+          state: db.state,
+          tenant: sub.tenant,
+        });
+        if (result.status === 'expired')
+          await enqueue(async () => {
+            if (storage.kind === 'postgres') db = await storage.load();
+            const next = structuredClone(db);
+            next.state.pushSubscriptions = next.state.pushSubscriptions.filter((s) => s.id !== sub.id);
+            await persist(next);
+          });
+      }
+    } finally {
+      pushing = false;
+    }
+  };
+  return api;
 }

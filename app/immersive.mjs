@@ -22,80 +22,600 @@ import {can} from './permissions.mjs';
 import {materialsPanel} from './materials-ui.mjs';
 import {incidentsPanel} from './incidents-ui.mjs';
 import {tasksPanel} from './tasks-ui.mjs';
-import {showMfaEnrollment,api,discardPendingApi,showLogin,accountPanel,ROLE_NAMES,authorizationStatus} from './auth-ui.mjs';
+import {
+  showMfaEnrollment,
+  api,
+  discardPendingApi,
+  showLogin,
+  accountPanel,
+  ROLE_NAMES,
+  authorizationStatus,
+} from './auth-ui.mjs';
 import {residentsPanel} from './residents-ui.mjs';
-import {residentContacts,vehiclePlates} from './household-ui.mjs';
+import {residentContacts, vehiclePlates} from './household-ui.mjs';
 import {preparePortrait} from './portrait-ui.mjs';
 import {mountWorld} from './world.mjs';
-let clock=Date.now(),state={houses:[],stays:[],tasks:[],audit:[]},role='guest',sessionUser=null,world,demoUI,automationUI,paymentsUI,profilesUI,communityUI,tourUI,civicUI,platformUI,governanceUI,operationsUI,activeHouse=null,sessionEpoch=0,focusReturn=null;
-const app=document.querySelector('#app'),esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const user=()=>sessionUser,houses=()=>state.houses,stays=()=>state.stays;
-async function refreshState(){const epoch=sessionEpoch,result=await api('/state');if(epoch!==sessionEpoch)return;state=result.state;sessionUser=result.user;role=sessionUser.role;clock=Date.now();world?.updateTour?.(state.tour);world?.updateCommunity?.(state.community);}
-async function refreshTour(){const epoch=sessionEpoch,result=await api('/tour');if(epoch!==sessionEpoch)return null;state.tour=result.tour;world?.updateTour?.(state.tour);world?.updateCommunity?.(state.community);return state.tour;}
-const fmt=v=>new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}).format(new Date(v));
-const names={pending:'Em análise',approved:'Autorizada',cancelled:'Cancelada',rejected:'Recusada',todo:'A fazer',doing:'Em andamento',review:'Em revisão',done:'Concluída'};
-
-function toast(message){const el=document.querySelector('#toast');el.textContent=message;el.classList.add('visible');clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.classList.remove('visible'),7000);}
-const canCreate=()=>can(sessionUser,'stays')||['proprietario','imobiliaria'].includes(role);
-function boot(){demoUI?.dispose();automationUI?.dispose();paymentsUI?.dispose();profilesUI?.dispose();communityUI?.dispose();tourUI?.dispose();civicUI?.dispose();platformUI?.dispose();governanceUI?.dispose();operationsUI?.dispose();world?.();activeHouse=null;world=mountWorld(app,{user:sessionUser,role,roles:{[role]:ROLE_NAMES[role]||'Acesso restrito'},houses:['portaria','zelador','guest'].includes(role)?[]:houses(),onRole:()=>{},tour:state.tour,community:state.community,onPoint:id=>{if(['syndic','caretaker','noticeboard'].includes(id))return openPanel(id==='noticeboard'?'board':id);cancelViews();tourUI?.detail(id);},onDirectory:()=>{cancelViews();tourUI?.directory();},onRoomAction:(id,action)=>{cancelViews();tourUI?.navigate(id,action);},onHouse:openHouse,onContext:()=>{if(document.querySelector('#experience-dock'))closePanel();},onPage:openPanel,onNewStay:wizard,onExitHouse:()=>{activeHouse=null;closePanel();}});const dock=document.createElement('section');dock.id='experience-dock';dock.setAttribute('aria-label','Informações do ambiente');dock.hidden=true;document.querySelector('.world-shell').append(dock);automationUI=createAutomationUI({getUser:()=>sessionUser,panel,toast});paymentsUI=createPaymentsUI({getUser:()=>sessionUser,getState:()=>state,panel,refresh:refreshState,toast,openPage:openPanel});profilesUI=createProfilesUI({getUser:()=>sessionUser,panel,toast});communityUI=createCommunityUI({getState:()=>state,getUser:()=>sessionUser,panel,world:()=>world,toast,openTasks:()=>openPanel('tasks')});tourUI=createTourUI({getState:()=>state,getUser:()=>sessionUser,panel,refresh:refreshState,refreshTour,world:()=>world,openPage:openPanel,closePanel,toast});civicUI=createCivicUI({getUser:()=>sessionUser,panel});demoUI=createDemoUI({getUser:()=>sessionUser,getState:()=>state,panel,reenter:entry,openPage:openPanel,toast});platformUI=createPlatformUI({getUser:()=>sessionUser,panel,reenter:entry,openDemo:()=>openPanel('demo')});demoUI.mountBanner();governanceUI=createGovernanceUI({getUser:()=>sessionUser,panel,reenter:entry});operationsUI=createOperationsUI({getUser:()=>sessionUser,panel});if(state.tenant)document.querySelector('.world-brand strong').textContent=state.tenant.name;const profile=document.querySelector('.world-profile');profile.innerHTML=sessionUser?`<button id="my-account" class="glass-secondary">${esc(sessionUser.name)} · ${esc(ROLE_NAMES[role])}</button><button id="sign-out" class="glass-secondary">Sair</button>`:'<span>Acesso restrito</span>';document.querySelector('.world-mode').innerHTML=state.tenant?.demoMode?'<i></i> Dados fictícios':state.deployment?.production?'<i></i> Operação online':'<i></i> Piloto local';document.querySelector('.world-disclaimer').textContent=state.tenant?.demoMode?'Demonstração fictícia · sem cobranças ou envios externos':state.deployment?.production?'Passeio ilustrativo · medidas e aparência não aferidas':'Medidas ilustrativas · dados de exemplo · equipamentos dependem de configuração';profile.querySelector('#my-account')?.addEventListener('click',()=>{cancelViews();accountPanel({user:sessionUser,houses:houses(),panel,toast});});profile.querySelector('#sign-out')?.addEventListener('click',async()=>{try{await api('/logout',{});await entry();}catch(e){toast(e.message);}});}
-async function entry(){clearTimeout(toast.timer);document.querySelector('#toast').classList.remove('visible');document.querySelector('#toast').textContent='';discardPendingApi();sessionEpoch++;demoUI?.dispose();automationUI?.dispose();paymentsUI?.dispose();profilesUI?.dispose();communityUI?.dispose();tourUI?.dispose();civicUI?.dispose();platformUI?.dispose();governanceUI?.dispose();operationsUI?.dispose();world?.();world=null;sessionUser=null;role='guest';state={houses:[],stays:[],tasks:[],audit:[]};boot();document.querySelector('.world-shell').classList.add('is-locked');try{const session=await api('/session');if(session.user?.mfaRequired)return showMfaEnrollment({onSuccess:entry});if(session.user){await refreshState();boot();return;}showLogin({setupRequired:session.setupRequired,production:session.production,mfaAvailable:session.mfaAvailable,onSuccess:async()=>{await refreshState();boot();}});}catch(e){document.querySelector('.world-heading h1').textContent='Conexão indisponível';toast(e.message);}}
-window.addEventListener('session-ended',()=>{if(sessionUser){void entry();toast('Sua sessão terminou. Entre novamente.');}});
-
-function cancelViews(){demoUI?.cancelPending();automationUI?.cancelPending();paymentsUI?.cancelPending();profilesUI?.cancelPending();communityUI?.cancelPending();tourUI?.cancelPending();civicUI?.cancelPending();platformUI?.cancelPending();governanceUI?.cancelPending();operationsUI?.cancelPending();}
-function closePanel(){cancelViews();const dock=document.querySelector('#experience-dock');if(!dock)return;dock.hidden=true;dock.innerHTML='';document.querySelector('.world-shell').classList.remove('has-overlay');if(focusReturn?.isConnected&&focusReturn!==document.body&&focusReturn!==document.documentElement)focusReturn.focus({preventScroll:true});else document.querySelector('#world-list')?.focus({preventScroll:true});focusReturn=null;}
-function panel(title,kicker,body,{back=null,wide=false}={}){const dock=document.querySelector('#experience-dock');document.querySelector('#world-context').hidden=true;if(dock.hidden)focusReturn=document.activeElement;dock.hidden=false;dock.className=wide?'experience-dock wide':'experience-dock';dock.innerHTML=`<header class="glass-panel-header"><div class="glass-heading"><div><span>${esc(kicker)}</span><h2 tabindex="0">${esc(title)}</h2></div><button class="glass-close" aria-label="Fechar painel">×</button></div>${back?'<button class="glass-back">← Voltar</button>':''}</header><div class="glass-body">${body}</div>`;document.querySelector('.world-shell').classList.add('has-overlay');dock.scrollTop=0;dock.querySelector('.glass-close').onclick=closePanel;dock.querySelector('.glass-back')?.addEventListener('click',back);dock.querySelector('.glass-close').focus({preventScroll:true});return dock;}
-function pill(s){return `<span class="float-pill ${esc(s)}">${esc(names[s]||s)}</span>`;}
-function empty(text){return `<p class="quiet-state">${esc(text)}</p>`;}
-function openHouse(id){const p=state.tour?.places.find(p=>p.houseId===id);if(p)void tourUI.detail(p.id);}
-function enterHouse(id){openHouse(id);}
-function openPanel(type,houseId=null){
- if(!sessionUser)return;
- cancelViews();world?.setActivePage?.(type);
- if(type==='demo')return state.tenant?.demoMode?demoUI.home():demoUI.preview();
- if(type==='automation')return automationUI.home();
- if(type==='payments')return paymentsUI.home();
- if(type==='profile')return profilesUI.show();
- if(type==='people')return profilesUI.directory();
- if(type==='community')return communityUI.team();
- if(type==='board')return communityUI.board();
- if(type==='syndic'||type==='caretaker')return communityUI.profile(type==='syndic'?'sindico':'zelador');
- if(['assistance','alerts','channels','physical','privacy'].includes(type))return operationsUI[type]();
- if(type==='mobile')return mobilePanel({panel,getUser:()=>sessionUser});
- if(type==='assemblies')return governanceUI.list();
- if(type==='settings')return platformUI.settings();
- if(type==='consult')return civicUI.consult();
- if(type==='polls')return civicUI.polls();
- if(type==='new')return wizard(houseId);
- if(type==='residents'){if(!houseId)return openPanel('houses');return residentsPanel({houseId,getState:()=>state,getUser:()=>sessionUser,user:sessionUser,panel,refresh:refreshState,toast,back:()=>openHouse(houseId),openStays:()=>openPanel('stays',houseId)});}
- if(type==='tour')return tourUI.directory();
- if(type==='houses')return tourUI.directory({kind:'house'});
- if(type==='stays'){const list=stays().filter(s=>!houseId||s.houseId===houseId);const dock=panel('Quem chega. Quem fica.','ESTADIAS'+(houseId?' · CASA '+houses().find(h=>h.id===houseId)?.number:''),`${canCreate()?'<button class="glass-primary" id="float-new">＋ Receber uma estadia</button>':''}<div class="float-feed">${list.map(s=>`<button class="journey-card" data-stay="${s.id}"><div><span>CASA ${houses().find(h=>h.id===s.houseId)?.number} · ${esc(s.rentalKind==='daily'?'Diária':s.rentalKind==='seasonal'?'Temporada':'Tipo a confirmar')} · ${esc(s.source||'Autorização')}</span>${pill(s.status)}</div><h3>${esc(s.responsible)}</h3><p>${fmt(s.start)} → ${fmt(s.end)}</p><small>${s.people.length} pessoas · ${s.vehicles.length} veículos <b>Explorar ↗</b></small></button>`).join('')||empty('Nenhuma estadia neste espaço.')}</div>`,{back:houseId?()=>openHouse(houseId):null});dock.querySelector('#float-new')?.addEventListener('click',()=>wizard(houseId));dock.querySelectorAll('[data-stay]').forEach(b=>b.onclick=()=>stayDetail(b.dataset.stay,houseId));return;}
- if(type==='parking'){panel('Um lugar para chegar.','ESTACIONAMENTO',`<div class="float-feed">${houses().filter(h=>!houseId||h.id===houseId).map(h=>`<article class="floating-note"><span class="micro-label">CASA ${h.number}</span><h3>${h.parking} vaga${h.parking===1?'':'s'}</h3><p>${esc(h.parkingType)}</p>${pill('Disponibilidade não confirmada')}</article>`).join('')}</div><p class="micro-note">Veículo cadastrado não garante vaga disponível.</p>`,{back:houseId?()=>openHouse(houseId):null});return;}
- if(type==='incidents')return incidentsPanel({getState:()=>state,user:sessionUser,panel,refresh:refreshState,toast});
- if(type==='myCharges')return myChargesPanel({getState:()=>state,panel,refresh:refreshState,toast});
- if(type==='finance')return financePanel({getState:()=>state,user:sessionUser,panel,refresh:refreshState,toast});
- if(type==='purchases')return purchasesPanel({getState:()=>state,user:sessionUser,panel,refresh:refreshState,toast});
- if(type==='documents')return documentsPanel({getState:()=>state,user:sessionUser,panel,refresh:refreshState,toast});
- if(type==='parcels')return parcelsPanel({getState:()=>state,user:sessionUser,panel,refresh:refreshState,toast});
- if(type==='notifications')return notificationsPanel({getState:()=>state,panel,refresh:refreshState,toast,openPage:openPanel});
- if(type==='facilities')return facilitiesPanel({getState:()=>state,user:sessionUser,panel,refresh:refreshState,toast,initialId:houseId,back:()=>tourUI.directory()});
- if(type==='maintenance')return maintenancePanel({getState:()=>state,user:sessionUser,panel,refresh:refreshState,toast});
- if(type==='materials')return materialsPanel({getState:()=>state,user:sessionUser,panel,refresh:refreshState,toast});
- if(type==='tasks')return tasksPanel({getState:()=>state,user:sessionUser,panel,refresh:refreshState,toast});
- if(type==='access'&&(can(sessionUser,'stays')||role==='portaria')){panel('Entradas com contexto.','AUTORIZAÇÕES',`<div class="float-feed">${stays().filter(s=>!houseId||s.houseId===houseId).map(s=>`<article class="floating-note"><span class="micro-label">CASA ${houses().find(h=>h.id===s.houseId)?.number}</span><h3>${esc(s.responsible)}</h3>${pill(authorizationStatus(s,clock))}<p>${esc(s.people.join(' · '))}</p><small>${esc(s.vehicles.join(' · ')||'Sem veículo')}<br>${fmt(s.start)} → ${fmt(s.end)}</small></article>`).join('')||empty('Nenhuma autorização no seu escopo.')}</div><p class="micro-note">Situação consultada no horário atual. Sem acionamento de portão.</p>`);return;}
- panel('Em construção.','VILAZUNI',empty('Este recurso será integrado ao ambiente virtual nas próximas etapas.'));
+let clock = Date.now(),
+  state = {houses: [], stays: [], tasks: [], audit: []},
+  role = 'guest',
+  sessionUser = null,
+  world,
+  demoUI,
+  automationUI,
+  paymentsUI,
+  profilesUI,
+  communityUI,
+  tourUI,
+  civicUI,
+  platformUI,
+  governanceUI,
+  operationsUI,
+  activeHouse = null,
+  sessionEpoch = 0,
+  focusReturn = null;
+const app = document.querySelector('#app'),
+  esc = (v) =>
+    String(v ?? '').replace(
+      /[&<>"']/g,
+      (c) => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'})[c],
+    );
+const user = () => sessionUser,
+  houses = () => state.houses,
+  stays = () => state.stays;
+async function refreshState() {
+  const epoch = sessionEpoch,
+    result = await api('/state');
+  if (epoch !== sessionEpoch) return;
+  state = result.state;
+  sessionUser = result.user;
+  role = sessionUser.role;
+  clock = Date.now();
+  world?.updateTour?.(state.tour);
+  world?.updateCommunity?.(state.community);
 }
-function stayDetail(id,houseId){const s=stays().find(s=>s.id===id);if(!s)return;const decide=can(sessionUser,'stays')&&s.status==='pending',cancel=canCreate()&&['pending','approved'].includes(s.status);const dock=panel(s.responsible,'ESTADIA · CASA '+houses().find(h=>h.id===s.houseId)?.number,`${pill(s.status)}<p class="household-label">${esc(s.rentalKind==='daily'?'INQUILINO DE DIÁRIA':s.rentalKind==='seasonal'?'INQUILINO DE TEMPORADA':'TIPO DE ESTADIA A CONFIRMAR')}</p>${s.photo?`<img class="household-portrait" src="/api/stays/photo?id=${encodeURIComponent(s.id)}&version=${s.version||1}" alt="Foto de identificação de ${esc(s.responsible)}" loading="lazy">`:''}<div class="stay-path"><div><span>CHEGADA</span><strong>${fmt(s.start)}</strong></div><i>↓</i><div><span>SAÍDA</span><strong>${fmt(s.end)}</strong></div></div><div class="people-bubbles">${s.people.map(p=>`<span><i>${esc(p.slice(0,1))}</i>${esc(p)}</span>`).join('')}</div>${vehiclePlates(s.vehicles)}${role!=='portaria'?residentContacts({...s,name:s.responsible}):''}${s.decisionReason?`<p class="micro-note">Última decisão: ${esc(s.decisionReason)}</p>`:''}${decide||cancel?`<div class="decision-area"><label>Motivo da decisão<input id="decision-reason" maxlength="500" placeholder="Registre o motivo"></label><div class="decision-buttons">${decide?'<button data-decision="approved" class="glass-primary">Autorizar</button><button data-decision="rejected" class="glass-secondary">Recusar</button>':''}${cancel?'<button data-decision="cancelled" class="glass-secondary">Cancelar estadia</button>':''}</div><p id="decision-error" role="alert"></p></div>`:''}`,{back:()=>openPanel('stays',houseId)});dock.querySelectorAll('[data-decision]').forEach(b=>b.onclick=async()=>{try{await api('/stays/decision',{id,status:b.dataset.decision,reason:dock.querySelector('#decision-reason').value});await refreshState();stayDetail(id,houseId);toast('Decisão registrada.');}catch(e){dock.querySelector('#decision-error').textContent=e.message;}});}
-function wizard(houseId){if(!canCreate())return;const epoch=sessionEpoch,owner=sessionUser?.id,tenant=sessionUser?.tenant,alive=()=>sessionEpoch===epoch&&sessionUser?.id===owner&&sessionUser?.tenant===tenant;const draft={houseId:houseId||houses()[0]?.id,source:'Direta',rentalKind:'daily',start:'2026-10-25T15:00',end:'2026-10-27T11:00',responsible:'',contact:'',phone:'',whatsapp:'',email:'',photo:null,people:'',vehicles:''};let step=0;const titles=['Onde e quando?','Quem será recebido?','Como vão chegar?','Tudo pronto para enviar?'];
- function show(){const h=houses().find(h=>h.id===draft.houseId);const content=[`<label>Casa<select name="houseId">${houses().map(h=>`<option value="${h.id}" ${h.id===draft.houseId?'selected':''}>Casa ${h.number}</option>`).join('')}</select></label><div class="wizard-pair"><label>Chegada · Brasília<input name="start" type="datetime-local" value="${esc(draft.start)}" required></label><label>Saída · Brasília<input name="end" type="datetime-local" value="${esc(draft.end)}" required></label></div><label>Origem<select name="source">${['Direta','Airbnb','Booking','Outra'].map(s=>`<option ${s===draft.source?'selected':''}>${s}</option>`).join('')}</select></label><label>Tipo de locação<select name="rentalKind"><option value="daily" ${draft.rentalKind==='daily'?'selected':''}>Diária</option><option value="seasonal" ${draft.rentalKind==='seasonal'?'selected':''}>Temporada</option></select></label>`,
- `<label>Responsável presente<input name="responsible" value="${esc(draft.responsible)}" maxlength="120" required placeholder="Nome fictício"></label><label>Contato<input name="contact" value="${esc(draft.contact)}" maxlength="200" placeholder="Informação adicional de contato"></label><div class="wizard-pair"><label>Telefone com DDI e DDD<input name="phone" type="tel" value="${esc(draft.phone)}" maxlength="30" placeholder="55 22 99999-9999"></label><label>WhatsApp com DDI e DDD<input name="whatsapp" type="tel" value="${esc(draft.whatsapp)}" maxlength="30" placeholder="55 22 99999-9999"></label></div><label>E-mail<input name="email" type="email" value="${esc(draft.email)}" maxlength="200"></label><label>Foto de identificação do responsável<input name="stayPhotoFile" type="file" accept="image/png,image/jpeg,image/webp"></label><p class="micro-note">${draft.photo?'Foto selecionada. ':''}Contatos e foto ficam disponíveis ao proprietário, ao síndico e à zeladoria com autorização para esta casa.</p><label>Todos os ocupantes<textarea name="people" rows="3" required placeholder="Um nome por linha, incluindo o responsável">${esc(draft.people)}</textarea></label>`,
- `<div class="floating-note"><span class="micro-label">CASA ${h?.number}</span><h3>${h?.parking} vagas</h3><p>${esc(h?.parkingType)}</p></div><label>Placas fictícias · uma por linha<textarea name="vehicles" rows="3" placeholder="Deixe vazio se não houver veículo">${esc(draft.vehicles)}</textarea></label><p class="micro-note">O cadastro não garante uma vaga disponível.</p>`,
- `<div class="floating-note"><span class="micro-label">CASA ${h?.number} · ${draft.rentalKind==='daily'?'DIÁRIA':'TEMPORADA'} · ${esc(draft.source)}</span><h3>${esc(draft.responsible)}</h3><p>${esc(draft.start.replace('T',' · '))}<br>até ${esc(draft.end.replace('T',' · '))}</p></div><div class="people-bubbles">${[...new Set(draft.people.split('\n').map(x=>x.trim()).filter(Boolean))].map(p=>`<span>${esc(p)}</span>`).join('')}</div><p class="micro-note">Enviaremos para análise. Nenhum acesso será liberado automaticamente.</p>`][step];const dock=panel(titles[step],'NOVA ESTADIA · '+(step+1)+' DE 4',`<div class="wizard-progress">${titles.map((_,i)=>`<i class="${i<=step?'reached':''}"></i>`).join('')}</div><form id="float-wizard" class="float-wizard">${content}<p class="wizard-error" role="alert"></p><div class="wizard-actions">${step?'<button type="button" id="wizard-prev" class="glass-secondary">← Anterior</button>':''}<button type="submit" class="glass-primary">${step===3?'Enviar para análise':'Continuar →'}</button></div></form><p class="micro-note">Use apenas dados fictícios nesta demonstração.</p>`,{back:()=>openPanel('stays',houseId)});
- const form=dock.querySelector('form'),current=()=>alive()&&form.isConnected&&!dock.hidden,capture=()=>{const fields=Object.fromEntries(new FormData(form));delete fields.stayPhotoFile;Object.assign(draft,fields);},picture=async()=>{const file=form.querySelector('[name=stayPhotoFile]')?.files?.[0];if(file){const portrait=await preparePortrait(file);if(current())draft.photo=portrait;}};
- const error=err=>{if(current()){form.querySelector('.wizard-error').textContent=err.message;form.querySelectorAll('button').forEach(b=>b.disabled=false);}};
- dock.querySelector('#wizard-prev')?.addEventListener('click',async()=>{if(!current())return;form.querySelectorAll('button').forEach(b=>b.disabled=true);try{await picture();if(!current())return;capture();step--;show();}catch(err){error(err);}});
- form.onsubmit=async e=>{e.preventDefault();if(!current()||form.querySelector('[type=submit]').disabled)return;form.querySelectorAll('button').forEach(b=>b.disabled=true);form.querySelector('.wizard-error').textContent='';try{await picture();if(!current())return;capture();if(step<3){if(step===0&&new Date(draft.end)<=new Date(draft.start))throw Error('A saída deve ser posterior à chegada.');step++;show();return;}const r=await api('/stays',{...draft,people:draft.people.split('\n'),vehicles:draft.vehicles.split('\n')});if(!alive())return;await refreshState();if(!current())return;openPanel('stays',draft.houseId);toast(r.warnings.length?'Enviado. '+r.warnings.join(' '):'Estadia enviada para análise.');}catch(err){error(err);}};
- }show();}
-window.addEventListener('keydown',e=>{if(e.key==='Escape')closePanel();});
-window.addEventListener('hashchange',()=>{const type=location.hash.slice(1);if(type&&type!=='world')openPanel(type);});
+async function refreshTour() {
+  const epoch = sessionEpoch,
+    result = await api('/tour');
+  if (epoch !== sessionEpoch) return null;
+  state.tour = result.tour;
+  world?.updateTour?.(state.tour);
+  world?.updateCommunity?.(state.community);
+  return state.tour;
+}
+const fmt = (v) =>
+  new Intl.DateTimeFormat('pt-BR', {
+    timeZone: 'America/Sao_Paulo',
+    day: '2-digit',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(v));
+const names = {
+  pending: 'Em análise',
+  approved: 'Autorizada',
+  cancelled: 'Cancelada',
+  rejected: 'Recusada',
+  todo: 'A fazer',
+  doing: 'Em andamento',
+  review: 'Em revisão',
+  done: 'Concluída',
+};
+
+function toast(message) {
+  const el = document.querySelector('#toast');
+  el.textContent = message;
+  el.classList.add('visible');
+  clearTimeout(toast.timer);
+  toast.timer = setTimeout(() => el.classList.remove('visible'), 7000);
+}
+const canCreate = () => can(sessionUser, 'stays') || ['proprietario', 'imobiliaria'].includes(role);
+function boot() {
+  demoUI?.dispose();
+  automationUI?.dispose();
+  paymentsUI?.dispose();
+  profilesUI?.dispose();
+  communityUI?.dispose();
+  tourUI?.dispose();
+  civicUI?.dispose();
+  platformUI?.dispose();
+  governanceUI?.dispose();
+  operationsUI?.dispose();
+  world?.();
+  activeHouse = null;
+  world = mountWorld(app, {
+    user: sessionUser,
+    role,
+    roles: {[role]: ROLE_NAMES[role] || 'Acesso restrito'},
+    houses: ['portaria', 'zelador', 'guest'].includes(role) ? [] : houses(),
+    onRole: () => {},
+    tour: state.tour,
+    community: state.community,
+    onPoint: (id) => {
+      if (['syndic', 'caretaker', 'noticeboard'].includes(id))
+        return openPanel(id === 'noticeboard' ? 'board' : id);
+      cancelViews();
+      tourUI?.detail(id);
+    },
+    onDirectory: () => {
+      cancelViews();
+      tourUI?.directory();
+    },
+    onRoomAction: (id, action) => {
+      cancelViews();
+      tourUI?.navigate(id, action);
+    },
+    onHouse: openHouse,
+    onContext: () => {
+      if (document.querySelector('#experience-dock')) closePanel();
+    },
+    onPage: openPanel,
+    onNewStay: wizard,
+    onExitHouse: () => {
+      activeHouse = null;
+      closePanel();
+    },
+  });
+  const dock = document.createElement('section');
+  dock.id = 'experience-dock';
+  dock.setAttribute('aria-label', 'Informações do ambiente');
+  dock.hidden = true;
+  document.querySelector('.world-shell').append(dock);
+  automationUI = createAutomationUI({getUser: () => sessionUser, panel, toast});
+  paymentsUI = createPaymentsUI({
+    getUser: () => sessionUser,
+    getState: () => state,
+    panel,
+    refresh: refreshState,
+    toast,
+    openPage: openPanel,
+  });
+  profilesUI = createProfilesUI({getUser: () => sessionUser, panel, toast});
+  communityUI = createCommunityUI({
+    getState: () => state,
+    getUser: () => sessionUser,
+    panel,
+    world: () => world,
+    toast,
+    openTasks: () => openPanel('tasks'),
+  });
+  tourUI = createTourUI({
+    getState: () => state,
+    getUser: () => sessionUser,
+    panel,
+    refresh: refreshState,
+    refreshTour,
+    world: () => world,
+    openPage: openPanel,
+    closePanel,
+    toast,
+  });
+  civicUI = createCivicUI({getUser: () => sessionUser, panel});
+  demoUI = createDemoUI({
+    getUser: () => sessionUser,
+    getState: () => state,
+    panel,
+    reenter: entry,
+    openPage: openPanel,
+    toast,
+  });
+  platformUI = createPlatformUI({
+    getUser: () => sessionUser,
+    panel,
+    reenter: entry,
+    openDemo: () => openPanel('demo'),
+  });
+  demoUI.mountBanner();
+  governanceUI = createGovernanceUI({getUser: () => sessionUser, panel, reenter: entry});
+  operationsUI = createOperationsUI({getUser: () => sessionUser, panel});
+  if (state.tenant) document.querySelector('.world-brand strong').textContent = state.tenant.name;
+  const profile = document.querySelector('.world-profile');
+  profile.innerHTML = sessionUser
+    ? `<button id="my-account" class="glass-secondary">${esc(sessionUser.name)} · ${esc(ROLE_NAMES[role])}</button><button id="sign-out" class="glass-secondary">Sair</button>`
+    : '<span>Acesso restrito</span>';
+  document.querySelector('.world-mode').innerHTML = state.tenant?.demoMode
+    ? '<i></i> Dados fictícios'
+    : state.deployment?.production
+      ? '<i></i> Operação online'
+      : '<i></i> Piloto local';
+  document.querySelector('.world-disclaimer').textContent = state.tenant?.demoMode
+    ? 'Demonstração fictícia · sem cobranças ou envios externos'
+    : state.deployment?.production
+      ? 'Passeio ilustrativo · medidas e aparência não aferidas'
+      : 'Medidas ilustrativas · dados de exemplo · equipamentos dependem de configuração';
+  profile.querySelector('#my-account')?.addEventListener('click', () => {
+    cancelViews();
+    accountPanel({user: sessionUser, houses: houses(), panel, toast});
+  });
+  profile.querySelector('#sign-out')?.addEventListener('click', async () => {
+    try {
+      await api('/logout', {});
+      await entry();
+    } catch (e) {
+      toast(e.message);
+    }
+  });
+}
+async function entry() {
+  clearTimeout(toast.timer);
+  document.querySelector('#toast').classList.remove('visible');
+  document.querySelector('#toast').textContent = '';
+  discardPendingApi();
+  sessionEpoch++;
+  demoUI?.dispose();
+  automationUI?.dispose();
+  paymentsUI?.dispose();
+  profilesUI?.dispose();
+  communityUI?.dispose();
+  tourUI?.dispose();
+  civicUI?.dispose();
+  platformUI?.dispose();
+  governanceUI?.dispose();
+  operationsUI?.dispose();
+  world?.();
+  world = null;
+  sessionUser = null;
+  role = 'guest';
+  state = {houses: [], stays: [], tasks: [], audit: []};
+  boot();
+  document.querySelector('.world-shell').classList.add('is-locked');
+  try {
+    const session = await api('/session');
+    if (session.user?.mfaRequired) return showMfaEnrollment({onSuccess: entry});
+    if (session.user) {
+      await refreshState();
+      boot();
+      return;
+    }
+    showLogin({
+      setupRequired: session.setupRequired,
+      production: session.production,
+      mfaAvailable: session.mfaAvailable,
+      onSuccess: async () => {
+        await refreshState();
+        boot();
+      },
+    });
+  } catch (e) {
+    document.querySelector('.world-heading h1').textContent = 'Conexão indisponível';
+    toast(e.message);
+  }
+}
+window.addEventListener('session-ended', () => {
+  if (sessionUser) {
+    void entry();
+    toast('Sua sessão terminou. Entre novamente.');
+  }
+});
+
+function cancelViews() {
+  demoUI?.cancelPending();
+  automationUI?.cancelPending();
+  paymentsUI?.cancelPending();
+  profilesUI?.cancelPending();
+  communityUI?.cancelPending();
+  tourUI?.cancelPending();
+  civicUI?.cancelPending();
+  platformUI?.cancelPending();
+  governanceUI?.cancelPending();
+  operationsUI?.cancelPending();
+}
+function closePanel() {
+  cancelViews();
+  const dock = document.querySelector('#experience-dock');
+  if (!dock) return;
+  dock.hidden = true;
+  dock.innerHTML = '';
+  document.querySelector('.world-shell').classList.remove('has-overlay');
+  if (focusReturn?.isConnected && focusReturn !== document.body && focusReturn !== document.documentElement)
+    focusReturn.focus({preventScroll: true});
+  else document.querySelector('#world-list')?.focus({preventScroll: true});
+  focusReturn = null;
+}
+function panel(title, kicker, body, {back = null, wide = false} = {}) {
+  const dock = document.querySelector('#experience-dock');
+  document.querySelector('#world-context').hidden = true;
+  if (dock.hidden) focusReturn = document.activeElement;
+  dock.hidden = false;
+  dock.className = wide ? 'experience-dock wide' : 'experience-dock';
+  dock.innerHTML = `<header class="glass-panel-header"><div class="glass-heading"><div><span>${esc(kicker)}</span><h2 tabindex="0">${esc(title)}</h2></div><button class="glass-close" aria-label="Fechar painel">×</button></div>${back ? '<button class="glass-back">← Voltar</button>' : ''}</header><div class="glass-body">${body}</div>`;
+  document.querySelector('.world-shell').classList.add('has-overlay');
+  dock.scrollTop = 0;
+  dock.querySelector('.glass-close').onclick = closePanel;
+  dock.querySelector('.glass-back')?.addEventListener('click', back);
+  dock.querySelector('.glass-close').focus({preventScroll: true});
+  return dock;
+}
+function pill(s) {
+  return `<span class="float-pill ${esc(s)}">${esc(names[s] || s)}</span>`;
+}
+function empty(text) {
+  return `<p class="quiet-state">${esc(text)}</p>`;
+}
+function openHouse(id) {
+  const p = state.tour?.places.find((p) => p.houseId === id);
+  if (p) void tourUI.detail(p.id);
+}
+function enterHouse(id) {
+  openHouse(id);
+}
+function openPanel(type, houseId = null) {
+  if (!sessionUser) return;
+  cancelViews();
+  world?.setActivePage?.(type);
+  if (type === 'demo') return state.tenant?.demoMode ? demoUI.home() : demoUI.preview();
+  if (type === 'automation') return automationUI.home();
+  if (type === 'payments') return paymentsUI.home();
+  if (type === 'profile') return profilesUI.show();
+  if (type === 'people') return profilesUI.directory();
+  if (type === 'community') return communityUI.team();
+  if (type === 'board') return communityUI.board();
+  if (type === 'syndic' || type === 'caretaker')
+    return communityUI.profile(type === 'syndic' ? 'sindico' : 'zelador');
+  if (['assistance', 'alerts', 'channels', 'physical', 'privacy'].includes(type)) return operationsUI[type]();
+  if (type === 'mobile') return mobilePanel({panel, getUser: () => sessionUser});
+  if (type === 'assemblies') return governanceUI.list();
+  if (type === 'settings') return platformUI.settings();
+  if (type === 'consult') return civicUI.consult();
+  if (type === 'polls') return civicUI.polls();
+  if (type === 'new') return wizard(houseId);
+  if (type === 'residents') {
+    if (!houseId) return openPanel('houses');
+    return residentsPanel({
+      houseId,
+      getState: () => state,
+      getUser: () => sessionUser,
+      user: sessionUser,
+      panel,
+      refresh: refreshState,
+      toast,
+      back: () => openHouse(houseId),
+      openStays: () => openPanel('stays', houseId),
+    });
+  }
+  if (type === 'tour') return tourUI.directory();
+  if (type === 'houses') return tourUI.directory({kind: 'house'});
+  if (type === 'stays') {
+    const list = stays().filter((s) => !houseId || s.houseId === houseId);
+    const dock = panel(
+      'Quem chega. Quem fica.',
+      'ESTADIAS' + (houseId ? ' · CASA ' + houses().find((h) => h.id === houseId)?.number : ''),
+      `${canCreate() ? '<button class="glass-primary" id="float-new">＋ Receber uma estadia</button>' : ''}<div class="float-feed">${list.map((s) => `<button class="journey-card" data-stay="${s.id}"><div><span>CASA ${houses().find((h) => h.id === s.houseId)?.number} · ${esc(s.rentalKind === 'daily' ? 'Diária' : s.rentalKind === 'seasonal' ? 'Temporada' : 'Tipo a confirmar')} · ${esc(s.source || 'Autorização')}</span>${pill(s.status)}</div><h3>${esc(s.responsible)}</h3><p>${fmt(s.start)} → ${fmt(s.end)}</p><small>${s.people.length} pessoas · ${s.vehicles.length} veículos <b>Explorar ↗</b></small></button>`).join('') || empty('Nenhuma estadia neste espaço.')}</div>`,
+      {back: houseId ? () => openHouse(houseId) : null},
+    );
+    dock.querySelector('#float-new')?.addEventListener('click', () => wizard(houseId));
+    dock
+      .querySelectorAll('[data-stay]')
+      .forEach((b) => (b.onclick = () => stayDetail(b.dataset.stay, houseId)));
+    return;
+  }
+  if (type === 'parking') {
+    panel(
+      'Um lugar para chegar.',
+      'ESTACIONAMENTO',
+      `<div class="float-feed">${houses()
+        .filter((h) => !houseId || h.id === houseId)
+        .map(
+          (h) =>
+            `<article class="floating-note"><span class="micro-label">CASA ${h.number}</span><h3>${h.parking} vaga${h.parking === 1 ? '' : 's'}</h3><p>${esc(h.parkingType)}</p>${pill('Disponibilidade não confirmada')}</article>`,
+        )
+        .join('')}</div><p class="micro-note">Veículo cadastrado não garante vaga disponível.</p>`,
+      {back: houseId ? () => openHouse(houseId) : null},
+    );
+    return;
+  }
+  if (type === 'incidents')
+    return incidentsPanel({getState: () => state, user: sessionUser, panel, refresh: refreshState, toast});
+  if (type === 'myCharges')
+    return myChargesPanel({getState: () => state, panel, refresh: refreshState, toast});
+  if (type === 'finance')
+    return financePanel({getState: () => state, user: sessionUser, panel, refresh: refreshState, toast});
+  if (type === 'purchases')
+    return purchasesPanel({getState: () => state, user: sessionUser, panel, refresh: refreshState, toast});
+  if (type === 'documents')
+    return documentsPanel({getState: () => state, user: sessionUser, panel, refresh: refreshState, toast});
+  if (type === 'parcels')
+    return parcelsPanel({getState: () => state, user: sessionUser, panel, refresh: refreshState, toast});
+  if (type === 'notifications')
+    return notificationsPanel({
+      getState: () => state,
+      panel,
+      refresh: refreshState,
+      toast,
+      openPage: openPanel,
+    });
+  if (type === 'facilities')
+    return facilitiesPanel({
+      getState: () => state,
+      user: sessionUser,
+      panel,
+      refresh: refreshState,
+      toast,
+      initialId: houseId,
+      back: () => tourUI.directory(),
+    });
+  if (type === 'maintenance')
+    return maintenancePanel({getState: () => state, user: sessionUser, panel, refresh: refreshState, toast});
+  if (type === 'materials')
+    return materialsPanel({getState: () => state, user: sessionUser, panel, refresh: refreshState, toast});
+  if (type === 'tasks')
+    return tasksPanel({getState: () => state, user: sessionUser, panel, refresh: refreshState, toast});
+  if (type === 'access' && (can(sessionUser, 'stays') || role === 'portaria')) {
+    panel(
+      'Entradas com contexto.',
+      'AUTORIZAÇÕES',
+      `<div class="float-feed">${
+        stays()
+          .filter((s) => !houseId || s.houseId === houseId)
+          .map(
+            (s) =>
+              `<article class="floating-note"><span class="micro-label">CASA ${houses().find((h) => h.id === s.houseId)?.number}</span><h3>${esc(s.responsible)}</h3>${pill(authorizationStatus(s, clock))}<p>${esc(s.people.join(' · '))}</p><small>${esc(s.vehicles.join(' · ') || 'Sem veículo')}<br>${fmt(s.start)} → ${fmt(s.end)}</small></article>`,
+          )
+          .join('') || empty('Nenhuma autorização no seu escopo.')
+      }</div><p class="micro-note">Situação consultada no horário atual. Sem acionamento de portão.</p>`,
+    );
+    return;
+  }
+  panel(
+    'Em construção.',
+    'VILAZUNI',
+    empty('Este recurso será integrado ao ambiente virtual nas próximas etapas.'),
+  );
+}
+function stayDetail(id, houseId) {
+  const s = stays().find((s) => s.id === id);
+  if (!s) return;
+  const decide = can(sessionUser, 'stays') && s.status === 'pending',
+    cancel = canCreate() && ['pending', 'approved'].includes(s.status);
+  const dock = panel(
+    s.responsible,
+    'ESTADIA · CASA ' + houses().find((h) => h.id === s.houseId)?.number,
+    `${pill(s.status)}<p class="household-label">${esc(s.rentalKind === 'daily' ? 'INQUILINO DE DIÁRIA' : s.rentalKind === 'seasonal' ? 'INQUILINO DE TEMPORADA' : 'TIPO DE ESTADIA A CONFIRMAR')}</p>${s.photo ? `<img class="household-portrait" src="/api/stays/photo?id=${encodeURIComponent(s.id)}&version=${s.version || 1}" alt="Foto de identificação de ${esc(s.responsible)}" loading="lazy">` : ''}<div class="stay-path"><div><span>CHEGADA</span><strong>${fmt(s.start)}</strong></div><i>↓</i><div><span>SAÍDA</span><strong>${fmt(s.end)}</strong></div></div><div class="people-bubbles">${s.people.map((p) => `<span><i>${esc(p.slice(0, 1))}</i>${esc(p)}</span>`).join('')}</div>${vehiclePlates(s.vehicles)}${role !== 'portaria' ? residentContacts({...s, name: s.responsible}) : ''}${s.decisionReason ? `<p class="micro-note">Última decisão: ${esc(s.decisionReason)}</p>` : ''}${decide || cancel ? `<div class="decision-area"><label>Motivo da decisão<input id="decision-reason" maxlength="500" placeholder="Registre o motivo"></label><div class="decision-buttons">${decide ? '<button data-decision="approved" class="glass-primary">Autorizar</button><button data-decision="rejected" class="glass-secondary">Recusar</button>' : ''}${cancel ? '<button data-decision="cancelled" class="glass-secondary">Cancelar estadia</button>' : ''}</div><p id="decision-error" role="alert"></p></div>` : ''}`,
+    {back: () => openPanel('stays', houseId)},
+  );
+  dock.querySelectorAll('[data-decision]').forEach(
+    (b) =>
+      (b.onclick = async () => {
+        try {
+          await api('/stays/decision', {
+            id,
+            status: b.dataset.decision,
+            reason: dock.querySelector('#decision-reason').value,
+          });
+          await refreshState();
+          stayDetail(id, houseId);
+          toast('Decisão registrada.');
+        } catch (e) {
+          dock.querySelector('#decision-error').textContent = e.message;
+        }
+      }),
+  );
+}
+function wizard(houseId) {
+  if (!canCreate()) return;
+  const epoch = sessionEpoch,
+    owner = sessionUser?.id,
+    tenant = sessionUser?.tenant,
+    alive = () => sessionEpoch === epoch && sessionUser?.id === owner && sessionUser?.tenant === tenant;
+  const draft = {
+    houseId: houseId || houses()[0]?.id,
+    source: 'Direta',
+    rentalKind: 'daily',
+    start: '2026-10-25T15:00',
+    end: '2026-10-27T11:00',
+    responsible: '',
+    contact: '',
+    phone: '',
+    whatsapp: '',
+    email: '',
+    photo: null,
+    people: '',
+    vehicles: '',
+  };
+  let step = 0;
+  const titles = ['Onde e quando?', 'Quem será recebido?', 'Como vão chegar?', 'Tudo pronto para enviar?'];
+  function show() {
+    const h = houses().find((h) => h.id === draft.houseId);
+    const content = [
+      `<label>Casa<select name="houseId">${houses()
+        .map(
+          (h) =>
+            `<option value="${h.id}" ${h.id === draft.houseId ? 'selected' : ''}>Casa ${h.number}</option>`,
+        )
+        .join(
+          '',
+        )}</select></label><div class="wizard-pair"><label>Chegada · Brasília<input name="start" type="datetime-local" value="${esc(draft.start)}" required></label><label>Saída · Brasília<input name="end" type="datetime-local" value="${esc(draft.end)}" required></label></div><label>Origem<select name="source">${['Direta', 'Airbnb', 'Booking', 'Outra'].map((s) => `<option ${s === draft.source ? 'selected' : ''}>${s}</option>`).join('')}</select></label><label>Tipo de locação<select name="rentalKind"><option value="daily" ${draft.rentalKind === 'daily' ? 'selected' : ''}>Diária</option><option value="seasonal" ${draft.rentalKind === 'seasonal' ? 'selected' : ''}>Temporada</option></select></label>`,
+      `<label>Responsável presente<input name="responsible" value="${esc(draft.responsible)}" maxlength="120" required placeholder="Nome fictício"></label><label>Contato<input name="contact" value="${esc(draft.contact)}" maxlength="200" placeholder="Informação adicional de contato"></label><div class="wizard-pair"><label>Telefone com DDI e DDD<input name="phone" type="tel" value="${esc(draft.phone)}" maxlength="30" placeholder="55 22 99999-9999"></label><label>WhatsApp com DDI e DDD<input name="whatsapp" type="tel" value="${esc(draft.whatsapp)}" maxlength="30" placeholder="55 22 99999-9999"></label></div><label>E-mail<input name="email" type="email" value="${esc(draft.email)}" maxlength="200"></label><label>Foto de identificação do responsável<input name="stayPhotoFile" type="file" accept="image/png,image/jpeg,image/webp"></label><p class="micro-note">${draft.photo ? 'Foto selecionada. ' : ''}Contatos e foto ficam disponíveis ao proprietário, ao síndico e à zeladoria com autorização para esta casa.</p><label>Todos os ocupantes<textarea name="people" rows="3" required placeholder="Um nome por linha, incluindo o responsável">${esc(draft.people)}</textarea></label>`,
+      `<div class="floating-note"><span class="micro-label">CASA ${h?.number}</span><h3>${h?.parking} vagas</h3><p>${esc(h?.parkingType)}</p></div><label>Placas fictícias · uma por linha<textarea name="vehicles" rows="3" placeholder="Deixe vazio se não houver veículo">${esc(draft.vehicles)}</textarea></label><p class="micro-note">O cadastro não garante uma vaga disponível.</p>`,
+      `<div class="floating-note"><span class="micro-label">CASA ${h?.number} · ${draft.rentalKind === 'daily' ? 'DIÁRIA' : 'TEMPORADA'} · ${esc(draft.source)}</span><h3>${esc(draft.responsible)}</h3><p>${esc(draft.start.replace('T', ' · '))}<br>até ${esc(draft.end.replace('T', ' · '))}</p></div><div class="people-bubbles">${[
+        ...new Set(
+          draft.people
+            .split('\n')
+            .map((x) => x.trim())
+            .filter(Boolean),
+        ),
+      ]
+        .map((p) => `<span>${esc(p)}</span>`)
+        .join(
+          '',
+        )}</div><p class="micro-note">Enviaremos para análise. Nenhum acesso será liberado automaticamente.</p>`,
+    ][step];
+    const dock = panel(
+      titles[step],
+      'NOVA ESTADIA · ' + (step + 1) + ' DE 4',
+      `<div class="wizard-progress">${titles.map((_, i) => `<i class="${i <= step ? 'reached' : ''}"></i>`).join('')}</div><form id="float-wizard" class="float-wizard">${content}<p class="wizard-error" role="alert"></p><div class="wizard-actions">${step ? '<button type="button" id="wizard-prev" class="glass-secondary">← Anterior</button>' : ''}<button type="submit" class="glass-primary">${step === 3 ? 'Enviar para análise' : 'Continuar →'}</button></div></form><p class="micro-note">Use apenas dados fictícios nesta demonstração.</p>`,
+      {back: () => openPanel('stays', houseId)},
+    );
+    const form = dock.querySelector('form'),
+      current = () => alive() && form.isConnected && !dock.hidden,
+      capture = () => {
+        const fields = Object.fromEntries(new FormData(form));
+        delete fields.stayPhotoFile;
+        Object.assign(draft, fields);
+      },
+      picture = async () => {
+        const file = form.querySelector('[name=stayPhotoFile]')?.files?.[0];
+        if (file) {
+          const portrait = await preparePortrait(file);
+          if (current()) draft.photo = portrait;
+        }
+      };
+    const error = (err) => {
+      if (current()) {
+        form.querySelector('.wizard-error').textContent = err.message;
+        form.querySelectorAll('button').forEach((b) => (b.disabled = false));
+      }
+    };
+    dock.querySelector('#wizard-prev')?.addEventListener('click', async () => {
+      if (!current()) return;
+      form.querySelectorAll('button').forEach((b) => (b.disabled = true));
+      try {
+        await picture();
+        if (!current()) return;
+        capture();
+        step--;
+        show();
+      } catch (err) {
+        error(err);
+      }
+    });
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      if (!current() || form.querySelector('[type=submit]').disabled) return;
+      form.querySelectorAll('button').forEach((b) => (b.disabled = true));
+      form.querySelector('.wizard-error').textContent = '';
+      try {
+        await picture();
+        if (!current()) return;
+        capture();
+        if (step < 3) {
+          if (step === 0 && new Date(draft.end) <= new Date(draft.start))
+            throw Error('A saída deve ser posterior à chegada.');
+          step++;
+          show();
+          return;
+        }
+        const r = await api('/stays', {
+          ...draft,
+          people: draft.people.split('\n'),
+          vehicles: draft.vehicles.split('\n'),
+        });
+        if (!alive()) return;
+        await refreshState();
+        if (!current()) return;
+        openPanel('stays', draft.houseId);
+        toast(r.warnings.length ? 'Enviado. ' + r.warnings.join(' ') : 'Estadia enviada para análise.');
+      } catch (err) {
+        error(err);
+      }
+    };
+  }
+  show();
+}
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closePanel();
+});
+window.addEventListener('hashchange', () => {
+  const type = location.hash.slice(1);
+  if (type && type !== 'world') openPanel(type);
+});
 void entry();

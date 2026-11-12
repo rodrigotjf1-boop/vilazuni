@@ -54,7 +54,7 @@ chmod 700 "$HOME/vilazuni-private"
 docker run --rm --user "$(id -u):$(id -g)" \
   -v "$PWD":/work:ro \
   -v "$HOME/vilazuni-private":/config \
-  -w /work node:24.19.0-bookworm-slim \
+  -w /work node:24.22.1-bookworm-slim \
   node deploy/easypanel/prepare.mjs \
   --origin https://app.SEU_DOMINIO \
   --database-host HOST_INTERNO_EXIBIDO_NO_EASYPANEL \

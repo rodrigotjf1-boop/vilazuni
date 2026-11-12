@@ -1,6 +1,6 @@
 {
   "name": "vilazuni",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "private": true,
   "type": "module",
   "scripts": {
@@ -9,7 +9,9 @@
     "db:migrate": "node scripts/migrate.mjs",
     "db:import-json": "node scripts/import-json.mjs",
     "backup": "node scripts/backup.mjs",
-    "test:browser": "node scripts/browser-smoke.mjs"
+    "test:browser": "node scripts/browser-smoke.mjs",
+    "format": "prettier --ignore-path ../.prettierignore --write \"**/*.{mjs,js,css}\" \"../deploy/**/*.mjs\"",
+    "format:check": "prettier --ignore-path ../.prettierignore --check \"**/*.{mjs,js,css}\" \"../deploy/**/*.mjs\""
   },
   "engines": {
     "node": ">=20"
@@ -19,6 +21,7 @@
     "web-push": "3.6.7"
   },
   "devDependencies": {
-    "playwright-core": "1.64.1"
+    "playwright-core": "1.64.1",
+    "prettier": "3.3.3"
   }
 }
