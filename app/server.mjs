@@ -13,6 +13,7 @@ const root = path.dirname(fileURLToPath(import.meta.url));
 const handleApi = await createAuthApi({directory: process.env.VILAZUNI_DATA_DIR || path.join(root, '.data')});
 const files = {
   '/panel.css': 'panel.css',
+  '/login.css': 'login.css',
   '/demo-ui.mjs': 'demo-ui.mjs',
   '/household-ui.mjs': 'household-ui.mjs',
   '/household.css': 'household.css',

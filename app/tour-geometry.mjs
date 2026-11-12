@@ -34,10 +34,9 @@ export function viewMatrix(eye, target) {
     1,
   ]);
 }
-export function perspective(aspect, fov = (Math.PI * 2) / 7) {
-  const f = 1 / Math.tan(fov / 2),
-    near = 0.2,
-    far = 220;
+// near/far padrão servem ao condomínio; a paisagem até o horizonte usa uma projeção própria, com near maior.
+export function perspective(aspect, fov = (Math.PI * 2) / 7, near = 0.2, far = 220) {
+  const f = 1 / Math.tan(fov / 2);
   return new Float32Array([
     f / aspect,
     0,

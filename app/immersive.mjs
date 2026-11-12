@@ -27,6 +27,8 @@ import {
   api,
   discardPendingApi,
   showLogin,
+  showConnectionError,
+  resetConnectionRetry,
   accountPanel,
   ROLE_NAMES,
   authorizationStatus,
@@ -260,6 +262,7 @@ async function entry() {
   document.querySelector('.world-shell').classList.add('is-locked');
   try {
     const session = await api('/session');
+    resetConnectionRetry();
     if (session.user?.mfaRequired) return showMfaEnrollment({onSuccess: entry});
     if (session.user) {
       await refreshState();
@@ -276,8 +279,9 @@ async function entry() {
       },
     });
   } catch (e) {
-    document.querySelector('.world-heading h1').textContent = 'Conexão indisponível';
-    toast(e.message);
+    // Consulta de uma entrada anterior (substituída por outra): não é falta de conexão.
+    if (e.discarded) return;
+    showConnectionError({retry: () => void entry()});
   }
 }
 window.addEventListener('session-ended', () => {
