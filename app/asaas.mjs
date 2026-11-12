@@ -481,12 +481,17 @@ export function failAsaasCreation(s, u, id, error) {
   q.version++;
   return {id: q.id, status: q.status};
 }
-export function ingestAsaasWebhook(s, connectionId, token, event, vault, now = Date.now()) {
+// Confere o token do retorno sem alterar nada: a API chama antes de copiar a base (pedido forjado sai barato).
+export function authenticateAsaasWebhook(s, connectionId, token, vault) {
   const c = (s.asaasConnections || []).find((c) => c.id === connectionId);
   if (!c || typeof token !== 'string' || token.length > 256) fail('Evento não autenticado.');
   const expected = hash(asaasWebhookToken(s, c.tenant, vault, c.id)),
     received = hash(token);
   if (!timingSafeEqual(Buffer.from(expected), Buffer.from(received))) fail('Evento não autenticado.');
+  return c;
+}
+export function ingestAsaasWebhook(s, connectionId, token, event, vault, now = Date.now()) {
+  const c = authenticateAsaasWebhook(s, connectionId, token, vault);
   if (!event || !ids(event.id) || !ASAAS_EVENTS.includes(event.event) || !ids(event.payment?.id))
     fail('Evento inválido.', 400);
   const existing = rows(s, 'asaasWebhookEvents', c.tenant).find(

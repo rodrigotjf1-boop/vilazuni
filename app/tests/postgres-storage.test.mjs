@@ -239,3 +239,26 @@ test(
     }
   },
 );
+// Achado A7: antes, todo pedido relia a base inteira (e reidratava os anexos). current() diz, numa consulta
+// de uma linha, se a base guardada é a mesma que esta instância leu ou gravou por último.
+test('PostgreSQL só pede nova leitura quando outra instância gravou', {skip: !config}, async () => {
+  await clear();
+  const first = await postgresStorage(config.runtimeUrl, initial),
+    second = await postgresStorage(config.runtimeUrl, initial);
+  try {
+    const db = await first.load();
+    await first.save(db);
+    assert.equal(await first.current(), true, 'quem gravou continua em dia');
+    const other = await second.load();
+    assert.equal(await second.current(), true, 'quem acabou de ler está em dia');
+    other.state.houses[0].number = 'Casa alterada por outra instância';
+    await second.save(other);
+    assert.equal(await first.current(), false, 'a outra gravação é percebida');
+    const reloaded = await first.load();
+    assert.equal(reloaded.state.houses[0].number, 'Casa alterada por outra instância');
+    assert.equal(await first.current(), true);
+  } finally {
+    await first.close();
+    await second.close();
+  }
+});
