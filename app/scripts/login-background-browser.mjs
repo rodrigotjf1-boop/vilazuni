@@ -43,6 +43,12 @@ export async function loginBackgroundBrowser({page, browser, base}) {
     (before) => Number(document.querySelector('#world-canvas')?.dataset.frames) > before,
     frames,
   );
+  // Os slides do login só desenham durante a passagem de uma tomada para outra; na pausa, nada é redesenhado.
+  assert.ok(
+    ['hold', 'move'].includes(await page.locator('#world-canvas').getAttribute('data-phase')),
+    'The login background runs the postcard slides',
+  );
+  await page.waitForFunction(() => document.querySelector('#world-canvas')?.dataset.phase === 'hold');
   const after = Number(await page.locator('#world-canvas').getAttribute('data-frames'));
   await page.evaluate(
     () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
@@ -50,7 +56,7 @@ export async function loginBackgroundBrowser({page, browser, base}) {
   assert.equal(
     Number(await page.locator('#world-canvas').getAttribute('data-frames')),
     after,
-    'The login background stays still without an animation loop',
+    'The login background stays still between slides, without an animation loop',
   );
   await page.setViewportSize(initialViewport);
   const fallback = await browser.newContext();

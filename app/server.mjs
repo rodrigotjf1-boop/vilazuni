@@ -40,6 +40,8 @@ const files = {
   '/tour-layout.mjs': 'tour-layout.mjs',
   '/tour-geometry.mjs': 'tour-geometry.mjs',
   '/world-renderer.mjs': 'world-renderer.mjs',
+  '/world-scene.mjs': 'world-scene.mjs',
+  '/world-shaders.mjs': 'world-shaders.mjs',
   '/tour-ui.mjs': 'tour-ui.mjs',
   '/my-charges-ui.mjs': 'my-charges-ui.mjs',
   '/finance-collection-ui.mjs': 'finance-collection-ui.mjs',
