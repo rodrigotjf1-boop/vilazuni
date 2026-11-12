@@ -1,0 +1,6 @@
+# O código segue o prettier com fim de linha LF (.prettierrc.json). Sem isto, um Git no Windows com
+# core.autocrlf=true troca para CRLF na cópia de trabalho e mostra todos os arquivos como alterados.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.ico binary

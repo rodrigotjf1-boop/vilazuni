@@ -78,19 +78,53 @@ export function residentsPanel(ctx) {
     dock.querySelector('#res-edit')?.addEventListener('click', () => wizard(r));
     dock.querySelector('#res-end')?.addEventListener('click', () => end(r));
   }
-  function end(r) {
+  async function end(r) {
+    const owner = r.kind === 'owner',
+      reviewsAccounts = owner && user.role === 'sindico',
+      sameEmail = (a, b) => !!a && !!b && a.trim().toLowerCase() === b.trim().toLowerCase();
+    let accounts = [],
+      accountsUnavailable = false;
+    if (reviewsAccounts) {
+      try {
+        accounts = (await api('/residents/owner-accounts?houseId=' + encodeURIComponent(r.houseId))).accounts;
+      } catch {
+        accountsUnavailable = true;
+      }
+    }
+    // A conta de proprietário não é ligada ao cadastro: o síndico marca quem deixa de ser dono desta casa.
+    const accountsBlock = !owner
+      ? ''
+      : !reviewsAccounts
+        ? '<p class="micro-note">O acesso das contas de proprietário desta casa é revisto pelo síndico.</p>'
+        : accountsUnavailable
+          ? '<p class="micro-note">Não foi possível carregar as contas desta casa. Revise o acesso delas em Condomínio, depois do encerramento.</p>'
+          : accounts.length
+            ? `<fieldset class="float-wizard"><legend>Contas de proprietário com acesso a esta casa</legend>${accounts.map((a) => `<label class="civic-choice"><input type="checkbox" name="revoke" value="${esc(a.id)}"${sameEmail(a.email, r.email) ? ' checked' : ''}>${esc(a.name)} · ${esc(a.email)}</label>`).join('')}<p class="micro-note">Marque quem deixa de ser proprietário desta casa (ex.: casa vendida). A conta perde o acesso a esta casa na hora; se não tiver outra casa, é desativada.</p></fieldset>`
+            : '<p class="micro-note">Nenhuma conta de proprietário acessa esta casa.</p>';
     const dock = panel(
       'Registrar o encerramento.',
       'CASA ' + house().number,
-      `<p class="micro-note">O histórico de ${esc(r.name)} será preservado para a gestão. O encerramento interrompe também as contas vinculadas a este contrato.</p><form class="float-wizard"><label>Saída ou término efetivo<input name="endedOn" type="date" required min="${r.startDate}" max="${day()}" value="${day()}"></label><label>Motivo<textarea name="reason" required minlength="3" maxlength="500" rows="3"></textarea></label><p class="auth-error" role="alert"></p><button class="glass-primary">Confirmar encerramento</button></form>`,
+      `<p class="micro-note">O histórico de ${esc(r.name)} será preservado para a gestão.${owner ? '' : ' O encerramento interrompe também as contas vinculadas a este contrato.'}</p><form class="float-wizard"><label>Saída ou término efetivo<input name="endedOn" type="date" required min="${r.startDate}" max="${day()}" value="${day()}"></label><label>Motivo<textarea name="reason" required minlength="3" maxlength="500" rows="3"></textarea></label>${accountsBlock}<p class="auth-error" role="alert"></p><button class="glass-primary">Confirmar encerramento</button></form>`,
       {back: () => detail(r.id)},
     );
     submit(dock, async (data, form, alive) => {
-      await api('/residents/end', {id: r.id, ...data});
+      const {revoke, ...values} = data,
+        revokeAccountIds = [...form.querySelectorAll('input[name=revoke]:checked')].map((i) => i.value);
+      const result = await api('/residents/end', {
+        id: r.id,
+        ...values,
+        ...(revokeAccountIds.length ? {revokeAccountIds} : {}),
+      });
       if (!alive()) return;
       await refresh();
       if (!alive()) return;
-      toast('Vínculo encerrado; histórico preservado.');
+      const revoked = result.revoked || [],
+        remaining = result.remainingAccounts || [];
+      toast(
+        'Vínculo encerrado; histórico preservado.' +
+          (revoked.length ? ` Acesso à casa retirado de ${revoked.length} conta(s).` : '') +
+          (remaining.length ? ` Ainda acessam esta casa: ${remaining.map((a) => a.name).join(', ')}.` : ''),
+      );
       list(can(user, 'residents'));
     });
   }

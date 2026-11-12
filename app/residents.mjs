@@ -65,7 +65,28 @@ function safeHistory(history, contactsVisible) {
     };
   });
 }
+// fundacao/PILOTO_ASAAS_E_ACESSOS.md: o temporário (hóspede de diária/temporada) "não recebe fichas de moradores".
+// Ele vê só o nome e o uso do imóvel; contato, placas e foto ficam de fora. Vale para toda porta que passa por aqui
+// (ficha da casa e passeio 3D). O inquilino anual (ocupante) continua vendo o contato do proprietário da própria
+// casa — decisão registrada em tests/household-api.test.mjs.
+const withoutResidentRecords = (user) => user?.role === 'temporario';
 export function residentView(state, user, record, now = Date.now()) {
+  if (withoutResidentRecords(user)) {
+    const {id, tenant, houseId, kind, name, ownerOccupancy, startDate, endedOn} = record;
+    return {
+      id,
+      tenant,
+      houseId,
+      kind,
+      name,
+      ownerOccupancy,
+      startDate,
+      endedOn,
+      version: record.version || 1,
+      contactsVisible: false,
+      photo: false,
+    };
+  }
   const contactsVisible = record.kind === 'owner' || canViewTenantContacts(state, user, record.houseId, now);
   const {photo, history, contact, phone, whatsapp, email, ...basic} = record;
   return {
@@ -277,7 +298,14 @@ export function updateResident(state, user, input, now = Date.now()) {
   audit(state, user, record, 'Vínculo residencial atualizado', now);
   return {record};
 }
-export function endResident(state, user, input, now = Date.now()) {
+// A conta de proprietário não é ligada ao cadastro de proprietário da casa (o inquilino é, por residentId). Ao
+// encerrar o vínculo de proprietário (ex.: casa vendida), o síndico escolhe quais destas contas perdem a casa.
+export function ownerAccountsForHouse(accounts, tenant, houseId) {
+  return accounts.filter(
+    (a) => a.tenant === tenant && a.role === 'proprietario' && a.active && a.houses?.includes(houseId),
+  );
+}
+export function endResident(state, user, input, now = Date.now(), accounts = []) {
   const record = (state.residents || []).find((r) => r.id === input.id && r.tenant === user.tenant);
   if (!record) throw Error('Vínculo indisponível.');
   authorize(state, user, record.houseId, record.kind);
@@ -288,12 +316,37 @@ export function endResident(state, user, input, now = Date.now()) {
     throw Error(
       'A saída efetiva deve estar entre a entrada e hoje. Use a saída prevista para uma data futura.',
     );
+  const linked = record.kind === 'owner' ? ownerAccountsForHouse(accounts, user.tenant, record.houseId) : [],
+    revokeIds = input.revokeAccountIds ?? [];
+  // Toda recusa antes da primeira alteração.
+  if (!Array.isArray(revokeIds) || revokeIds.length > 50 || revokeIds.some((id) => typeof id !== 'string'))
+    throw Error('Selecione contas válidas.');
+  if (revokeIds.length) {
+    if (record.kind !== 'owner') throw Error('Somente o encerramento de proprietário retira contas.');
+    if (user.role !== 'sindico') throw Error('Somente o síndico retira o acesso das contas de proprietário.');
+    if (revokeIds.some((id) => !linked.some((a) => a.id === id)))
+      throw Error('Conta indisponível para esta casa. Atualize e tente de novo.');
+  }
   record.endedOn = endedOn;
   record.endReason = reason;
   record.version = (record.version || 1) + 1;
   record.history.push({at: new Date(now).toISOString(), actor: user.name, reason, action: 'Encerramento'});
   audit(state, user, record, 'Vínculo residencial encerrado', now);
-  return {record};
+  if (record.kind !== 'owner') return {record};
+  const revoked = linked.filter((a) => revokeIds.includes(a.id));
+  for (const a of revoked) {
+    a.houses = a.houses.filter((h) => h !== record.houseId);
+    if (!a.houses.length) a.active = false;
+    // Muda a versão do acesso: o servidor derruba na hora as sessões abertas desta conta.
+    a.accessVersion = (a.accessVersion || 0) + 1;
+  }
+  return {
+    record,
+    revoked: revoked.map(({id, name}) => ({id, name})),
+    remainingAccounts: linked
+      .filter((a) => !revokeIds.includes(a.id))
+      .map(({id, name, email}) => ({id, name, email})),
+  };
 }
 export function readResidentPhoto(state, user, id, version, now = Date.now()) {
   const record = (state.residents || []).find((r) => r.id === id && r.tenant === user.tenant);
@@ -301,6 +354,7 @@ export function readResidentPhoto(state, user, id, version, now = Date.now()) {
     !record ||
     !canViewHousehold(state, user, record.houseId, now) ||
     (record.kind === 'annual' && !canViewTenantContacts(state, user, record.houseId, now)) ||
+    withoutResidentRecords(user) ||
     !record.photo ||
     String(version) !== String(record.version || 1)
   )
