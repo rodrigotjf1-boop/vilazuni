@@ -290,6 +290,23 @@ export function createAsaasService({
         );
         return send(res, 200, result);
       }
+      if (route === '/asaas/absent') {
+        // Consulta o provedor pela referência FORA da fila; só grava se ele confirmar que não há nenhuma.
+        const p = await prepare(req, (u, db) => {
+          if (input.confirm !== true) fail('Confirme que conferiu a cobrança no Asaas.', 400);
+          const q = structuredClone(A.absentAsaasCharge(db.state, u, input.id, input.version, now()));
+          return {q, owner: structuredClone(u), remote: client(db.state, u.tenant, q.connectionId)};
+        });
+        const found = await p.remote.payments(p.q.externalReference),
+          matches = (found.data || []).filter((x) => x.externalReference === p.q.externalReference);
+        if (found.hasMore || matches.length)
+          fail('O Asaas tem cobrança com esta referência. Use "Consultar no Asaas" para trazê-la.', 409);
+        const result = await run(() => {
+          const u = unchanged(req, p.owner);
+          return change(u, (s) => A.confirmAsaasAbsent(s, u, p.q.id, p.q.version, now()));
+        });
+        return send(res, 200, result);
+      }
       fail('Ação não encontrada.', 404);
     } catch (error) {
       if (claimed)
@@ -326,32 +343,44 @@ export function createAsaasService({
         )
           await save(next, {id: 'asaas-service'});
       });
-      const p = await run(() => {
+      // A fila é de todos os condomínios: o que não pode ser tratado agora (condomínio encerrado ou de
+      // demonstração, conexão que não existe mais) fica FORA da busca. Antes, a rotina pegava esse item,
+      // voltava sem marcá-lo e pegava o mesmo para sempre — e nenhum condomínio recebia baixa.
+      const p = await run(async () => {
         const db = read(),
+          live = (tenant, connectionId) =>
+            !isDemoTenant(db.state, tenant) &&
+            tenantSettings(db.state, tenant).status !== 'closed' &&
+            (db.state.asaasConnections || []).some((c) => c.id === connectionId && c.tenant === tenant),
           event = (db.state.asaasWebhookEvents || []).find(
             (e) =>
-              !isDemoTenant(db.state, e.tenant) &&
-              e.status === 'pending' &&
-              (!e.retryAt || e.retryAt <= now()),
+              e.status === 'pending' && (!e.retryAt || e.retryAt <= now()) && live(e.tenant, e.connectionId),
           ),
           q = event
             ? null
             : (db.state.asaasCharges || []).find(
                 (q) =>
-                  !isDemoTenant(db.state, q.tenant) &&
                   ['creating', 'uncertain', 'open', 'overdue'].includes(q.status) &&
-                  (!q.checkedAt || Date.parse(q.checkedAt) + 15 * 60000 <= now()),
+                  (!q.checkedAt || Date.parse(q.checkedAt) + 15 * 60000 <= now()) &&
+                  live(q.tenant, q.connectionId),
               ),
           c = (db.state.asaasConnections || []).find(
             (c) => c.id === (event?.connectionId || q?.connectionId),
           );
-        if (!c || isDemoTenant(db.state, c.tenant) || tenantSettings(db.state, c.tenant).status === 'closed')
+        if (!c) return null;
+        let remote;
+        try {
+          remote = client(db.state, c.tenant, c.id);
+        } catch {
+          // A credencial não abre: o item vai para o fim da fila (nova tentativa mais tarde), sem travar os outros.
+          await change({id: 'asaas-service', tenant: c.tenant}, (s) => later(s, event, q));
           return null;
+        }
         return {
           event: event && structuredClone(event),
           q: q && structuredClone(q),
           c: structuredClone(c),
-          remote: client(db.state, c.tenant, c.id),
+          remote,
         };
       });
       if (!p) return;
@@ -391,21 +420,26 @@ export function createAsaasService({
                 q.version++;
               }
             }
-            if (p.event) {
-              const e = s.asaasWebhookEvents.find((e) => e.id === p.event.id);
-              e.attempts++;
-              e.retryAt = now() + Math.min(60, e.attempts * 5) * 60000;
-              if (e.attempts >= 5) e.status = 'review';
-            } else {
-              const q = s.asaasCharges.find((q) => q.id === p.q.id);
-              q.checkedAt = new Date(now()).toISOString();
-              q.error ||= 'A consulta requer conferência no Asaas. Nenhuma emissão foi repetida.';
-            }
+            later(s, p.event, p.q);
           }),
         );
       }
     } finally {
       ticking = false;
+    }
+  }
+  // Nova tentativa mais tarde: o evento espera mais a cada falha (até 1 h; na 5ª vai para conferência) e a
+  // cobrança volta à fila depois de 15 min — nos dois casos, o item sai da frente dos outros.
+  function later(s, event, charge) {
+    if (event) {
+      const e = s.asaasWebhookEvents.find((e) => e.id === event.id);
+      e.attempts = (e.attempts || 0) + 1;
+      e.retryAt = now() + Math.min(60, e.attempts * 5) * 60000;
+      if (e.attempts >= 5) e.status = 'review';
+    } else {
+      const q = s.asaasCharges.find((q) => q.id === charge.id);
+      q.checkedAt = new Date(now()).toISOString();
+      q.error ||= 'A consulta requer conferência no Asaas. Nenhuma emissão foi repetida.';
     }
   }
   return {perform, tick};
