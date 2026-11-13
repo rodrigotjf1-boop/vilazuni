@@ -387,3 +387,45 @@ test('API prepara competência recorrente uma vez sem emitir contas, exige aprov
     await f.close();
   }
 });
+
+// Achado M17 da auditoria: quem redige o acordo podia aprová-lo sozinho, mesmo com outra pessoa de controle.
+test('API: quem redigiu o acordo não aprova quando há outra pessoa com controle financeiro', async () => {
+  const f = await fixture();
+  try {
+    const b = await setup(f),
+      {request, admin} = f,
+      control = await f.invite('administradora', {...expiry, delegations: ['financeClose']}),
+      r = await claim(f, b),
+      finance = (await request('/state', undefined, admin.cookie)).body.state.finance,
+      a = (
+        await request(
+          '/finance/agreements/create',
+          {
+            sourceId: r.id,
+            sourceVersion: finance.receivables[0].version,
+            reference: 'ACORDO-REDATOR',
+            terms: 'Concordância sintética',
+            reason: 'Conferido',
+            count: 3,
+            firstDueOn: '2026-10-31',
+          },
+          admin.cookie,
+        )
+      ).body,
+      own = await request(
+        '/finance/agreements/approve',
+        {id: a.id, version: 1, reason: 'Eu mesmo'},
+        admin.cookie,
+      );
+    assert.equal(own.status, 403, JSON.stringify(own.body));
+    assert.match(own.body.error, /Outra pessoa com controle financeiro/);
+    const other = await request(
+      '/finance/agreements/approve',
+      {id: a.id, version: 1, reason: 'Conferido por outra pessoa'},
+      control.cookie,
+    );
+    assert.equal(other.status, 200, JSON.stringify(other.body));
+  } finally {
+    await f.close();
+  }
+});

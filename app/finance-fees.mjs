@@ -19,6 +19,9 @@ const shifted = (day, n) => {
   return d.toISOString().slice(0, 10);
 };
 const round = (n, d) => Number((n + d / 2n) / d);
+// Código Civil, art. 1.336, § 1º: a multa do condômino em atraso é de ATÉ 2% sobre o débito. Os juros ficam a
+// cargo da convenção (sem limite próprio aqui).
+export const MAX_FINE_BPS = 200;
 export function createFeeRule(s, u, input, now = Date.now()) {
   requireFinance(u, 'financeClose');
   openDate(s, u, localDay(now), now);
@@ -38,6 +41,8 @@ export function createFeeRule(s, u, input, now = Date.now()) {
     input.fineBps + input.annualInterestBps === 0
   )
     throw Error('Informe multa e juros anuais explícitos, entre 0 e 100%, com ao menos um maior que zero.');
+  if (input.fineBps > MAX_FINE_BPS)
+    throw Error('A multa por atraso do condômino é de até 2% (Código Civil, art. 1.336, § 1º).');
   if (
     rows(s, 'financialFeeRules', u.tenant).some(
       (r) => r.reference.normalize('NFKC').toLowerCase() === reference.normalize('NFKC').toLowerCase(),
@@ -75,6 +80,8 @@ export function decideFeeRule(s, u, input, now = Date.now()) {
   if (input.action === 'approve') {
     if (r.status !== 'draft' || r.createdBy === u.id || input.validated !== true)
       throw Error('Outra pessoa com controle deve confirmar a validação documental da regra proposta.');
+    if (r.fineBps > MAX_FINE_BPS)
+      throw Error('A multa por atraso do condômino é de até 2% (Código Civil, art. 1.336, § 1º).');
     r.status = 'approved';
     r.approval = {by: u.id, at: new Date(now).toISOString(), reason};
   } else if (input.action === 'retire') {
@@ -122,7 +129,9 @@ function calculated(s, u, input, now) {
       .filter((a) => a.sourceId === r.id && a.status === 'active')
       .sort((a, b) => a.through.localeCompare(b.through)),
     previous = applied.at(-1),
-    lastTerms = r.terms.at(-1).date;
+    // Os juros recomeçam só quando o VENCIMENTO muda. Trocar só a categoria ou o fundo também grava um termo
+    // novo (para os relatórios "na data"), mas não pode zerar os juros que já corriam.
+    lastTerms = r.terms.filter((t, i, all) => i === 0 || t.dueOn !== all[i - 1].dueOn).at(-1).date;
   const from = [shifted(r.dueOn, 1), lastTerms, previous ? shifted(previous.through, 1) : '0000-01-01']
     .sort()
     .at(-1);
@@ -132,7 +141,8 @@ function calculated(s, u, input, now) {
   const fineBaseCents = settlementPosition(s, u.tenant, 'receivable', r, r.dueOn).remainingCents,
     fineCents = applied.some((a) => a.fineApplied)
       ? 0
-      : round(BigInt(fineBaseCents) * BigInt(rule.fineBps), 10000n);
+      : // Regra aprovada antes do limite e acima dele: cobra no máximo os 2% da lei.
+        round(BigInt(fineBaseCents) * BigInt(Math.min(rule.fineBps, MAX_FINE_BPS)), 10000n);
   let weighted = 0n;
   const daily = [];
   for (let day = from; day <= through; day = shifted(day, 1)) {
@@ -164,7 +174,7 @@ function calculated(s, u, input, now) {
     ruleReference: rule.reference,
     basis: rule.basis,
     method: rule.method,
-    fineBps: rule.fineBps,
+    fineBps: Math.min(rule.fineBps, MAX_FINE_BPS),
     annualInterestBps: rule.annualInterestBps,
     revision: revision(s, u.tenant),
   };

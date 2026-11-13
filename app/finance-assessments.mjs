@@ -10,6 +10,7 @@ import {
   lastClosedMonth,
   openDate,
   activeFund,
+  approvalBy,
 } from './finance-ledger.mjs';
 import {createReceivable} from './finance-receivables.mjs';
 
@@ -150,15 +151,25 @@ export function saveAssessment(s, u, input, now = Date.now()) {
   bump(s, u.tenant);
   return structuredClone(a);
 }
-export function approveAssessment(s, u, input, now = Date.now()) {
+export function approveAssessment(s, u, input, now = Date.now(), people) {
   const a = record(s, u, input, 'financeClose');
   if (a.status !== 'draft') throw Error('Aprovação disponível somente para rascunho.');
   validateFrozen(s, u, a, now);
-  const reason = text(input.reason, 'Conferência e aprovação', 500);
+  const reason = text(input.reason, 'Conferência e aprovação', 500),
+    {selfApproved} = approvalBy(s, u, a, people, now);
   a.status = 'approved';
   a.version++;
-  a.approval = {by: u.id, byName: u.name, at: new Date(now).toISOString(), reason};
-  a.history.push(history(u, 'Distribuição aprovada e congelada', reason, now));
+  a.approval = {by: u.id, byName: u.name, at: new Date(now).toISOString(), reason, selfApproved};
+  a.history.push(
+    history(
+      u,
+      selfApproved
+        ? 'Distribuição aprovada pelo próprio redator (única pessoa com controle financeiro) e congelada'
+        : 'Distribuição aprovada e congelada',
+      reason,
+      now,
+    ),
+  );
   bump(s, u.tenant);
   return structuredClone(a);
 }
