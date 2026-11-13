@@ -661,3 +661,34 @@ test('Asaas: estorno pendente não é lançado; parciais concluídos reabrem só
     await x.f.close();
   }
 });
+
+// Item baixo da auditoria: conta vencida era emitida no Asaas com a data no passado.
+test('Asaas: conta vencida sai no Asaas com vencimento hoje; a conta guarda o vencimento original', async () => {
+  const x = await setup();
+  try {
+    x.f.advance(10 * 86400000);
+    const cookie = (await x.f.request('/login', {email: 'admin@example.test', password: x.f.password}))
+        .cookie,
+      req = (route, data) => x.f.request(route, data, cookie),
+      receivable = (await req('/state')).body.state.finance.receivables[0],
+      preview = await req('/payments/preview', {
+        receivableId: receivable.id,
+        receivableVersion: receivable.version,
+        billingType: 'PIX',
+      });
+    assert.equal(preview.status, 200, JSON.stringify(preview.body));
+    assert.equal(preview.body.dueOn, '2026-10-29');
+    assert.equal(preview.body.receivableDueOn, '2026-10-19');
+    const issued = await req('/payments/asaas/issue', {
+      ...preview.body,
+      confirm: true,
+      confirmProduction: true,
+    });
+    assert.equal(issued.status, 200, JSON.stringify(issued.body));
+    assert.equal(x.remote.calls.find((c) => c.action === 'issue').data.dueDate, '2026-10-29');
+    assert.equal((await req('/payments')).body.charges[0].dueOn, '2026-10-29');
+    assert.equal((await req('/state')).body.state.finance.receivables[0].dueOn, '2026-10-19');
+  } finally {
+    await x.f.close();
+  }
+});
