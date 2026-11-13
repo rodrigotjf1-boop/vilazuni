@@ -5,6 +5,7 @@ import {communityBrowser} from './community-browser.mjs';
 import {demoBrowser} from './demo-browser.mjs';
 import {householdBrowser} from './household-browser.mjs';
 import {houseNumberBrowser} from './house-number-browser.mjs';
+import {channelsBrowser} from './channels-browser.mjs';
 import {pilotBrowser} from './pilot-browser.mjs';
 import {chromium} from 'playwright-core';
 import {spawn} from 'node:child_process';
@@ -121,6 +122,7 @@ try {
   await page.getByRole('button', {name: 'Preparar alertas dos cadastros', exact: true}).click();
   await page.getByRole('heading', {name: 'Conferir e acompanhar sinais.', exact: true}).waitFor();
   assert.ok((await api('/alerts')).alerts.length > 0);
+  await channelsBrowser({page, open});
   await open('Assembleias');
   await page.getByRole('button', {name: 'Preparar assembleia', exact: true}).click();
   await page.getByLabel('Título da assembleia', {exact: true}).fill('Assembleia sintética browser');
