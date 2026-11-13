@@ -268,6 +268,20 @@ test('relé sem confirmação não repete e eventos de placa verificam HMAC, rel
   assert.equal(state.accessCommands.length, 1);
   assert.throws(() => plateEvent(state, device.id, raw, signature, env, now + 120000));
 });
+// Confirma o grupo como o Telegram faria: o código de vínculo postado no próprio grupo.
+function bind(state, c, env) {
+  const r = telegramWebhook(
+    state,
+    {
+      update_id: 900,
+      message: {chat: {id: Number(c.chatId), type: 'supergroup'}, text: '/vincular ' + c.linkCode},
+    },
+    env.TELEGRAM_WEBHOOK_SECRET,
+    env,
+    now,
+  );
+  assert.equal(r.linked, true);
+}
 test('Telegram usa somente fontes externas, menção explícita, grupo exclusivo e deduplicação', async () => {
   const state = seed();
   source(state);
@@ -289,17 +303,21 @@ test('Telegram usa somente fontes externas, menção explícita, grupo exclusivo
     },
     now,
   );
+  const env = {
+    TELEGRAM_WEBHOOK_SECRET: 'synthetic',
+    TELEGRAM_ENABLED: 'true',
+    TELEGRAM_BOT_TOKEN: 'synthetic-token',
+  };
+  // Sem o código postado no grupo, o canal não agenda nem prepara.
+  assert.equal(scheduledChannels(state, now).length, 0);
+  assert.throws(() => prepareChannel(state, manager, {id: c.id}, now), /Vincule o grupo/);
+  bind(state, c, env);
   assert.throws(() => saveChannel(state, {...manager, tenant: 'other'}, {...c, reviewed: true}, now));
   assert.equal(scheduledChannels(state, now).length, 1);
   const o = prepareChannel(state, manager, {id: c.id}, now);
   assert.equal(o.evidence.length, 1);
   assert.equal(o.evidence[0].id, external.id);
-  const env = {
-      TELEGRAM_WEBHOOK_SECRET: 'synthetic',
-      TELEGRAM_ENABLED: 'true',
-      TELEGRAM_BOT_TOKEN: 'synthetic-token',
-    },
-    message = {update_id: 42, message: {chat: {id: Number(c.chatId)}, text: 'conversa comum'}};
+  const message = {update_id: 42, message: {chat: {id: Number(c.chatId)}, text: 'conversa comum'}};
   assert.equal(telegramWebhook(state, message, 'synthetic', env, now).ignored, true);
   message.message.text = '/perguntar@synthetic_bot piscina';
   assert.equal(telegramWebhook(state, message, 'synthetic', env, now).accepted, true);
@@ -333,8 +351,9 @@ test('retirar fonte impede envio de mensagem previamente preparada', () => {
         reason: 'Conferência sintética',
       },
       now,
-    ),
-    o = prepareChannel(state, manager, {id: c.id}, now);
+    );
+  bind(state, c, {TELEGRAM_WEBHOOK_SECRET: 'synthetic'});
+  const o = prepareChannel(state, manager, {id: c.id}, now);
   state.knowledgeSources.find((r) => r.id === s.id).active = false;
   assert.throws(() => claimChannelMessage(state, manager.tenant, o.id, now), /fontes mudaram/);
 });

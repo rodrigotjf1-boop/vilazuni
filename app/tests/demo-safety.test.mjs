@@ -178,6 +178,21 @@ test('WhatsApp e Telegram não habilitam nem retiram mensagens demonstrativas; c
     {...channel, chatId: '-100000000002', active: true, scheduled: true},
     now,
   );
+  // Condomínio real: só agenda depois do código de vínculo postado no próprio grupo.
+  assert.deepEqual(scheduledChannels(s, now), []);
+  assert.equal(
+    telegramWebhook(
+      s,
+      {
+        update_id: 2,
+        message: {chat: {id: -100000000002, type: 'group'}, text: '/vincular ' + actual.linkCode},
+      },
+      'secret',
+      {TELEGRAM_WEBHOOK_SECRET: 'secret'},
+      now,
+    ).linked,
+    true,
+  );
   assert.deepEqual(
     scheduledChannels(s, now).map((c) => c.id),
     [actual.id],

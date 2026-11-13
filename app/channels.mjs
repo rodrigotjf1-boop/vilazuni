@@ -1,5 +1,5 @@
 import {isDemoTenant, requireLiveTenant} from './demo-policy.mjs';
-import {randomUUID, timingSafeEqual} from 'node:crypto';
+import {randomUUID, timingSafeEqual, createHash, randomInt} from 'node:crypto';
 import {can} from './permissions.mjs';
 import {consultSources, publishedSources, text, fingerprint} from './knowledge.mjs';
 import {localDay} from './residents.mjs';
@@ -7,10 +7,34 @@ function manager(u) {
   if (!can(u, 'communications') || !can(u, 'knowledge'))
     throw Error('Canais exigem comunicação e gestão das fontes.');
 }
+// Vínculo do grupo: o identificador digitado não prova nada (qualquer síndico digitaria o de outro grupo em
+// que o bot está). O canal só vale depois que o código de uso único é postado NO grupo informado
+// (`/vincular CÓDIGO`, ver telegramWebhook); até lá não envia, não agenda e não responde.
+const LINK_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789',
+  LINK_MS = 24 * 3600000,
+  linkDigest = (code) =>
+    createHash('sha256')
+      .update(
+        String(code)
+          .toUpperCase()
+          .replace(/[^A-Z0-9]/g, ''),
+      )
+      .digest('hex'),
+  linked = (c) => typeof c.verifiedAt === 'string';
+function newLinkCode(c, now) {
+  const raw = Array.from({length: 8}, () => LINK_ALPHABET[randomInt(LINK_ALPHABET.length)]).join('');
+  c.linkCodeHash = linkDigest(raw);
+  c.linkCodeUntil = now + LINK_MS;
+  return raw.slice(0, 4) + '-' + raw.slice(4);
+}
+function channelView(c) {
+  const {linkCodeHash, ...safe} = structuredClone(c);
+  return {...safe, linked: linked(c)};
+}
 export function channelsView(state, u) {
   manager(u);
   return {
-    channels: (state.channels || []).filter((c) => c.tenant === u.tenant).map((c) => structuredClone(c)),
+    channels: (state.channels || []).filter((c) => c.tenant === u.tenant).map(channelView),
     outbox: (state.channelOutbox || [])
       .filter((c) => c.tenant === u.tenant)
       .slice(-100)
@@ -26,7 +50,8 @@ export function saveChannel(state, u, input, now = Date.now()) {
   if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(input.dailyAt || '')) throw Error('Informe horário de Brasília.');
   if (input.reviewed !== true) throw Error('Confira o grupo e a autorização para divulgação externa.');
   state.channels ??= [];
-  if (state.channels.some((c) => c.chatId === input.chatId && c.tenant !== u.tenant))
+  // Só um vínculo confirmado bloqueia: um cadastro sem código postado não "ocupa" o grupo do condomínio dono.
+  if (state.channels.some((c) => c.chatId === input.chatId && c.tenant !== u.tenant && linked(c)))
     throw Error('Este grupo já está vinculado a outro condomínio.');
   let c = state.channels.find((c) => c.tenant === u.tenant && c.chatId === input.chatId);
   if (c && input.version !== c.version) throw Error('O canal mudou. Atualize.');
@@ -50,7 +75,17 @@ export function saveChannel(state, u, input, now = Date.now()) {
     c = {id: randomUUID(), tenant: u.tenant, version: 1, ...values};
     state.channels.push(c);
   }
-  return structuredClone(c);
+  // O código aparece uma vez, na resposta; fica guardado só o resumo (sha256), por 24 h.
+  const linkCode = !linked(c) && !isDemoTenant(state, u.tenant) ? newLinkCode(c, now) : null;
+  return {...channelView(c), ...(linkCode ? {linkCode} : {})};
+}
+export function channelLinkCode(state, u, input, now = Date.now()) {
+  manager(u);
+  requireLiveTenant(state, u.tenant, 'O vínculo do grupo Telegram');
+  const c = (state.channels || []).find((c) => c.id === input.id && c.tenant === u.tenant);
+  if (!c) throw Error('Canal indisponível.');
+  if (linked(c)) throw Error('Este grupo já está vinculado.');
+  return {...channelView(c), linkCode: newLinkCode(c, now)};
 }
 function envelope(state, c, kind, key, body, evidence, now) {
   state.channelOutbox ??= [];
@@ -108,6 +143,7 @@ export function prepareChannel(state, u, input, now = Date.now()) {
   manager(u);
   const c = (state.channels || []).find((c) => c.id === input.id && c.tenant === u.tenant && c.active);
   if (!c) throw Error('Canal indisponível.');
+  if (!linked(c)) throw Error('Vincule o grupo pelo código antes de preparar resumos.');
   return prepareDaily(state, c, now) || {notice: 'Sem fontes liberadas para canal externo.'};
 }
 export function scheduledChannels(state, now = Date.now()) {
@@ -118,7 +154,7 @@ export function scheduledChannels(state, now = Date.now()) {
     hourCycle: 'h23',
   }).format(now);
   return (state.channels || []).filter(
-    (c) => !isDemoTenant(state, c.tenant) && c.active && c.scheduled && c.dailyAt <= hour,
+    (c) => !isDemoTenant(state, c.tenant) && c.active && linked(c) && c.scheduled && c.dailyAt <= hour,
   );
 }
 // Confere o segredo do webhook sem alterar nada (a API chama antes de copiar a base).
@@ -136,8 +172,10 @@ export function telegramWebhook(state, input, secret, env = process.env, now = D
   if (!Number.isSafeInteger(input.update_id)) throw Error('Atualização inválida.');
   const m = input.message;
   if (!m?.chat?.id || typeof m.text !== 'string') return {ignored: true};
+  const link = /^\/vincular(?:@[a-z\d_]{5,32})?\s+([a-z0-9]{4}-?[a-z0-9]{4})$/i.exec(m.text.trim());
+  if (link) return linkGroup(state, m, link[1], now);
   const c = (state.channels || []).find(
-    (c) => !isDemoTenant(state, c.tenant) && c.active && c.chatId === String(m.chat.id),
+    (c) => !isDemoTenant(state, c.tenant) && c.active && linked(c) && c.chatId === String(m.chat.id),
   );
   if (!c) return {ignored: true};
   const prefix = '/perguntar' + c.botName,
@@ -170,6 +208,22 @@ export function telegramWebhook(state, input, secret, env = process.env, now = D
   );
   return {accepted: true};
 }
+// O código só vale no grupo que o síndico informou, em grupo de verdade, dentro das 24 h, uma vez; um grupo já
+// vinculado a outro condomínio não troca de dono. Resposta igual ("ignored") para todo caso recusado.
+function linkGroup(state, m, code, now) {
+  const hash = linkDigest(code),
+    c = (state.channels || []).find(
+      (c) => !isDemoTenant(state, c.tenant) && c.linkCodeHash === hash && c.linkCodeUntil > now,
+    );
+  if (!c || c.chatId !== String(m.chat.id) || !['group', 'supergroup'].includes(m.chat.type))
+    return {ignored: true};
+  if (state.channels.some((o) => o !== c && o.chatId === c.chatId && linked(o))) return {ignored: true};
+  c.verifiedAt = new Date(now).toISOString();
+  delete c.linkCodeHash;
+  delete c.linkCodeUntil;
+  c.version++;
+  return {accepted: true, linked: true};
+}
 export function claimChannelMessage(state, tenant, id, now = Date.now()) {
   requireLiveTenant(state, tenant, 'O envio ao Telegram');
   const o = (state.channelOutbox || []).find(
@@ -177,7 +231,8 @@ export function claimChannelMessage(state, tenant, id, now = Date.now()) {
   );
   if (!o) throw Error('Mensagem indisponível.');
   const c = (state.channels || []).find(
-    (c) => c.tenant === tenant && c.id === o.channelId && c.active && c.version === o.channelVersion,
+    (c) =>
+      c.tenant === tenant && c.id === o.channelId && c.active && linked(c) && c.version === o.channelVersion,
   );
   const sources = publishedSources(state, {tenant}, 'external', now);
   if (!c || o.evidence.some((e) => !sources.some((r) => r.id === e.id && r.sha256 === e.sha256)))

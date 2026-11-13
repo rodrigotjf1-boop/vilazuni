@@ -40,6 +40,7 @@ import {pushConfig, saveSubscription, removeSubscription, sendPush} from './push
 import {
   channelsView,
   saveChannel,
+  channelLinkCode,
   prepareChannel,
   prepareDaily,
   scheduledChannels,
@@ -1606,6 +1607,8 @@ export async function createAuthApi({
             result = removeSubscription(next.state, u, input);
           } else if (route === '/api/channels/save') {
             result = saveChannel(next.state, u, input, now());
+          } else if (route === '/api/channels/link-code') {
+            result = channelLinkCode(next.state, u, input, now());
           } else if (route === '/api/channels/prepare') {
             result = prepareChannel(next.state, u, input, now());
           } else if (route === '/api/physical/toggle') {
@@ -2101,7 +2104,8 @@ export async function createAuthApi({
     try {
       const outgoing = await enqueue(async () => {
         await refresh();
-        const next = structuredClone(db);
+        const next = structuredClone(db),
+          before = next.state.channelOutbox?.length || 0;
         for (const c of scheduledChannels(next.state, now()).filter((c) => {
           const t = tenantSettings(next.state, c.tenant);
           return (
@@ -2122,7 +2126,8 @@ export async function createAuthApi({
             o.version++;
           }
         }
-        await persist(next);
+        // Grava só se preparou resumo ou mexeu em mensagem: a rotina roda em intervalo, como a do n8n.
+        if (o || (next.state.channelOutbox?.length || 0) !== before) await persist(next);
         return claimed;
       });
       if (outgoing) {

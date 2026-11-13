@@ -6,7 +6,8 @@ export function createOperationsUI({getUser, panel}) {
   const owner = getUser()?.id,
     tenant = getUser()?.tenant;
   let serial = 0,
-    disposed = false;
+    disposed = false,
+    linkNotice = null;
   const valid = (t) => !disposed && getUser()?.id === owner && getUser()?.tenant === tenant && serial === t;
   const error = (t, e, back) => {
     if (valid(t))
@@ -112,26 +113,43 @@ export function createOperationsUI({getUser, panel}) {
     try {
       const {channels: items, outbox} = await api('/channels');
       if (!valid(token)) return;
+      // O código de vínculo aparece uma vez só, logo depois de salvar ou de gerar um novo.
+      const shown = linkNotice;
+      linkNotice = null;
       const dock = panel(
         'Comunicação com fontes liberadas.',
         'CANAIS OFICIAIS',
         message(
           'Integração opcional pelo Bot API do Telegram. Somente fontes publicadas como “Liberado para grupos externos” entram nas mensagens. O bot responde ao comando /perguntar@nome_do_bot ou à menção no início da mensagem.',
         ) +
-          `<details class="account-section"><summary>Configurar grupo Telegram</summary><form id="channel-save" class="float-wizard"><label>Nome do grupo<input name="name" required></label><label>Identificador oficial do grupo<input name="chatId" placeholder="-100…" required></label><label>Nome do bot<input name="botName" placeholder="@nome_do_bot" required></label><label>Resumo diário · Brasília<input name="dailyAt" type="time" required></label><label class="civic-choice"><input name="active" type="checkbox">Habilitar este grupo</label><label class="civic-choice"><input name="scheduled" type="checkbox">Agendar resumo diário após configurar o servidor</label><label>Registro da conferência<textarea name="reason" required maxlength="500"></textarea></label><label class="civic-choice"><input name="reviewed" type="checkbox" required>Conferi o grupo e a autorização de divulgação externa</label><p class="auth-error" role="alert"></p><button type="submit" class="glass-primary">Salvar grupo conferido</button></form></details>${items.map((c) => `<article class="floating-note"><h3>${esc(c.name)}</h3><p>${esc(c.chatId)} · ${esc(c.dailyAt)} · ${c.active ? 'Ativo' : 'Inativo'}</p><button class="glass-secondary" data-channel="${esc(c.id)}">Preparar resumo de hoje</button></article>`).join('')}<h3>Entregas</h3>${outbox.map((o) => `<article class="floating-note"><span class="float-pill">${esc(o.status)}</span><p>${esc(o.body)}</p>${o.status === 'pending' ? `<button class="glass-secondary" data-message="${esc(o.id)}">Confirmar envio ao grupo</button>` : ''}${message(o.notice || 'Aguardando envio; sem confirmação de leitura.')}</article>`).join('')}`,
+          `<details class="account-section"><summary>Configurar grupo Telegram</summary><form id="channel-save" class="float-wizard"><label>Nome do grupo<input name="name" required></label><label>Identificador oficial do grupo<input name="chatId" placeholder="-100…" required></label>${message('Depois de salvar, aparece um código. Envie /vincular e o código no próprio grupo: só então ele passa a receber resumos e respostas.')}<label>Nome do bot<input name="botName" placeholder="@nome_do_bot" required></label><label>Resumo diário · Brasília<input name="dailyAt" type="time" required></label><label class="civic-choice"><input name="active" type="checkbox">Habilitar este grupo</label><label class="civic-choice"><input name="scheduled" type="checkbox">Agendar resumo diário após configurar o servidor</label><label>Registro da conferência<textarea name="reason" required maxlength="500"></textarea></label><label class="civic-choice"><input name="reviewed" type="checkbox" required>Conferi o grupo e a autorização de divulgação externa</label><p class="auth-error" role="alert"></p><button type="submit" class="glass-primary">Salvar grupo conferido</button></form></details>${shown ? `<article class="floating-note" role="status"><h3>Código de vínculo: ${esc(shown.code)}</h3><p>No grupo ${esc(shown.chatId)}, envie a mensagem: /vincular ${esc(shown.code)}</p>${message('Vale por 24 horas, uma vez só, e somente nesse grupo.')}</article>` : ''}${items.map((c) => `<article class="floating-note"><h3>${esc(c.name)}</h3><p>${esc(c.chatId)} · ${esc(c.dailyAt)} · ${c.active ? 'Ativo' : 'Inativo'} · ${c.linked ? 'Vinculado' : 'Aguardando o código no grupo'}</p>${c.linked ? `<button class="glass-secondary" data-channel="${esc(c.id)}">Preparar resumo de hoje</button>` : `<button class="glass-secondary" data-link="${esc(c.id)}">Gerar novo código de vínculo</button>`}</article>`).join('')}<h3>Entregas</h3>${outbox.map((o) => `<article class="floating-note"><span class="float-pill">${esc(o.status)}</span><p>${esc(o.body)}</p>${o.status === 'pending' ? `<button class="glass-secondary" data-message="${esc(o.id)}">Confirmar envio ao grupo</button>` : ''}${message(o.notice || 'Aguardando envio; sem confirmação de leitura.')}</article>`).join('')}`,
         {wide: true},
       );
       onSubmit(dock.querySelector('#channel-save'), async (data) => {
         const old = items.find((c) => c.chatId === data.chatId);
-        await api('/channels/save', {
+        const saved = await api('/channels/save', {
           ...data,
           active: data.active === 'on',
           scheduled: data.scheduled === 'on',
           reviewed: true,
           ...(old ? {version: old.version} : {}),
         });
+        if (saved.linkCode) linkNotice = {code: saved.linkCode, chatId: saved.chatId};
         if (valid(token)) await channels();
       });
+      dock.querySelectorAll('[data-link]').forEach(
+        (b) =>
+          (b.onclick = async () => {
+            b.disabled = true;
+            try {
+              const r = await api('/channels/link-code', {id: b.dataset.link});
+              linkNotice = {code: r.linkCode, chatId: r.chatId};
+              if (valid(token)) await channels();
+            } catch (e) {
+              error(token, e, channels);
+            }
+          }),
+      );
       for (const [attribute, route] of [
         ['channel', '/channels/prepare'],
         ['message', '/channels/send'],
