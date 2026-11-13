@@ -1650,7 +1650,10 @@ export async function createAuthApi({
               now(),
             );
           } else if (Object.hasOwn(financeActions, route)) {
-            result = financeActions[route](next.state, u, input, now());
+            // Aprovação de acordo e de rateio conferem se há outra pessoa com controle financeiro.
+            result = ['/api/finance/agreements/approve', '/api/finance/assessments/approve'].includes(route)
+              ? financeActions[route](next.state, u, input, now(), allBindings(next.users))
+              : financeActions[route](next.state, u, input, now());
           } else if (route === '/api/residents/contacts/grant') {
             result = grantCaretakerContacts(
               next.state,

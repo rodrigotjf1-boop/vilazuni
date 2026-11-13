@@ -1,11 +1,27 @@
 import {randomUUID} from 'node:crypto';
 import {can} from './permissions.mjs';
 import {localDay} from './residents.mjs';
+import {validBinding} from './access.mjs';
 export const canReadFinance = (u) =>
   ['financeRead', 'finance', 'financeClose', 'financeExport'].some((m) => can(u, m));
 export const requireFinance = (u, module) => {
   if (!can(u, module)) throw Error('Ação financeira fora da delegação desta conta.');
 };
+// Segunda pessoa na aprovação: quem redigiu ou revisou o rascunho (as entradas do histórico até aqui) não aprova
+// o próprio texto quando há OUTRA pessoa com controle financeiro vigente no condomínio. Sendo a única, aprova —
+// e a aprovação fica marcada como do próprio redator (condomínio pequeno não pode ficar sem rateio).
+// `people` vem da API (todas as contas); sem a lista (chamada interna), mantém o comportamento anterior.
+export function approvalBy(s, u, record, people, now) {
+  const drafters = new Set((record.history || []).map((h) => h.actorId).filter(Boolean));
+  if (record.createdBy) drafters.add(record.createdBy);
+  if (!drafters.has(u.id) || !people) return {selfApproved: false};
+  const others = people.filter(
+    (p) => p.tenant === u.tenant && !drafters.has(p.id) && can(p, 'financeClose') && validBinding(s, p, now),
+  );
+  if (others.length)
+    throw Error('Outra pessoa com controle financeiro deve aprovar o que você redigiu ou revisou.');
+  return {selfApproved: true};
+}
 export function text(v, label, max = 160) {
   if (typeof v !== 'string' || v.trim().length < 3 || v.trim().length > max)
     throw Error(`${label}: use entre 3 e ${max} caracteres.`);

@@ -70,10 +70,17 @@ test('API mantém controle e emissão separados, dados mínimos de unidades e av
         ).status,
         403,
       );
+    // Quem redigiu não aprova o próprio rateio quando há outra pessoa com controle (o síndico).
     response = await request(
       '/finance/assessments/approve',
       {id: a.id, version: a.version, reason: 'Distribuição conferida'},
       controller.cookie,
+    );
+    assert.equal(response.status, 403);
+    response = await request(
+      '/finance/assessments/approve',
+      {id: a.id, version: a.version, reason: 'Distribuição conferida'},
+      admin.cookie,
     );
     assert.equal(response.status, 200);
     a = response.body;

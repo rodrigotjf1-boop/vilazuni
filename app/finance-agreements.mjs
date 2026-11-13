@@ -1,6 +1,6 @@
 import {randomUUID} from 'node:crypto';
 import {localDay} from './residents.mjs';
-import {requireFinance, text, date, rows, bump, openDate, activeFund} from './finance-ledger.mjs';
+import {requireFinance, text, date, rows, bump, openDate, activeFund, approvalBy} from './finance-ledger.mjs';
 import {createReceivable} from './finance-receivables.mjs';
 import {isOutstanding, settlementPosition, syncSettlement} from './finance-settlements.mjs';
 import {
@@ -100,18 +100,28 @@ export function createAgreement(s, u, input, now = Date.now()) {
   bump(s, u.tenant);
   return structuredClone(a);
 }
-export function approveAgreement(s, u, input, now = Date.now()) {
+export function approveAgreement(s, u, input, now = Date.now(), people) {
   const a = record(s, u, input, 'financeClose');
   if (a.status !== 'draft') throw Error('Aprove somente proposta de acordo.');
   openDate(s, u, localDay(now), now);
   const {position} = source(s, u, a.sourceId, a.sourceVersion);
   if (position.remainingCents !== a.principalCents || a.firstDueOn < localDay(now))
     throw Error('Saldo ou vencimentos mudaram. Prepare uma nova proposta.');
-  const reason = text(input.reason, 'Conferência do acordo', 500);
+  const reason = text(input.reason, 'Conferência do acordo', 500),
+    {selfApproved} = approvalBy(s, u, a, people, now);
   a.status = 'approved';
   a.version++;
-  a.approval = {by: u.id, byName: u.name, at: new Date(now).toISOString(), reason};
-  a.history.push(audit(u, 'Parcelamento conferido e aprovado', reason, now));
+  a.approval = {by: u.id, byName: u.name, at: new Date(now).toISOString(), reason, selfApproved};
+  a.history.push(
+    audit(
+      u,
+      selfApproved
+        ? 'Parcelamento aprovado pelo próprio redator (única pessoa com controle financeiro)'
+        : 'Parcelamento conferido e aprovado',
+      reason,
+      now,
+    ),
+  );
   bump(s, u.tenant);
   return structuredClone(a);
 }
