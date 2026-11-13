@@ -22,6 +22,9 @@ const fail = (message, status = 403) => {
 };
 const hash = (value) => createHash('sha256').update(value).digest('hex');
 const ids = (value) => typeof value === 'string' && /^[A-Za-z0-9_-]{3,100}$/.test(value);
+// Conta já vencida: a cobrança no Asaas não nasce com data no passado — vence hoje (dia de Brasília). A conta a
+// receber guarda o vencimento original, que é de onde contam multa e juros.
+const chargeDueOn = (r, now) => (r.dueOn < localDay(now) ? localDay(now) : r.dueOn);
 // O id do EVENTO do webhook é opaco e, pela documentação oficial, tem "&" (ex.: evt_05b7…f621&368604920):
 // com a regra dos outros ids, todo aviso real voltava 400. Só serve de chave de idempotência.
 const eventIds = (value) => typeof value === 'string' && /^[A-Za-z0-9_&.:-]{3,150}$/.test(value);
@@ -391,7 +394,8 @@ export function previewAsaasCharge(s, users, u, input, now = Date.now()) {
     documentMasked: mask(payer.document),
     description: r.description,
     reference: r.reference,
-    dueOn: r.dueOn,
+    dueOn: chargeDueOn(r, now),
+    receivableDueOn: r.dueOn,
     amountCents: position.remainingCents,
     billingType: input.billingType,
     receivableId: r.id,
@@ -418,7 +422,7 @@ export function claimAsaasCharge(s, users, u, input, now = Date.now()) {
     payerUserId: payer.userId,
     amountCents: position.remainingCents,
     billingType: input.billingType,
-    dueOn: r.dueOn,
+    dueOn: chargeDueOn(r, now),
     description: r.description,
     status: 'creating',
     version: 1,
