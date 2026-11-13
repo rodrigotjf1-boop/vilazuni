@@ -29,7 +29,7 @@ export function requireNoExternalCollection(s, tenant, id) {
       (q) =>
         q.receivableId === id &&
         q.environment === 'production' &&
-        !['failed', 'cancelled'].includes(q.status),
+        !['failed', 'cancelled', 'refunded'].includes(q.status),
     )
   )
     throw Error(

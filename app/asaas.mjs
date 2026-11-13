@@ -4,7 +4,15 @@ import {can} from './permissions.mjs';
 import {validBinding} from './access.mjs';
 import {localDay} from './residents.mjs';
 import {tenantSettings} from './tenants.mjs';
-import {rows, canReadFinance, requireFinance, activeAccount, openDate, post} from './finance-ledger.mjs';
+import {
+  rows,
+  canReadFinance,
+  requireFinance,
+  activeAccount,
+  openDate,
+  post,
+  text,
+} from './finance-ledger.mjs';
 import {settlementPosition, syncSettlement} from './finance-settlements.mjs';
 import {collectionHeld, payerLink} from './finance-collection-policy.mjs';
 import {ASAAS_EVENTS} from './asaas-client.mjs';
@@ -14,6 +22,9 @@ const fail = (message, status = 403) => {
 };
 const hash = (value) => createHash('sha256').update(value).digest('hex');
 const ids = (value) => typeof value === 'string' && /^[A-Za-z0-9_-]{3,100}$/.test(value);
+// O id do EVENTO do webhook é opaco e, pela documentação oficial, tem "&" (ex.: evt_05b7…f621&368604920):
+// com a regra dos outros ids, todo aviso real voltava 400. Só serve de chave de idempotência.
+const eventIds = (value) => typeof value === 'string' && /^[A-Za-z0-9_&.:-]{3,150}$/.test(value);
 export const connectionFor = (s, tenant) =>
   (s.asaasConnections || []).find((c) => c.tenant === tenant && c.enabled);
 const audit = (s, u, action, id, now) => {
@@ -117,7 +128,8 @@ export function connectAsaas(s, u, input, account, vault, now = Date.now()) {
     previous &&
     previous.fingerprint !== fingerprint &&
     rows(s, 'asaasCharges', u.tenant).some(
-      (q) => q.connectionId === previous.id && !['received', 'cancelled', 'failed'].includes(q.status),
+      (q) =>
+        q.connectionId === previous.id && !['received', 'cancelled', 'failed', 'refunded'].includes(q.status),
     )
   )
     fail('Conclua ou cancele as cobranças antes de trocar o ambiente ou a conta.', 409);
@@ -286,7 +298,9 @@ export function saveAsaasPayer(s, users, u, input, now = Date.now()) {
     previous &&
     (s.asaasCharges || []).some(
       (q) =>
-        q.tenant === u.tenant && q.payerId === previous.id && !['cancelled', 'failed'].includes(q.status),
+        q.tenant === u.tenant &&
+        q.payerId === previous.id &&
+        !['cancelled', 'failed', 'refunded'].includes(q.status),
     )
   )
     fail('O pagador tem cobranças com histórico. Preserve a identificação já utilizada.', 409);
@@ -357,7 +371,7 @@ function linkAndReceivable(s, users, u, input, now) {
       (q) =>
         q.environment === c.environment &&
         q.receivableId === r.id &&
-        !['cancelled', 'failed'].includes(q.status),
+        !['cancelled', 'failed', 'refunded'].includes(q.status),
     )
   )
     fail('Há uma cobrança externa vinculada. Consulte antes de emitir novamente.', 409);
@@ -508,6 +522,94 @@ export function confirmAsaasAbsent(s, u, id, version, now = Date.now()) {
   audit(s, u, 'Emissão Asaas sem confirmação encerrada: inexistente no provedor', q.id, now);
   return structuredClone(q);
 }
+// Quanto o Asaas DEVOLVEU de fato (documentação oficial, "Estornos" e "Chargeback"): a soma dos estornos
+// concluídos (`refunds` com status DONE — pendente ou cancelado não conta; pode haver vários, parciais);
+// contestação perdida devolve o valor cheio. A tarifa do Asaas não volta no estorno.
+export function providerReversedCents(payment, grossCents) {
+  if (payment.status === 'AWAITING_CHARGEBACK_REVERSAL' || payment.chargeback?.status === 'DISPUTE_LOST')
+    return grossCents;
+  const done = (payment.refunds || [])
+    .filter((r) => r?.status === 'DONE')
+    .reduce((n, r) => n + paymentCents(r.value), 0);
+  return payment.status === 'REFUNDED' && !done ? grossCents : done;
+}
+export function refundableAsaasCharge(s, u, id, version) {
+  requireFinance(u, 'finance');
+  const q = asaasOperation(s, u, id);
+  if (q.version !== version) fail('A cobrança mudou. Atualize.', 409);
+  if (q.status !== 'review' || !q.receiptEntryId || !q.paymentId || q.environment !== 'production')
+    fail('Somente cobrança recebida e em conferência por estorno ou contestação.', 409);
+  return q;
+}
+// Estorno ou contestação conferidos no Asaas: o valor devolvido sai do caixa e volta a ser devido. Antes, a
+// receita ficava no caixa, a conta "recebida" sumia da inadimplência e o estorno manual era recusado.
+export function applyAsaasRefund(s, u, id, version, payment, reasonInput, now = Date.now()) {
+  const q = refundableAsaasCharge(s, u, id, version),
+    reason = text(reasonInput, 'Conferência do estorno no Asaas', 500);
+  if (payment.id !== q.paymentId || payment.externalReference !== q.externalReference)
+    fail('Retorno divergente da cobrança.', 409);
+  const gross = q.amountCents,
+    before = q.refundedCents || 0,
+    reversed = providerReversedCents(payment, gross);
+  if (reversed > gross) fail('O estorno informado é maior que o recebido. Confira no Asaas.', 409);
+  if (reversed <= before)
+    fail(
+      'O Asaas ainda não confirma estorno concluído além do já lançado. Aguarde a conclusão no Asaas.',
+      409,
+    );
+  const r = rows(s, 'financialReceivables', q.tenant).find((r) => r.id === q.receivableId),
+    original = rows(s, 'financialEntries', q.tenant).find((e) => e.id === q.receiptEntryId);
+  if (!r || !original || original.reversalId) fail('Conta ou lançamento de origem indisponível.', 409);
+  if (r.activeAgreementId) fail('Conta em acordo: cancele o acordo antes de reabrir o saldo.', 409);
+  const delta = reversed - before,
+    on = openDate(s, u, localDay(now), now),
+    account = activeAccount(s, u, q.accountId),
+    entry = post(
+      s,
+      u,
+      {
+        operationId: randomUUID(),
+        kind: 'reversal',
+        date: on,
+        description: 'Estorno Asaas · ' + r.description,
+        category: 'Estorno',
+        reference: 'Estorno Asaas ' + payment.id + ' · ' + reversed,
+        reason,
+        amountCents: delta,
+        reversalOf: original.id,
+        receivableId: r.id,
+        providerPaymentId: payment.id,
+        postings: [{accountId: account.id, fundId: r.fundId, amountCents: -delta}],
+      },
+      [{id: account.id, version: account.version}],
+      now,
+    );
+  if (reversed === gross) {
+    original.reversalId = entry.id;
+    original.version++;
+  }
+  r.version++;
+  r.events.push({date: on, kind: 'open', reason});
+  syncSettlement(s, q.tenant, 'receivable', r);
+  r.history.push({
+    at: new Date(now).toISOString(),
+    actor: u.name,
+    action: 'Estorno do Asaas conferido; saldo a receber reaberto',
+    entryId: entry.id,
+    amountCents: delta,
+    reason,
+  });
+  Object.assign(q, {
+    status: 'refunded',
+    refundedCents: reversed,
+    providerStatus: payment.status,
+    updatedAt: new Date(now).toISOString(),
+  });
+  q.version++;
+  delete q.error;
+  audit(s, u, 'Estorno do Asaas conferido e lançado', q.id, now);
+  return structuredClone(q);
+}
 // Confere o token do retorno sem alterar nada: a API chama antes de copiar a base (pedido forjado sai barato).
 export function authenticateAsaasWebhook(s, connectionId, token, vault) {
   const c = (s.asaasConnections || []).find((c) => c.id === connectionId);
@@ -519,7 +621,7 @@ export function authenticateAsaasWebhook(s, connectionId, token, vault) {
 }
 export function ingestAsaasWebhook(s, connectionId, token, event, vault, now = Date.now()) {
   const c = authenticateAsaasWebhook(s, connectionId, token, vault);
-  if (!event || !ids(event.id) || !ASAAS_EVENTS.includes(event.event) || !ids(event.payment?.id))
+  if (!event || !eventIds(event.id) || !ASAAS_EVENTS.includes(event.event) || !ids(event.payment?.id))
     fail('Evento inválido.', 400);
   const existing = rows(s, 'asaasWebhookEvents', c.tenant).find(
     (e) => e.connectionId === c.id && e.eventId === event.id,
@@ -593,6 +695,13 @@ function reconcilePayment(s, connectionId, payment, now) {
   q.checkedAt = new Date(now).toISOString();
   q.version++;
   delete q.error;
+  // Estorno parcial pode chegar com a cobrança ainda "RECEIVED": o que manda é o que o provedor DEVOLVEU.
+  const reversed = q.receiptEntryId ? providerReversedCents(payment, q.amountCents) : 0;
+  // Estorno já lançado e nada novo devolvido: a cobrança segue como estornada (qualquer situação no provedor).
+  if (q.refundedCents && reversed === q.refundedCents) {
+    q.status = 'refunded';
+    return {id: q.id, status: q.status};
+  }
   if (
     [
       'REFUNDED',
@@ -602,10 +711,12 @@ function reconcilePayment(s, connectionId, payment, now) {
       'CHARGEBACK_REQUESTED',
       'CHARGEBACK_DISPUTE',
       'AWAITING_CHARGEBACK_REVERSAL',
-    ].includes(payment.status)
+    ].includes(payment.status) ||
+    reversed > (q.refundedCents || 0)
   ) {
     q.status = 'review';
-    q.error = 'Estorno ou contestação do provedor: confira valores e tarifas antes da conciliação.';
+    q.error =
+      'Estorno ou contestação do provedor: quando o Asaas concluir, use "Lançar estorno conferido" para reabrir o saldo.';
     return {id: q.id, status: q.status};
   }
   if (payment.deleted || payment.status === 'DELETED') {
@@ -735,7 +846,14 @@ export function asaasView(s, u, users = [], now = Date.now()) {
           : null,
       held: collectionHeld(s, u.tenant, q.receivableId),
       ...(managerView
-        ? {paymentId: q.paymentId, error: q.error || null, netCents: q.netCents, feeCents: q.feeCents}
+        ? {
+            paymentId: q.paymentId,
+            error: q.error || null,
+            netCents: q.netCents,
+            feeCents: q.feeCents,
+            received: !!q.receiptEntryId,
+            refundedCents: q.refundedCents || 0,
+          }
         : {}),
     }));
   return {

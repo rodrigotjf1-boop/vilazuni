@@ -9,6 +9,12 @@ export const ASAAS_EVENTS = [
   'PAYMENT_RESTORED',
   'PAYMENT_REFUNDED',
   'PAYMENT_PARTIALLY_REFUNDED',
+  // Estorno em andamento e contestação (chargeback): levam a cobrança para conferência (eventos para cobranças,
+  // documentação oficial do Asaas). Conexões já configuradas passam a recebê-los ao configurar o retorno de novo.
+  'PAYMENT_REFUND_IN_PROGRESS',
+  'PAYMENT_CHARGEBACK_REQUESTED',
+  'PAYMENT_CHARGEBACK_DISPUTE',
+  'PAYMENT_AWAITING_CHARGEBACK_REVERSAL',
 ];
 export function createAsaasClient({environment, apiKey, fetcher = fetch}) {
   const origin = origins[environment];

@@ -307,6 +307,27 @@ export function createAsaasService({
         });
         return send(res, 200, result);
       }
+      if (route === '/asaas/refund') {
+        // Estorno/contestação conferidos: consulta o pagamento FORA da fila e lança só o que o Asaas devolveu.
+        const p = await prepare(req, (u, db) => {
+          if (input.confirm !== true) fail('Confirme que conferiu o estorno no Asaas.', 400);
+          const q = structuredClone(A.refundableAsaasCharge(db.state, u, input.id, input.version));
+          return {q, owner: structuredClone(u), remote: client(db.state, u.tenant, q.connectionId)};
+        });
+        const payment = await p.remote.payment(p.q.paymentId);
+        const result = await run(() => {
+          const u = unchanged(req, p.owner);
+          return change(u, (s) => {
+            try {
+              return A.applyAsaasRefund(s, u, p.q.id, p.q.version, payment, input.reason, now());
+            } catch (error) {
+              error.status ??= 409; // erro do financeiro (período fechado, conta mudou): mostra o motivo real
+              throw error;
+            }
+          });
+        });
+        return send(res, 200, result);
+      }
       fail('Ação não encontrada.', 404);
     } catch (error) {
       if (claimed)
