@@ -4,6 +4,7 @@ import {fullDemoBrowser} from './full-demo-browser.mjs';
 import {communityBrowser} from './community-browser.mjs';
 import {demoBrowser} from './demo-browser.mjs';
 import {householdBrowser} from './household-browser.mjs';
+import {houseNumberBrowser} from './house-number-browser.mjs';
 import {pilotBrowser} from './pilot-browser.mjs';
 import {chromium} from 'playwright-core';
 import {spawn} from 'node:child_process';
@@ -104,6 +105,7 @@ try {
   }
   await demoBrowser({page, api, open});
   await householdBrowser({page, api, open, browser, base, password});
+  await houseNumberBrowser({page, open});
   await communityBrowser({browser, page, base, api, password});
   await pilotBrowser({page, api, open});
   await fullDemoBrowser({page, api, open, browser, base, password});

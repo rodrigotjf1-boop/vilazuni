@@ -32,7 +32,8 @@ export async function pilotBrowser({page, api, open}) {
     name: 'Conta Asaas navegador',
     kind: 'bank',
     fundId: fund.id,
-    openingOn: new Date().toISOString().slice(0, 10),
+    // Dia de Brasília: das 21h à meia-noite o dia em UTC já é "amanhã", e o servidor recusa data futura.
+    openingOn: new Date(Date.now() - 3 * 3600000).toISOString().slice(0, 10),
     openingCents: 0,
     reason: 'Saldo inicial sintético conferido',
   });
@@ -66,7 +67,7 @@ export async function pilotBrowser({page, api, open}) {
   const version = await page.request.get(new URL('/version.json', page.url()).href),
     data = await version.json();
   assert.match(data.build, /^[a-f\d]{20}$/);
-  assert.equal(data.version, '0.7.1');
+  assert.equal(data.version, '0.7.2');
   assert.equal(version.headers()['cache-control'], 'no-store');
   await page.route('**/version.json', (route) =>
     route.fulfill({json: {version: '0.5.3', build: 'f'.repeat(20)}}),

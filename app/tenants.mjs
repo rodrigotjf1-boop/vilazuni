@@ -181,6 +181,9 @@ function unit(input, tenant) {
     parking = Number(input.parking),
     floors = Number(input.floors),
     rooms = Number(input.rooms);
+  // O número aparece em todas as telas; marcação e caracteres de controle não servem a nenhuma unidade.
+  if (/[<>\u0000-\u001f\u007f]/.test(number))
+    throw Error('Identificação da unidade: use letras, números, espaço e sinais como - / . sem < ou >.');
   if (![parking, floors, rooms].every((n) => Number.isInteger(n) && n >= 0 && n <= 100))
     throw Error('Vagas, pavimentos e quartos: inteiros de 0 a 100.');
   const area = input.area == null || input.area === '' ? null : Number(input.area);
