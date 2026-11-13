@@ -383,7 +383,7 @@ function openPanel(type, houseId = null) {
     const dock = panel(
       'Quem chega. Quem fica.',
       'ESTADIAS' + (houseId ? ' · CASA ' + houses().find((h) => h.id === houseId)?.number : ''),
-      `${canCreate() ? '<button class="glass-primary" id="float-new">＋ Receber uma estadia</button>' : ''}<div class="float-feed">${list.map((s) => `<button class="journey-card" data-stay="${s.id}"><div><span>CASA ${houses().find((h) => h.id === s.houseId)?.number} · ${esc(s.rentalKind === 'daily' ? 'Diária' : s.rentalKind === 'seasonal' ? 'Temporada' : 'Tipo a confirmar')} · ${esc(s.source || 'Autorização')}</span>${pill(s.status)}</div><h3>${esc(s.responsible)}</h3><p>${fmt(s.start)} → ${fmt(s.end)}</p><small>${s.people.length} pessoas · ${s.vehicles.length} veículos <b>Explorar ↗</b></small></button>`).join('') || empty('Nenhuma estadia neste espaço.')}</div>`,
+      `${canCreate() ? '<button class="glass-primary" id="float-new">＋ Receber uma estadia</button>' : ''}<div class="float-feed">${list.map((s) => `<button class="journey-card" data-stay="${s.id}"><div><span>CASA ${esc(houses().find((h) => h.id === s.houseId)?.number)} · ${esc(s.rentalKind === 'daily' ? 'Diária' : s.rentalKind === 'seasonal' ? 'Temporada' : 'Tipo a confirmar')} · ${esc(s.source || 'Autorização')}</span>${pill(s.status)}</div><h3>${esc(s.responsible)}</h3><p>${fmt(s.start)} → ${fmt(s.end)}</p><small>${s.people.length} pessoas · ${s.vehicles.length} veículos <b>Explorar ↗</b></small></button>`).join('') || empty('Nenhuma estadia neste espaço.')}</div>`,
       {back: houseId ? () => openHouse(houseId) : null},
     );
     dock.querySelector('#float-new')?.addEventListener('click', () => wizard(houseId));
@@ -400,7 +400,7 @@ function openPanel(type, houseId = null) {
         .filter((h) => !houseId || h.id === houseId)
         .map(
           (h) =>
-            `<article class="floating-note"><span class="micro-label">CASA ${h.number}</span><h3>${h.parking} vaga${h.parking === 1 ? '' : 's'}</h3><p>${esc(h.parkingType)}</p>${pill('Disponibilidade não confirmada')}</article>`,
+            `<article class="floating-note"><span class="micro-label">CASA ${esc(h.number)}</span><h3>${h.parking} vaga${h.parking === 1 ? '' : 's'}</h3><p>${esc(h.parkingType)}</p>${pill('Disponibilidade não confirmada')}</article>`,
         )
         .join('')}</div><p class="micro-note">Veículo cadastrado não garante vaga disponível.</p>`,
       {back: houseId ? () => openHouse(houseId) : null},
@@ -452,7 +452,7 @@ function openPanel(type, houseId = null) {
           .filter((s) => !houseId || s.houseId === houseId)
           .map(
             (s) =>
-              `<article class="floating-note"><span class="micro-label">CASA ${houses().find((h) => h.id === s.houseId)?.number}</span><h3>${esc(s.responsible)}</h3>${pill(authorizationStatus(s, clock))}<p>${esc(s.people.join(' · '))}</p><small>${esc(s.vehicles.join(' · ') || 'Sem veículo')}<br>${fmt(s.start)} → ${fmt(s.end)}</small></article>`,
+              `<article class="floating-note"><span class="micro-label">CASA ${esc(houses().find((h) => h.id === s.houseId)?.number)}</span><h3>${esc(s.responsible)}</h3>${pill(authorizationStatus(s, clock))}<p>${esc(s.people.join(' · '))}</p><small>${esc(s.vehicles.join(' · ') || 'Sem veículo')}<br>${fmt(s.start)} → ${fmt(s.end)}</small></article>`,
           )
           .join('') || empty('Nenhuma autorização no seu escopo.')
       }</div><p class="micro-note">Situação consultada no horário atual. Sem acionamento de portão.</p>`,
@@ -523,14 +523,14 @@ function wizard(houseId) {
       `<label>Casa<select name="houseId">${houses()
         .map(
           (h) =>
-            `<option value="${h.id}" ${h.id === draft.houseId ? 'selected' : ''}>Casa ${h.number}</option>`,
+            `<option value="${h.id}" ${h.id === draft.houseId ? 'selected' : ''}>Casa ${esc(h.number)}</option>`,
         )
         .join(
           '',
         )}</select></label><div class="wizard-pair"><label>Chegada · Brasília<input name="start" type="datetime-local" value="${esc(draft.start)}" required></label><label>Saída · Brasília<input name="end" type="datetime-local" value="${esc(draft.end)}" required></label></div><label>Origem<select name="source">${['Direta', 'Airbnb', 'Booking', 'Outra'].map((s) => `<option ${s === draft.source ? 'selected' : ''}>${s}</option>`).join('')}</select></label><label>Tipo de locação<select name="rentalKind"><option value="daily" ${draft.rentalKind === 'daily' ? 'selected' : ''}>Diária</option><option value="seasonal" ${draft.rentalKind === 'seasonal' ? 'selected' : ''}>Temporada</option></select></label>`,
       `<label>Responsável presente<input name="responsible" value="${esc(draft.responsible)}" maxlength="120" required placeholder="Nome fictício"></label><label>Contato<input name="contact" value="${esc(draft.contact)}" maxlength="200" placeholder="Informação adicional de contato"></label><div class="wizard-pair"><label>Telefone com DDI e DDD<input name="phone" type="tel" value="${esc(draft.phone)}" maxlength="30" placeholder="55 22 99999-9999"></label><label>WhatsApp com DDI e DDD<input name="whatsapp" type="tel" value="${esc(draft.whatsapp)}" maxlength="30" placeholder="55 22 99999-9999"></label></div><label>E-mail<input name="email" type="email" value="${esc(draft.email)}" maxlength="200"></label><label>Foto de identificação do responsável<input name="stayPhotoFile" type="file" accept="image/png,image/jpeg,image/webp"></label><p class="micro-note">${draft.photo ? 'Foto selecionada. ' : ''}Contatos e foto ficam disponíveis ao proprietário, ao síndico e à zeladoria com autorização para esta casa.</p><label>Todos os ocupantes<textarea name="people" rows="3" required placeholder="Um nome por linha, incluindo o responsável">${esc(draft.people)}</textarea></label>`,
-      `<div class="floating-note"><span class="micro-label">CASA ${h?.number}</span><h3>${h?.parking} vagas</h3><p>${esc(h?.parkingType)}</p></div><label>Placas fictícias · uma por linha<textarea name="vehicles" rows="3" placeholder="Deixe vazio se não houver veículo">${esc(draft.vehicles)}</textarea></label><p class="micro-note">O cadastro não garante uma vaga disponível.</p>`,
-      `<div class="floating-note"><span class="micro-label">CASA ${h?.number} · ${draft.rentalKind === 'daily' ? 'DIÁRIA' : 'TEMPORADA'} · ${esc(draft.source)}</span><h3>${esc(draft.responsible)}</h3><p>${esc(draft.start.replace('T', ' · '))}<br>até ${esc(draft.end.replace('T', ' · '))}</p></div><div class="people-bubbles">${[
+      `<div class="floating-note"><span class="micro-label">CASA ${esc(h?.number)}</span><h3>${h?.parking} vagas</h3><p>${esc(h?.parkingType)}</p></div><label>Placas fictícias · uma por linha<textarea name="vehicles" rows="3" placeholder="Deixe vazio se não houver veículo">${esc(draft.vehicles)}</textarea></label><p class="micro-note">O cadastro não garante uma vaga disponível.</p>`,
+      `<div class="floating-note"><span class="micro-label">CASA ${esc(h?.number)} · ${draft.rentalKind === 'daily' ? 'DIÁRIA' : 'TEMPORADA'} · ${esc(draft.source)}</span><h3>${esc(draft.responsible)}</h3><p>${esc(draft.start.replace('T', ' · '))}<br>até ${esc(draft.end.replace('T', ' · '))}</p></div><div class="people-bubbles">${[
         ...new Set(
           draft.people
             .split('\n')

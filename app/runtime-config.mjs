@@ -38,7 +38,11 @@ export function runtimeConfig(env = process.env) {
 export function clientAddress(req, config) {
   const remote = String(req.socket.remoteAddress || '').replace(/^::ffff:/, ''),
     forwarded = req.headers[config.clientIpHeader || 'x-vilazuni-client-ip'],
-    privatePeer = remote === '::1' || /^(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(remote);
+    // Rede privada também em IPv6 (fc00::/7 e fe80::/10): a rede do Docker com IPv6 usa esses endereços.
+    privatePeer =
+      remote === '::1' ||
+      /^(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(remote) ||
+      /^(f[cd][0-9a-f]{2}|fe[89ab][0-9a-f]):/i.test(remote);
   return config.trustProxy && privatePeer && typeof forwarded === 'string' && isIP(forwarded)
     ? forwarded
     : remote || 'local';

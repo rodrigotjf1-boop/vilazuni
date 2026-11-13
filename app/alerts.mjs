@@ -13,9 +13,15 @@ function mayRead(alert, user) {
       (alert.recipients.includes(user.id) && (!alert.houseId || user.houses?.includes(alert.houseId))))
   );
 }
+// A justificativa da triagem é da gestão: o destinatário (às vezes o próprio acusado) não a recebe.
+// Registros antigos não têm a marca `internal`: a 1ª entrada de uma triagem é a justificativa.
+const internalNote = (alert, h, i) =>
+  h.internal === true ||
+  (alert.kind === 'incident-triage' && i === 0 && h.action === 'Alegação encaminhada para conferência');
 function view(alert, user) {
   const manager = can(user, 'communications') && can(user, alert.module),
     {sourceId, recipients, ...safe} = structuredClone(alert);
+  if (!manager) safe.history = safe.history.filter((h, i) => !internalNote(alert, h, i));
   return {...safe, canManage: manager, ...(manager ? {sourceId, recipients} : {})};
 }
 export function alertsView(state, user) {
@@ -152,6 +158,7 @@ export function createIncidentAlert(state, users, user, input, now = Date.now())
         actor: user.name,
         action: 'Alegação encaminhada para conferência',
         message: text(input.reason, 'Justificativa da triagem', 500),
+        internal: true,
       },
     ],
   };

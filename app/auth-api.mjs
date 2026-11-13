@@ -491,13 +491,33 @@ export async function createAuthApi({
   function revoke(id) {
     for (const [key, s] of sessions) if (s.userId === id || s.demoUserId === id) sessions.delete(key);
   }
-  function limit(req) {
+  // Por endereço: 25 tentativas em 15 min. No login só a senha errada conta: quem entra certo não gasta a
+  // cota de quem divide a mesma rede (Wi-Fi do condomínio, operadora de celular).
+  function limit(req, {onlyFailures = false} = {}) {
     const key = clientAddress(req, config),
       t = now();
     for (const [k, v] of attempts) if (v.until <= t) attempts.delete(k);
     const a = attempts.get(key) || {count: 0, until: t + 15 * 60000};
-    if (++a.count > 25) fail(429, 'Muitas tentativas. Aguarde 15 minutos.');
+    if (onlyFailures ? a.count >= 25 : ++a.count > 25) fail(429, 'Muitas tentativas. Aguarde 15 minutos.');
     attempts.set(key, a);
+    return a;
+  }
+  // Por conta: 10 senhas erradas em 15 min travam o login daquela conta, venham de onde vierem (ataque
+  // espalhado por vários endereços). Vale também para e-mail sem conta, para não revelar quem tem conta.
+  // A recuperação de senha segue aberta e, ao trocar a senha, destrava a conta.
+  const accountFailures = new Map();
+  function accountLimit(email) {
+    const t = now();
+    for (const [k, v] of accountFailures) if (v.until <= t) accountFailures.delete(k);
+    if ((accountFailures.get(email)?.count || 0) >= 10)
+      fail(429, 'Muitas tentativas nesta conta. Aguarde 15 minutos ou use "Esqueci minha senha".');
+  }
+  function loginFailed(tries, email) {
+    tries.count++;
+    if (accountFailures.size >= 10000 && !accountFailures.has(email)) return;
+    const a = accountFailures.get(email) || {count: 0, until: now() + 15 * 60000};
+    a.count++;
+    accountFailures.set(email, a);
   }
   // Avisos anônimos (placa, Telegram, Asaas): teto por endereço e por minuto, antes de qualquer trabalho.
   const webhookHits = new Map();
@@ -754,10 +774,11 @@ export async function createAuthApi({
         delete target.reset;
         await persist(next);
         revoke(person.id);
+        accountFailures.delete(person.email);
         return send(res, 200, {ok: true});
       }
       if (method === 'POST' && ['/api/setup', '/api/login', '/api/activate'].includes(route)) {
-        limit(req);
+        const tries = limit(req, {onlyFailures: route === '/api/login'});
         const input = await body(req);
         let user;
         if (route === '/api/setup') {
@@ -787,14 +808,20 @@ export async function createAuthApi({
           const email = String(input.email || '')
             .trim()
             .toLowerCase();
+          accountLimit(email);
           user = db.users.find((u) => !u.demoIdentity && u.email === email);
           const matches = await passwordMatches(input.password, user || dummy);
-          if (!matches || !user) fail(401, 'E-mail, senha ou vínculo inválido.');
+          if (!matches || !user) {
+            loginFailed(tries, email);
+            fail(401, 'E-mail, senha ou vínculo inválido.');
+          }
           if (mfaAvailable && user.mfa) {
             const next = structuredClone(db),
               target = next.users.find((x) => x.id === user.id);
-            if (!checkFactor(target, input, vault, now()))
+            if (!checkFactor(target, input, vault, now())) {
+              loginFailed(tries, email);
               fail(401, 'Informe o segundo fator ou um código de recuperação válido.');
+            }
             await persist(next);
             user = target;
           }
@@ -802,6 +829,7 @@ export async function createAuthApi({
             availableContexts(db, user, now()).find((c) => c.tenant === input.tenant) ||
             availableContexts(db, user, now())[0];
           if (!context) fail(401, 'E-mail, senha ou vínculo inválido.');
+          accountFailures.delete(email);
           user = effectiveBinding(db, user, context.tenant);
         } else {
           const token = String(input.code || ''),
