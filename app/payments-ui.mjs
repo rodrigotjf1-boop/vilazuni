@@ -10,6 +10,7 @@ const names = {
   cancelled: 'Cancelada',
   failed: 'Não emitida',
   review: 'Conferência necessária',
+  refunded: 'Estornada',
 };
 const end = (label) =>
   `<p class="auth-error" role="alert"></p><button type="submit" class="glass-primary">${label}</button></form>`;
@@ -30,7 +31,7 @@ export function createPaymentsUI({getUser, getState, panel, refresh, toast, open
       const dock = panel(
         manage ? 'Recebimentos do condomínio.' : 'Suas cobranças.',
         'COBRANÇA INTEGRADA · ASAAS',
-        `${manage ? `<div class="floating-note"><h3>${esc(data.connection?.name || 'Conecte a conta do condomínio')}</h3><p>${data.connection ? `${esc(data.connection.documentMasked)} · ${data.connection.environment === 'production' ? 'Produção' : 'Homologação'} · ${esc(data.connection.status)}` : 'Uma conta própria Asaas para este piloto.'}</p><p class="micro-note">Pix e boleto ficam disponíveis após conectar a conta aprovada e configurar o retorno de pagamentos. O saldo entra no Asaas; a transferência para outro banco é feita no painel Asaas.</p></div><div class="decision-buttons">${u.role === 'sindico' && can(u, 'financeClose') ? '<button id="payments-settings" class="glass-secondary">Conectar conta Asaas</button>' : ''}${can(u, 'financeClose') ? '<button id="payments-payers" class="glass-secondary">Pagadores e vínculos</button>' : ''}${can(u, 'finance') ? '<button id="payments-create" class="glass-primary">Preparar Pix ou boleto</button>' : ''}<button id="payments-finance" class="glass-secondary">Abrir financeiro</button></div>` : ''}<button id="payments-refresh" class="glass-secondary">Atualizar recebimentos</button><div class="float-feed">${data.charges.map((q) => `<article class="floating-note"><span class="float-pill">${esc(names[q.status] || q.status)} · ${q.environment === 'sandbox' ? 'SIMULAÇÃO' : 'Produção'}</span><h3>${esc(q.description)}</h3><p>${money(q.amountCents)} · ${esc(q.billingType)} · ${esc(q.dueOn)}</p>${q.environment === 'sandbox' ? '<p class="micro-note">Teste de homologação, sem baixa no caixa real.</p>' : ''}${q.feeCents != null ? `<p>Líquido ${money(q.netCents)} · tarifa ${money(q.feeCents)}</p>` : ''}${q.held ? '<p>Novos avisos suspensos; a gestão deve conferir a cobrança no provedor.</p>' : ''}${q.error ? `<p role="status">${esc(q.error)}</p>` : ''}<div class="decision-buttons">${q.invoiceUrl ? `<a class="glass-primary" href="${esc(q.invoiceUrl)}" target="_blank" rel="noopener noreferrer">Abrir cobrança no Asaas</a>` : ''}${q.bankSlipUrl ? `<a class="glass-secondary" href="${esc(q.bankSlipUrl)}" target="_blank" rel="noopener noreferrer">Abrir boleto</a>` : ''}${can(u, 'finance') && !['failed', 'cancelled'].includes(q.status) ? `<button class="glass-secondary" data-payment-check="${q.id}">Consultar no Asaas</button>` : ''}${can(u, 'finance') && ['open', 'overdue'].includes(q.status) ? `<button class="glass-secondary" data-payment-cancel="${q.id}">Cancelar cobrança</button>` : ''}${can(u, 'finance') && ['uncertain', 'creating'].includes(q.status) ? `<button class="glass-secondary" data-payment-absent="${q.id}">Confirmar que não existe no Asaas</button>` : ''}</div></article>`).join('') || '<p class="quiet-state">Nenhuma cobrança integrada disponível.</p>'}</div><p class="micro-note">Somente o pagador indicado e a gestão financeira consultam a cobrança. Tarifas seguem a conta Asaas. Em caso de estorno ou divergência, a gestão confere o retorno antes de ajustar o histórico.</p><p class="auth-error" role="alert"></p>`,
+        `${manage ? `<div class="floating-note"><h3>${esc(data.connection?.name || 'Conecte a conta do condomínio')}</h3><p>${data.connection ? `${esc(data.connection.documentMasked)} · ${data.connection.environment === 'production' ? 'Produção' : 'Homologação'} · ${esc(data.connection.status)}` : 'Uma conta própria Asaas para este piloto.'}</p><p class="micro-note">Pix e boleto ficam disponíveis após conectar a conta aprovada e configurar o retorno de pagamentos. O saldo entra no Asaas; a transferência para outro banco é feita no painel Asaas.</p></div><div class="decision-buttons">${u.role === 'sindico' && can(u, 'financeClose') ? '<button id="payments-settings" class="glass-secondary">Conectar conta Asaas</button>' : ''}${can(u, 'financeClose') ? '<button id="payments-payers" class="glass-secondary">Pagadores e vínculos</button>' : ''}${can(u, 'finance') ? '<button id="payments-create" class="glass-primary">Preparar Pix ou boleto</button>' : ''}<button id="payments-finance" class="glass-secondary">Abrir financeiro</button></div>` : ''}<button id="payments-refresh" class="glass-secondary">Atualizar recebimentos</button><div class="float-feed">${data.charges.map((q) => `<article class="floating-note"><span class="float-pill">${esc(names[q.status] || q.status)} · ${q.environment === 'sandbox' ? 'SIMULAÇÃO' : 'Produção'}</span><h3>${esc(q.description)}</h3><p>${money(q.amountCents)} · ${esc(q.billingType)} · ${esc(q.dueOn)}</p>${q.environment === 'sandbox' ? '<p class="micro-note">Teste de homologação, sem baixa no caixa real.</p>' : ''}${q.feeCents != null ? `<p>Líquido ${money(q.netCents)} · tarifa ${money(q.feeCents)}</p>` : ''}${q.held ? '<p>Novos avisos suspensos; a gestão deve conferir a cobrança no provedor.</p>' : ''}${q.error ? `<p role="status">${esc(q.error)}</p>` : ''}<div class="decision-buttons">${q.invoiceUrl ? `<a class="glass-primary" href="${esc(q.invoiceUrl)}" target="_blank" rel="noopener noreferrer">Abrir cobrança no Asaas</a>` : ''}${q.bankSlipUrl ? `<a class="glass-secondary" href="${esc(q.bankSlipUrl)}" target="_blank" rel="noopener noreferrer">Abrir boleto</a>` : ''}${can(u, 'finance') && !['failed', 'cancelled'].includes(q.status) ? `<button class="glass-secondary" data-payment-check="${q.id}">Consultar no Asaas</button>` : ''}${can(u, 'finance') && ['open', 'overdue'].includes(q.status) ? `<button class="glass-secondary" data-payment-cancel="${q.id}">Cancelar cobrança</button>` : ''}${can(u, 'finance') && ['uncertain', 'creating'].includes(q.status) ? `<button class="glass-secondary" data-payment-absent="${q.id}">Confirmar que não existe no Asaas</button>` : ''}${can(u, 'finance') && q.status === 'review' && q.received && q.environment !== 'sandbox' ? `<button class="glass-secondary" data-payment-refund="${q.id}">Lançar estorno conferido</button>` : ''}${q.refundedCents ? `<p class="micro-note">Estornado pelo Asaas: ${money(q.refundedCents)}. A tarifa não volta.</p>` : ''}</div></article>`).join('') || '<p class="quiet-state">Nenhuma cobrança integrada disponível.</p>'}</div><p class="micro-note">Somente o pagador indicado e a gestão financeira consultam a cobrança. Tarifas seguem a conta Asaas. Em caso de estorno ou divergência, a gestão confere o retorno antes de ajustar o histórico.</p><p class="auth-error" role="alert"></p>`,
         {wide: true},
       );
       dock.querySelector('#payments-settings')?.addEventListener('click', settings);
@@ -92,6 +93,32 @@ export function createPaymentsUI({getUser, getState, panel, refresh, toast, open
             onSubmit(d.querySelector('form'), async () => {
               if (!current(token)) return;
               await api('/payments/asaas/absent', {id: q.id, version: q.version, confirm: true});
+              if (current(token)) {
+                await refresh();
+                await home();
+              }
+            });
+          }),
+      );
+      dock.querySelectorAll('[data-payment-refund]').forEach(
+        (b) =>
+          (b.onclick = () => {
+            const q = data.charges.find((q) => q.id === b.dataset.paymentRefund),
+              token = ++serial,
+              d = panel(
+                'Lançar o estorno do Asaas?',
+                'ESTORNO OU CONTESTAÇÃO',
+                `<form class="float-wizard"><p>${esc(q.description)} · ${money(q.amountCents)}</p><p>O Vilazuni consulta o Asaas e lança só o valor que ele já devolveu (estorno concluído ou contestação perdida). Esse valor sai do caixa e volta a ser devido na conta a receber. A tarifa do Asaas não volta.</p><label>Registro da conferência<textarea name="reason" required minlength="3" maxlength="500"></textarea></label><label class="inline-choice"><input name="confirmed" type="checkbox" required>Conferi o estorno no painel do Asaas</label>${end('Lançar estorno conferido')}`,
+                {back: home},
+              );
+            onSubmit(d.querySelector('form'), async (data) => {
+              if (!current(token)) return;
+              await api('/payments/asaas/refund', {
+                id: q.id,
+                version: q.version,
+                confirm: true,
+                reason: data.reason,
+              });
               if (current(token)) {
                 await refresh();
                 await home();

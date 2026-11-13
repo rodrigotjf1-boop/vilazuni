@@ -2,6 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import {randomUUID} from 'node:crypto';
 import {fixture} from './helpers.mjs';
 import {credentialVault} from '../security.mjs';
 import {createAsaasClient} from '../asaas-client.mjs';
@@ -515,5 +516,148 @@ test('Asaas: evento que não pode ser tratado não trava a baixa dos outros', as
     assert.equal(events.find((e) => e.id === 'sem-conexao').status, 'pending', 'fica de fora, sem travar');
   } finally {
     await f.close();
+  }
+});
+
+// Recebe a cobrança como o Asaas faria (webhook + rotina): R$ 10,00 brutos, R$ 8,01 líquidos.
+async function receive(x) {
+  assert.equal((await x.req('/payments/asaas/issue', x.issue)).status, 200);
+  Object.assign(x.remote.payments[0], {status: 'RECEIVED', creditDate: '2026-10-18'});
+  assert.equal((await x.webhook('evt_recebido_' + Date.now(), {id: x.remote.payments[0].id})).status, 200);
+  await x.f.api.paymentTick();
+  let finance = (await x.req('/state')).body.state.finance;
+  assert.equal(finance.receivables[0].status, 'received');
+  assert.equal(finance.totalCents, 801);
+  // Outro recebimento na conta (R$ 20,00): o Asaas só estorna com saldo, e o livro-caixa também não fica negativo.
+  const account = finance.accounts[0],
+    deposit = await x.req('/finance/entries/create', {
+      operationId: randomUUID(),
+      kind: 'income',
+      date: '2026-10-18',
+      description: 'Outro recebimento sintético',
+      category: 'Receita teste',
+      reference: randomUUID(),
+      reason: 'Registro conferido',
+      amountCents: 2000,
+      accountId: account.id,
+      accountVersion: account.version,
+      fundId: x.fund.id,
+    });
+  assert.equal(deposit.status, 200, JSON.stringify(deposit.body));
+  finance = (await x.req('/state')).body.state.finance;
+  assert.equal(finance.totalCents, 2801);
+}
+const refundOf = (x, body) => {
+  const q = (async () => (await x.req('/payments')).body.charges[0])();
+  return q.then((c) =>
+    x.req('/payments/asaas/refund', {id: c.id, version: c.version, confirm: true, ...body}),
+  );
+};
+
+// Achado M1 da auditoria: pela documentação oficial, o id do evento do webhook tem "&" — e era recusado (400).
+test('Asaas: aviso com id no formato da documentação (com "&") é aceito', async () => {
+  const x = await setup();
+  try {
+    assert.equal((await x.req('/payments/asaas/issue', x.issue)).status, 200);
+    const r = await x.webhook('evt_05b708f961d739ea7eba7e4db318f621&368604920', {
+      id: x.remote.payments[0].id,
+    });
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+  } finally {
+    await x.f.close();
+  }
+});
+
+// Achado A3 da auditoria: estorno ou contestação do Asaas deixava a receita no caixa e a conta "recebida".
+test('Asaas: estorno total conferido tira o valor do caixa, reabre a conta e mantém a tarifa', async () => {
+  const x = await setup();
+  try {
+    await receive(x);
+    Object.assign(x.remote.payments[0], {status: 'REFUNDED', refunds: [{status: 'DONE', value: 10}]});
+    await x.webhook('evt_estorno', {id: x.remote.payments[0].id});
+    await x.f.api.paymentTick();
+    let q = (await x.req('/payments')).body.charges[0];
+    assert.equal(q.status, 'review');
+    assert.equal(
+      (await x.req('/payments/asaas/refund', {id: q.id, version: q.version, reason: 'Sem marcar'})).status,
+      400,
+      'sem a confirmação marcada',
+    );
+    const done = await refundOf(x, {reason: 'Estorno conferido no painel do Asaas'});
+    assert.equal(done.status, 200, JSON.stringify(done.body));
+    q = (await x.req('/payments')).body.charges[0];
+    assert.equal(q.status, 'refunded');
+    assert.equal(q.refundedCents, 1000);
+    let finance = (await x.req('/state')).body.state.finance;
+    assert.equal(finance.receivables[0].status, 'open', 'a dívida volta');
+    assert.equal(finance.receivables[0].remainingCents, 1000);
+    assert.equal(finance.totalCents, 1801, 'sai o bruto (R$ 10,00); a tarifa de R$ 1,99 não volta');
+    // Consultar de novo não desfaz nem lança outra vez.
+    assert.equal((await x.req('/payments/asaas/reconcile', {id: q.id, version: q.version})).status, 200);
+    assert.equal((await x.req('/payments')).body.charges[0].status, 'refunded');
+    assert.equal((await refundOf(x, {reason: 'De novo'})).status, 409);
+    finance = (await x.req('/state')).body.state.finance;
+    assert.equal(finance.totalCents, 1801);
+    // A conta reaberta pode ser cobrada de novo.
+    const preview = await x.req('/payments/preview', {
+      receivableId: finance.receivables[0].id,
+      receivableVersion: finance.receivables[0].version,
+      billingType: 'PIX',
+    });
+    assert.equal(preview.status, 200, JSON.stringify(preview.body));
+  } finally {
+    await x.f.close();
+  }
+});
+
+test('Asaas: estorno pendente não é lançado; parciais concluídos reabrem só o valor devolvido', async () => {
+  const x = await setup();
+  try {
+    await receive(x);
+    // Pedido de estorno ainda em andamento: nada a lançar.
+    Object.assign(x.remote.payments[0], {
+      status: 'REFUND_IN_PROGRESS',
+      refunds: [{status: 'PENDING', value: 4}],
+    });
+    await x.webhook('evt_estorno_andamento', {id: x.remote.payments[0].id});
+    await x.f.api.paymentTick();
+    assert.equal((await x.req('/payments')).body.charges[0].status, 'review');
+    let r = await refundOf(x, {reason: 'Antes da conclusão'});
+    assert.equal(r.status, 409);
+    assert.match(r.body.error, /ainda não confirma/);
+    // 1º parcial concluído (R$ 4,00), com a cobrança ainda "RECEIVED" no Asaas.
+    Object.assign(x.remote.payments[0], {status: 'RECEIVED', refunds: [{status: 'DONE', value: 4}]});
+    await x.webhook('evt_parcial_1', {id: x.remote.payments[0].id});
+    x.f.advance(16 * 60000);
+    await x.f.api.paymentTick();
+    assert.equal((await x.req('/payments')).body.charges[0].status, 'review');
+    r = await refundOf(x, {reason: 'Primeiro estorno parcial conferido'});
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+    const cookie = (await x.f.request('/login', {email: 'admin@example.test', password: x.f.password}))
+        .cookie,
+      req = (route, data) => x.f.request(route, data, cookie);
+    let finance = (await req('/state')).body.state.finance;
+    assert.equal(finance.receivables[0].status, 'partial');
+    assert.equal(finance.receivables[0].remainingCents, 400);
+    assert.equal(finance.totalCents, 2401);
+    // 2º parcial (R$ 6,00): completa o estorno.
+    x.remote.payments[0].refunds.push({status: 'DONE', value: 6}, {status: 'CANCELLED', value: 9});
+    await x.webhook('evt_parcial_2', {id: x.remote.payments[0].id});
+    await x.f.api.paymentTick();
+    const q = (await req('/payments')).body.charges[0];
+    assert.equal(q.status, 'review');
+    r = await req('/payments/asaas/refund', {
+      id: q.id,
+      version: q.version,
+      confirm: true,
+      reason: 'Segundo estorno parcial conferido',
+    });
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+    finance = (await req('/state')).body.state.finance;
+    assert.equal(finance.receivables[0].status, 'open');
+    assert.equal(finance.receivables[0].remainingCents, 1000, 'o estorno cancelado não conta');
+    assert.equal(finance.totalCents, 1801);
+  } finally {
+    await x.f.close();
   }
 });
