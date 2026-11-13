@@ -387,7 +387,7 @@ export async function createAuthApi({
     providedStorage ||
     (databaseUrl ? await postgresStorage(databaseUrl, initial) : await fileStorage(directory, initial));
   const storage = directory
-    ? privateFileStorage(baseStorage, path.join(directory, 'private-files'))
+    ? privateFileStorage(baseStorage, path.join(directory, 'private-files'), {now})
     : baseStorage;
   let db = await storage.load();
   db.state.residents ??= [];
