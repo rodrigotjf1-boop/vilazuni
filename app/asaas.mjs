@@ -481,6 +481,33 @@ export function failAsaasCreation(s, u, id, error) {
   q.version++;
   return {id: q.id, status: q.status};
 }
+// Saída da emissão incerta (tempo esgotado ou erro do provedor no meio da criação): a gestão confirma, depois
+// de uma espera mínima, e o Asaas não tem cobrança com a referência desta emissão. Ela passa a "falhou" e a
+// conta a receber pode ser cobrada de novo. A consulta ao provedor é feita pelo serviço, antes desta gravação.
+export const ABSENT_WAIT_MS = 30 * 60000;
+export function absentAsaasCharge(s, u, id, version, now = Date.now()) {
+  if (!can(u, 'finance')) fail('Operação financeira necessária.');
+  const q = asaasOperation(s, u, id);
+  if (q.version !== version) fail('A cobrança mudou. Atualize.', 409);
+  if (!['uncertain', 'creating'].includes(q.status) || q.paymentId)
+    fail('Somente emissão sem confirmação do provedor pode ser encerrada assim.', 409);
+  if (Date.parse(q.createdAt) + ABSENT_WAIT_MS > now)
+    fail(
+      'Aguarde 30 minutos desde a tentativa de emissão antes de confirmar que ela não existe no Asaas.',
+      409,
+    );
+  return q;
+}
+export function confirmAsaasAbsent(s, u, id, version, now = Date.now()) {
+  const q = absentAsaasCharge(s, u, id, version, now);
+  q.status = 'failed';
+  q.error =
+    'Confirmado que a cobrança não existe no Asaas (consulta pela referência da emissão). A conta pode ser cobrada de novo.';
+  q.version++;
+  q.updatedAt = new Date(now).toISOString();
+  audit(s, u, 'Emissão Asaas sem confirmação encerrada: inexistente no provedor', q.id, now);
+  return structuredClone(q);
+}
 // Confere o token do retorno sem alterar nada: a API chama antes de copiar a base (pedido forjado sai barato).
 export function authenticateAsaasWebhook(s, connectionId, token, vault) {
   const c = (s.asaasConnections || []).find((c) => c.id === connectionId);

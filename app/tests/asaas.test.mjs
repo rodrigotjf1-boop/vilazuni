@@ -13,6 +13,7 @@ function provider() {
     customers = [],
     calls = [];
   let timeout = false,
+    lost = false,
     sequence = 0,
     webhook;
   const factory = ({environment}) => ({
@@ -40,6 +41,11 @@ function provider() {
     },
     async createPayment(data) {
       calls.push({action: 'issue', environment, data});
+      if (lost) {
+        // Erro do provedor antes de criar: o Vilazuni não sabe se a cobrança existe ("incerta").
+        lost = false;
+        throw Object.assign(Error('Falha sintética antes de criar'), {uncertain: true});
+      }
       const p = {
         ...data,
         id: 'pay_synthetic_' + ++sequence,
@@ -79,6 +85,9 @@ function provider() {
     },
     setTimeout() {
       timeout = true;
+    },
+    setLost() {
+      lost = true;
     },
   };
 }
@@ -393,4 +402,118 @@ test('Asaas: conciliação é atômica quando a destinação financeira diverge'
     }),
   );
   assert.deepEqual(s, before);
+});
+
+// Achado A2 da auditoria: erro do provedor no meio da criação deixava a cobrança "incerta" para sempre — sem
+// baixa, cancelamento nem nova emissão. Agora há uma saída conferida.
+test('Asaas: emissão incerta que não existe no provedor sai com conferência, espera mínima e auditoria', async () => {
+  const x = await setup();
+  const {f, remote, issue} = x;
+  try {
+    remote.setLost();
+    assert.equal((await x.req('/payments/asaas/issue', issue)).status, 502);
+    let q = (await x.req('/payments')).body.charges[0];
+    assert.equal(q.status, 'uncertain');
+    assert.equal(remote.payments.length, 0);
+    let r = await x.req('/payments/asaas/absent', {id: q.id, version: q.version, confirm: true});
+    assert.equal(r.status, 409);
+    assert.match(r.body.error, /30 minutos/);
+    f.advance(31 * 60000);
+    // A sessão expira por inatividade em 30 min: entra de novo.
+    const cookie = (await f.request('/login', {email: 'admin@example.test', password: f.password})).cookie,
+      req = (route, data) => f.request(route, data, cookie);
+    assert.equal((await req('/payments/asaas/absent', {id: q.id, version: q.version})).status, 400);
+    r = await req('/payments/asaas/absent', {id: q.id, version: q.version, confirm: true});
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+    q = (await req('/payments')).body.charges[0];
+    assert.equal(q.status, 'failed');
+    // A conta a receber pode ser cobrada de novo, com um POST novo só.
+    const receivable = (await req('/state')).body.state.finance.receivables[0],
+      preview = await req('/payments/preview', {
+        receivableId: receivable.id,
+        receivableVersion: receivable.version,
+        billingType: 'PIX',
+      });
+    assert.equal(preview.status, 200, JSON.stringify(preview.body));
+    assert.equal(
+      (await req('/payments/asaas/issue', {...preview.body, confirm: true, confirmProduction: true})).status,
+      200,
+    );
+    assert.equal(remote.payments.length, 1);
+    const raw = await fs.readFile(path.join(f.directory, 'store.json'), 'utf8');
+    assert.ok(raw.includes('Emissão Asaas sem confirmação encerrada: inexistente no provedor'));
+  } finally {
+    await f.close();
+  }
+});
+
+test('Asaas: emissão incerta que EXISTE no provedor não pode ser dada como inexistente', async () => {
+  const x = await setup();
+  const {f, remote, issue} = x;
+  try {
+    remote.setTimeout();
+    assert.equal((await x.req('/payments/asaas/issue', issue)).status, 502);
+    const q = (await x.req('/payments')).body.charges[0];
+    assert.equal(q.status, 'uncertain');
+    f.advance(31 * 60000);
+    const cookie = (await f.request('/login', {email: 'admin@example.test', password: f.password})).cookie,
+      r = await f.request('/payments/asaas/absent', {id: q.id, version: q.version, confirm: true}, cookie);
+    assert.equal(r.status, 409);
+    assert.match(r.body.error, /Consultar no Asaas/);
+    assert.equal((await f.request('/payments', undefined, cookie)).body.charges[0].status, 'uncertain');
+  } finally {
+    await f.close();
+  }
+});
+
+// Achado A1 da auditoria: a rotina pegava sempre o PRIMEIRO evento pendente; se ele não podia ser tratado
+// (conexão que não existe, condomínio encerrado, credencial que não abre), voltava sem marcá-lo e pegava o
+// mesmo para sempre — e nenhum condomínio recebia baixa.
+test('Asaas: evento que não pode ser tratado não trava a baixa dos outros', async () => {
+  const x = await setup();
+  const {f, remote, issue} = x;
+  try {
+    assert.equal((await x.req('/payments/asaas/issue', issue)).status, 200);
+    // Na frente da fila: evento de conexão que não existe mais e evento cuja credencial não abre (a cifra
+    // amarra o condomínio: a cópia da conexão em nome de outro condomínio não decifra).
+    const file = path.join(f.directory, 'store.json'),
+      store = JSON.parse(await fs.readFile(file, 'utf8')),
+      real = store.state.asaasConnections[0],
+      blocked = (id, tenant, connectionId) => ({
+        id,
+        tenant,
+        connectionId,
+        eventId: 'evt_' + id,
+        event: 'PAYMENT_RECEIVED',
+        paymentId: 'pay_inexistente',
+        status: 'pending',
+        attempts: 0,
+        receivedAt: new Date(f.now).toISOString(),
+      });
+    store.state.asaasConnections.push({...real, id: 'conexao-sem-chave', tenant: 'outro'});
+    store.state.asaasWebhookEvents = [
+      blocked('sem-conexao', 'outro', 'conexao-removida'),
+      blocked('sem-chave', 'outro', 'conexao-sem-chave'),
+      ...(store.state.asaasWebhookEvents || []),
+    ];
+    await fs.writeFile(file, JSON.stringify(store));
+    await f.restart();
+    const cookie = (await f.request('/login', {email: 'admin@example.test', password: f.password})).cookie;
+    remote.payments[0].status = 'RECEIVED';
+    remote.payments[0].creditDate = '2026-10-18';
+    assert.equal((await x.webhook('evt_recebido', {id: remote.payments[0].id})).status, 200);
+    await f.api.paymentTick();
+    await f.api.paymentTick();
+    const finance = (await f.request('/state', undefined, cookie)).body.state.finance;
+    assert.equal(finance.receivables[0].status, 'received', 'o evento verdadeiro foi tratado');
+    const events = JSON.parse(await fs.readFile(file, 'utf8')).state.asaasWebhookEvents;
+    assert.equal(
+      events.find((e) => e.id === 'sem-chave').attempts,
+      1,
+      'saiu da frente, nova tentativa depois',
+    );
+    assert.equal(events.find((e) => e.id === 'sem-conexao').status, 'pending', 'fica de fora, sem travar');
+  } finally {
+    await f.close();
+  }
 });
