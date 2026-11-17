@@ -1,6 +1,29 @@
 import {expect, test} from '@playwright/test';
 import {emailDe, entrar, senhaDe} from './apoio';
 
+test('a entrada tem o cenário do condomínio ao fundo, só decorativo', async ({page}) => {
+  await page.goto('/entrar');
+  const cena = page.locator('canvas[data-cena]');
+  // desenhado (3D) ou, sem WebGL, o fundo parado — nunca "carregando" para sempre
+  await expect(cena).toHaveAttribute('data-cena', /^(3d|estatica)$/, {timeout: 15_000});
+  await expect(cena).toHaveAttribute('tabindex', '-1');
+  await expect(page.locator('[aria-hidden="true"]').filter({has: cena})).toHaveCount(1);
+  // o formulário continua por cima e recebe o clique
+  await page.getByLabel('E-mail').click();
+  await expect(page.getByLabel('E-mail')).toBeFocused();
+});
+
+test('com "reduzir movimento", a cena fica numa tomada só e a entrada funciona', async ({
+  browser,
+  baseURL,
+}) => {
+  const ctx = await browser.newContext({baseURL, locale: 'pt-BR', reducedMotion: 'reduce'});
+  const page = await ctx.newPage();
+  await entrar(page, 'duas-casas');
+  await expect(page.getByRole('heading', {name: 'Minha casa', exact: true})).toBeVisible();
+  await ctx.close();
+});
+
 test('senha errada mostra o motivo e não entra', async ({page}) => {
   await entrar(page, 'duas-casas', 'senha-errada-123', {esperar: false});
   await expect(page.getByRole('alert')).toHaveText('E-mail ou senha incorretos.');
