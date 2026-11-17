@@ -36,7 +36,14 @@ const finishSchema = z
   })
   .strict();
 
-type Link = {id: string; max_uses: number; uses: number; expires_at: Date; revoked_at: Date | null; name: string};
+type Link = {
+  id: string;
+  max_uses: number;
+  uses: number;
+  expires_at: Date;
+  revoked_at: Date | null;
+  name: string;
+};
 
 /**
  * Cadastro pelo link do condomínio (ADR-0011): a pessoa confirma o e-mail com um código, cria a conta e pede as
@@ -56,7 +63,9 @@ export class SignupController {
 
   private async locate(token: string): Promise<{id: string; condominiumId: string}> {
     if (typeof token !== 'string' || token.length < 20 || token.length > 200) throw notFound();
-    const r = await this.pool.query('select id, condominium_id from signup_link_by_token($1)', [sha256(token)]);
+    const r = await this.pool.query('select id, condominium_id from signup_link_by_token($1)', [
+      sha256(token),
+    ]);
     if (!r.rows[0]) throw notFound();
     return {id: r.rows[0].id, condominiumId: r.rows[0].condominium_id};
   }
@@ -72,7 +81,8 @@ export class SignupController {
   }
 
   private linkState(l: Link): ApiError | null {
-    if (l.revoked_at) return gone('link_revogado', 'Este link de cadastro foi revogado. Peça um novo à gestão.');
+    if (l.revoked_at)
+      return gone('link_revogado', 'Este link de cadastro foi revogado. Peça um novo à gestão.');
     if (l.expires_at.getTime() <= this.clock.now().getTime())
       return gone('link_vencido', 'Este link de cadastro venceu. Peça um novo à gestão.');
     if (l.uses >= l.max_uses)
@@ -122,7 +132,11 @@ export class SignupController {
     this.checkOrigin(req);
     const input = parse(codeSchema, body);
     if (!this.sender)
-      throw new ApiError(503, 'envio_indisponivel', 'O envio de e-mail ainda não está configurado. Avise a gestão.');
+      throw new ApiError(
+        503,
+        'envio_indisponivel',
+        'O envio de e-mail ainda não está configurado. Avise a gestão.',
+      );
     const {id, condominiumId} = await this.locate(token);
     if (!this.addressAllowed(clientAddress(req, this.config)))
       throw new ApiError(429, 'muitos_codigos', 'Muitos pedidos de código. Aguarde uma hora.');
@@ -136,7 +150,11 @@ export class SignupController {
         [input.email, new Date(now.getTime() - HOUR)],
       );
       if (recent.rows[0].n >= CODES_PER_HOUR)
-        throw new ApiError(429, 'muitos_codigos', 'Muitos pedidos de código para este e-mail. Aguarde uma hora.');
+        throw new ApiError(
+          429,
+          'muitos_codigos',
+          'Muitos pedidos de código para este e-mail. Aguarde uma hora.',
+        );
       const verificationId = uuidv7(now.getTime());
       const code = String(randomInt(0, 1_000_000)).padStart(6, '0');
       const expiresAt = new Date(now.getTime() + CODE_MINUTES * 60_000);
@@ -175,10 +193,10 @@ export class SignupController {
       const state = this.linkState(link);
       if (state) return {error: state};
       const v = (
-        await client.query(`select * from email_verification where id = $1 and signup_link_id = $2 for update`, [
-          input.verificationId,
-          id,
-        ])
+        await client.query(
+          `select * from email_verification where id = $1 and signup_link_id = $2 for update`,
+          [input.verificationId, id],
+        )
       ).rows[0];
       if (!v) return {error: notFound()};
       const now = this.clock.now();
@@ -191,15 +209,18 @@ export class SignupController {
         await client.query(`update email_verification set attempts = attempts + 1 where id = $1`, [v.id]);
         return {error: badRequest(code, message)};
       };
-      if (!sameHash(v.code_hash, sha256(`${v.id}:${input.code}`))) return wrong('codigo_invalido', 'Código inválido.');
+      if (!sameHash(v.code_hash, sha256(`${v.id}:${input.code}`)))
+        return wrong('codigo_invalido', 'Código inválido.');
       const ids = [...new Set(input.unitIds)];
       const units = await client.query(
         `select id, label from unit where id = any($1::uuid[]) and status = 'active' order by label`,
         [ids],
       );
-      if (units.rowCount !== ids.length) return {error: badRequest('casa_invalida', 'Escolha casas deste condomínio.')};
+      if (units.rowCount !== ids.length)
+        return {error: badRequest('casa_invalida', 'Escolha casas deste condomínio.')};
       const personId = await this.personFor(client, v.email, input, now);
-      if (personId === null) return wrong('senha_da_conta_nao_confere', 'Este e-mail já tem conta: use a senha dela.');
+      if (personId === null)
+        return wrong('senha_da_conta_nao_confere', 'Este e-mail já tem conta: use a senha dela.');
       const requested: string[] = [];
       const alreadyLinked: string[] = [];
       for (const u of units.rows) {
@@ -247,7 +268,8 @@ export class SignupController {
       [email],
     );
     const row = existing.rows[0];
-    if (row) return row.secret && (await verifyPassword(row.secret, input.password)) ? (row.id as string) : null;
+    if (row)
+      return row.secret && (await verifyPassword(row.secret, input.password)) ? (row.id as string) : null;
     const personId = uuidv7(now.getTime());
     try {
       await client.query(`insert into person (id, display_name, preferred_language) values ($1, $2, $3)`, [
@@ -266,7 +288,10 @@ export class SignupController {
     } catch (error) {
       // outro cadastro do MESMO e-mail terminou no meio deste: nada fica gravado e a pessoa tenta de novo
       if ((error as {code?: string}).code === '23505')
-        throw conflict('conta_criada_agora', 'Este e-mail acabou de ganhar conta. Tente de novo com a senha dela.');
+        throw conflict(
+          'conta_criada_agora',
+          'Este e-mail acabou de ganhar conta. Tente de novo com a senha dela.',
+        );
       throw error;
     }
     return personId;

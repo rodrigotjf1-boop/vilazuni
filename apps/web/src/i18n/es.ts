@@ -76,7 +76,8 @@ const es: Messages = {
     nome: 'Su nombre',
     nomeDica: 'Si el correo ya tiene cuenta, su nombre sigue igual.',
     senha: 'Contraseña',
-    senhaDica: 'Cuenta nueva: cree una contraseña de al menos 12 caracteres. Ya tiene cuenta: use su contraseña.',
+    senhaDica:
+      'Cuenta nueva: cree una contraseña de al menos 12 caracteres. Ya tiene cuenta: use su contraseña.',
     confirmar: 'Repita la contraseña',
     naoConfere: 'Las contraseñas no coinciden.',
     casas: 'Sus casas',
@@ -246,7 +247,8 @@ const es: Messages = {
       limite: 'Límite de registros',
       gerar: 'Generar enlace',
       gerando: 'Generando…',
-      gerado: 'Enlace generado. Cópielo ahora: no aparece de nuevo. Si lo pierde, genere otro y revoque este.',
+      gerado:
+        'Enlace generado. Cópielo ahora: no aparece de nuevo. Si lo pierde, genere otro y revoque este.',
       link: 'Enlace de registro',
       qr: 'Código QR del enlace de registro',
       ate: 'Vale hasta {{data}} · hasta {{n}} registros',

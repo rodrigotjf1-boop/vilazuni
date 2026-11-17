@@ -8,7 +8,11 @@ import {codigoDoEmail, entrar} from './apoio';
 const NOVA = 'nova.pelo.link@demo.vilazuni.test';
 const SENHA = 'Senha-do-cadastro-2026';
 
-const linhaDoLink = (page: Page) => page.getByRole('listitem').filter({hasText: /cadastros/}).first();
+const linhaDoLink = (page: Page) =>
+  page
+    .getByRole('listitem')
+    .filter({hasText: /cadastros/})
+    .first();
 
 test('link de cadastro: gerar, cadastrar com código, pedido pendente na gestão e revogar', async ({
   page,

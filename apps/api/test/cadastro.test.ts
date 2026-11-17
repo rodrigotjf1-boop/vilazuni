@@ -76,7 +76,9 @@ beforeAll(async () => {
   B = await seedCondominium(owner, 'Outro', 1);
   await owner.query(`update condominium set email_sender = $2 where id = $1`, [A.id, REMETENTE]);
   for (const who of ['sindico-cad', 'antigo', 'morador-sem-papel']) ids[who] = await seedPerson(owner, who);
-  await seedRole(owner, A.id, ids['sindico-cad']!, 'syndic', {mandate: {startsAt: T0 - 30 * DAY, endsAt: T0 + 300 * DAY}});
+  await seedRole(owner, A.id, ids['sindico-cad']!, 'syndic', {
+    mandate: {startsAt: T0 - 30 * DAY, endsAt: T0 + 300 * DAY},
+  });
   await seedOwnership(owner, A.id, casa(1), ids.antigo!);
   await seedOwnership(owner, A.id, casa(5), ids['morador-sem-papel']!);
   totpSindico = await seedTotp(owner, ids['sindico-cad']!);
@@ -106,11 +108,15 @@ describe('link de cadastro (gestão)', () => {
     expect(Buffer.compare(linha.rows[0].token_hash, sha256(link.token))).toBe(0);
     expect(linha.rows[0].max_uses).toBe(30);
     const lista = await sindico.get('/signup-links');
-    expect(lista.body.links.find((l: {id: string}) => l.id === link.id)).toMatchObject({status: 'active', uses: 0});
+    expect(lista.body.links.find((l: {id: string}) => l.id === link.id)).toMatchObject({
+      status: 'active',
+      uses: 0,
+    });
     expect(JSON.stringify(lista.body)).not.toContain(link.token);
-    const aud = await owner.query(`select 1 from audit_event where action = 'signup_link.create' and object_id = $1`, [
-      link.id,
-    ]);
+    const aud = await owner.query(
+      `select 1 from audit_event where action = 'signup_link.create' and object_id = $1`,
+      [link.id],
+    );
     expect(aud.rowCount).toBe(1);
   });
 
@@ -141,7 +147,13 @@ describe('cadastro pelo link (público)', () => {
     const p = await anon().get(`/signup/${token}`);
     expect(p.status).toBe(200);
     expect(p.body.condominiumName).toContain('Chandra');
-    expect(p.body.units.map((u: {label: string}) => u.label)).toEqual(['Casa 01', 'Casa 02', 'Casa 03', 'Casa 04', 'Casa 05']);
+    expect(p.body.units.map((u: {label: string}) => u.label)).toEqual([
+      'Casa 01',
+      'Casa 02',
+      'Casa 03',
+      'Casa 04',
+      'Casa 05',
+    ]);
     expect(p.body.emailAvailable).toBe(true);
     expect((await anon().get('/signup/token-que-nao-existe-de-jeito-nenhum')).status).toBe(404);
   });
@@ -155,16 +167,19 @@ describe('cadastro pelo link (público)', () => {
     ]);
     expect(fila.rows[0]).toMatchObject({status: 'pending', payload: {to: email, template: 'verification'}});
     const codigo = await codigoNaCaixa(email);
-    const depois = await owner.query(`select status, payload, provider_ref from outbox_event where idempotency_key = $1`, [
-      `verificacao:${r.body.verificationId}`,
-    ]);
+    const depois = await owner.query(
+      `select status, payload, provider_ref from outbox_event where idempotency_key = $1`,
+      [`verificacao:${r.body.verificationId}`],
+    );
     expect(depois.rows[0].status).toBe('sent');
     expect(JSON.stringify(depois.rows[0].payload)).not.toContain(codigo);
     expect(depois.rows[0].payload.to).not.toBe(email);
     const caixa = await owner.query(`select subject from demo_mailbox where to_address = $1`, [email]);
     expect(caixa.rows[0].subject).toContain(codigo);
     // o código não fica em claro na verificação
-    const v = await owner.query(`select code_hash from email_verification where id = $1`, [r.body.verificationId]);
+    const v = await owner.query(`select code_hash from email_verification where id = $1`, [
+      r.body.verificationId,
+    ]);
     expect(v.rows[0].code_hash.toString('utf8')).not.toContain(codigo);
     // o remetente é o do condomínio (o envio de verdade usa o mesmo campo)
     const enviado = await owner.query(
@@ -180,12 +195,22 @@ describe('cadastro pelo link (público)', () => {
     const certo = await codigoNaCaixa(email);
     const errado = certo === '000000' ? '111111' : '000000';
     for (let i = 1; i <= 5; i++) {
-      const f = await concluir(token, {verificationId: r.body.verificationId, code: errado, unitIds: [casa(2)]});
+      const f = await concluir(token, {
+        verificationId: r.body.verificationId,
+        code: errado,
+        unitIds: [casa(2)],
+      });
       expect(f.body.error).toBe('codigo_invalido');
     }
-    const v = await owner.query(`select attempts from email_verification where id = $1`, [r.body.verificationId]);
+    const v = await owner.query(`select attempts from email_verification where id = $1`, [
+      r.body.verificationId,
+    ]);
     expect(v.rows[0].attempts).toBe(5);
-    const bloqueado = await concluir(token, {verificationId: r.body.verificationId, code: certo, unitIds: [casa(2)]});
+    const bloqueado = await concluir(token, {
+      verificationId: r.body.verificationId,
+      code: certo,
+      unitIds: [casa(2)],
+    });
     expect(bloqueado).toMatchObject({status: 410, body: {error: 'codigo_bloqueado'}});
   });
 
@@ -215,7 +240,11 @@ describe('cadastro pelo link (público)', () => {
     expect((await new WebClient(api.url).login(email, SENHA_NOVA)).status).toBe(200);
     const link = await owner.query(`select uses from signup_link where token_hash = $1`, [sha256(token)]);
     expect(link.rows[0].uses).toBe(1);
-    const repetido = await concluir(token, {verificationId: r.body.verificationId, code: codigo, unitIds: [casa(4)]});
+    const repetido = await concluir(token, {
+      verificationId: r.body.verificationId,
+      code: codigo,
+      unitIds: [casa(4)],
+    });
     expect(repetido.body.error).toBe('codigo_usado');
     const aud = await owner.query(
       `select actor_person_id, detail from audit_event where action = 'signup.complete' and actor_person_id = $1`,
@@ -228,7 +257,11 @@ describe('cadastro pelo link (público)', () => {
     const email = emailOf('antigo');
     const r = await pedirCodigo(token, email);
     const codigo = await codigoNaCaixa(email);
-    const semSenha = await concluir(token, {verificationId: r.body.verificationId, code: codigo, unitIds: [casa(1)]});
+    const semSenha = await concluir(token, {
+      verificationId: r.body.verificationId,
+      code: codigo,
+      unitIds: [casa(1)],
+    });
     expect(semSenha.body.error).toBe('senha_da_conta_nao_confere');
     const ok = await concluir(token, {
       verificationId: r.body.verificationId,
@@ -247,7 +280,11 @@ describe('cadastro pelo link (público)', () => {
     const email = emailOf('curiosa');
     const r = await pedirCodigo(token, email);
     const codigo = await codigoNaCaixa(email);
-    const outra = await concluir(token, {verificationId: r.body.verificationId, code: codigo, unitIds: [B.units[0]!.id]});
+    const outra = await concluir(token, {
+      verificationId: r.body.verificationId,
+      code: codigo,
+      unitIds: [B.units[0]!.id],
+    });
     expect(outra).toMatchObject({status: 400, body: {error: 'casa_invalida'}});
     const papel = await concluir(token, {
       verificationId: r.body.verificationId,
@@ -273,7 +310,11 @@ describe('cadastro pelo link (público)', () => {
     const r = await pedirCodigo(token, email);
     const codigo = await codigoNaCaixa(email);
     clock.advance(16 * MIN);
-    const f = await concluir(token, {verificationId: r.body.verificationId, code: codigo, unitIds: [casa(4)]});
+    const f = await concluir(token, {
+      verificationId: r.body.verificationId,
+      code: codigo,
+      unitIds: [casa(4)],
+    });
     expect(f).toMatchObject({status: 410, body: {error: 'codigo_vencido'}});
   });
 
@@ -282,9 +323,10 @@ describe('cadastro pelo link (público)', () => {
     const email = emailOf('primeira');
     const r = await pedirCodigo(unico.token, email);
     const codigo = await codigoNaCaixa(email);
-    expect((await concluir(unico.token, {verificationId: r.body.verificationId, code: codigo, unitIds: [casa(4)]})).status).toBe(
-      201,
-    );
+    expect(
+      (await concluir(unico.token, {verificationId: r.body.verificationId, code: codigo, unitIds: [casa(4)]}))
+        .status,
+    ).toBe(201);
     expect((await anon().get(`/signup/${unico.token}`)).body.error).toBe('link_esgotado');
     const st = async (id: string) =>
       (await sindico.get('/signup-links')).body.links.find((l: {id: string}) => l.id === id)?.status;
@@ -297,7 +339,9 @@ describe('cadastro pelo link (público)', () => {
   });
 
   it('C13 — sem envio configurado: 503 no código e a caixa da demonstração não existe', async () => {
-    const r = await new WebClient(semEnvio.url).post(`/signup/${(await novoLink()).token}/code`, {email: emailOf('x')});
+    const r = await new WebClient(semEnvio.url).post(`/signup/${(await novoLink()).token}/code`, {
+      email: emailOf('x'),
+    });
     expect(r).toMatchObject({status: 503, body: {error: 'envio_indisponivel'}});
     expect((await new WebClient(semEnvio.url).get(`/demo/mailbox?to=${emailOf('x')}`)).status).toBe(404);
   });
@@ -364,9 +408,16 @@ describe('fila de saída', () => {
     await dispatchDue(app, null, clock.now());
     expect((await linha('teste:desligado')).status).toBe('skipped');
     await evento('teste:sem-remetente', B.id);
-    const semRemetente: EmailSender = {mode: 'live', fallbackFrom: null, send: async () => ({providerRef: 'x'})};
+    const semRemetente: EmailSender = {
+      mode: 'live',
+      fallbackFrom: null,
+      send: async () => ({providerRef: 'x'}),
+    };
     await dispatchDue(app, semRemetente, clock.now());
-    expect(await linha('teste:sem-remetente')).toMatchObject({status: 'dead', last_error: 'remetente do condomínio não configurado'});
+    expect(await linha('teste:sem-remetente')).toMatchObject({
+      status: 'dead',
+      last_error: 'remetente do condomínio não configurado',
+    });
     // espanhol: o texto sai no idioma pedido
     await evento('teste:es');
     const enviados: {subject: string; from: string}[] = [];

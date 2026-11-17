@@ -75,7 +75,8 @@ const en: Messages = {
     nome: 'Your name',
     nomeDica: 'If the email already has an account, its name stays the same.',
     senha: 'Password',
-    senhaDica: 'New account: create a password with at least 12 characters. Existing account: use its password.',
+    senhaDica:
+      'New account: create a password with at least 12 characters. Existing account: use its password.',
     confirmar: 'Repeat the password',
     naoConfere: 'The passwords do not match.',
     casas: 'Your houses',
@@ -244,7 +245,8 @@ const en: Messages = {
       limite: 'Sign-up limit',
       gerar: 'Create link',
       gerando: 'Creating…',
-      gerado: 'Link created. Copy it now: it is not shown again. If you lose it, create another and revoke this one.',
+      gerado:
+        'Link created. Copy it now: it is not shown again. If you lose it, create another and revoke this one.',
       link: 'Sign-up link',
       qr: 'QR code of the sign-up link',
       ate: 'Valid until {{data}} · up to {{n}} sign-ups',

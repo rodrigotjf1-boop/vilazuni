@@ -4,7 +4,18 @@ import {useQuery, useQueryClient} from '@tanstack/react-query';
 import {ApiError, get, post} from '../../lib/api';
 import {formatDate} from '../../i18n';
 import type {SignupLinkRow} from '../../lib/types';
-import {Button, Card, CopyButton, ErrorState, Field, Notice, Pill, QrCode, SelectField, useErrorText} from '../../components/ui';
+import {
+  Button,
+  Card,
+  CopyButton,
+  ErrorState,
+  Field,
+  Notice,
+  Pill,
+  QrCode,
+  SelectField,
+  useErrorText,
+} from '../../components/ui';
 import {needsMfa} from '../../components/MfaPrompt';
 
 interface Created {
@@ -163,7 +174,10 @@ function CreatedLink({created, onClose}: {created: Created; onClose: () => void}
         />
       </label>
       <p className="text-sm text-suave">
-        {t('gestao.linkCadastro.ate', {data: formatDate(created.expiresAt, i18n.language, true), n: created.maxUses})}
+        {t('gestao.linkCadastro.ate', {
+          data: formatDate(created.expiresAt, i18n.language, true),
+          n: created.maxUses,
+        })}
       </p>
       <QrCode value={link} label={t('gestao.linkCadastro.qr')} />
       <div className="flex flex-wrap gap-2">
@@ -176,7 +190,13 @@ function CreatedLink({created, onClose}: {created: Created; onClose: () => void}
   );
 }
 
-function LinkRow({link: l, guard}: {link: SignupLinkRow; guard: (error: unknown, again: () => void) => boolean}) {
+function LinkRow({
+  link: l,
+  guard,
+}: {
+  link: SignupLinkRow;
+  guard: (error: unknown, again: () => void) => boolean;
+}) {
   const {t, i18n} = useTranslation();
   const errorText = useErrorText();
   const client = useQueryClient();

@@ -66,7 +66,8 @@ const ptBR = {
     enviarCodigo: 'Enviar código',
     enviando: 'Enviando…',
     passoDados: '2. Código, conta e casas',
-    codigoEnviado: 'Enviamos o código para {{email}}. Ele vale por 15 minutos; confira também a caixa de spam.',
+    codigoEnviado:
+      'Enviamos o código para {{email}}. Ele vale por 15 minutos; confira também a caixa de spam.',
     outroEmail: 'Usar outro e-mail',
     reenviar: 'Enviar outro código',
     codigo: 'Código do e-mail',

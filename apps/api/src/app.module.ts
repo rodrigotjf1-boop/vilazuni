@@ -65,7 +65,11 @@ export class AppModule {
         ActorService,
         {provide: VAULT, useClass: Vault},
         // envio de e-mail pelo modo da configuração (desligado → null: quem depende responde "envio indisponível")
-        {provide: EMAIL_SENDER, useFactory: (c: AppConfig, p: Pool) => createEmailSender(c, p), inject: [CONFIG, DB_POOL]},
+        {
+          provide: EMAIL_SENDER,
+          useFactory: (c: AppConfig, p: Pool) => createEmailSender(c, p),
+          inject: [CONFIG, DB_POOL],
+        },
         OutboxRunner,
         // Toda rota exige sessão, salvo as marcadas com @Public() (negar por padrão).
         {provide: APP_GUARD, useClass: AuthGuard},

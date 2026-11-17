@@ -17,7 +17,8 @@ type Tone = 'primary' | 'secondary' | 'danger' | 'quiet';
 const TONES: Record<Tone, string> = {
   primary: 'px-4 bg-primaria text-white hover:bg-primaria-escura disabled:opacity-60',
   secondary: 'px-4 bg-superficie text-texto border border-linha hover:border-primaria disabled:opacity-60',
-  danger: 'px-4 bg-superficie text-erro border border-erro hover:bg-erro hover:text-white disabled:opacity-60',
+  danger:
+    'px-4 bg-superficie text-erro border border-erro hover:bg-erro hover:text-white disabled:opacity-60',
   quiet: 'text-primaria underline underline-offset-4 hover:text-primaria-escura',
 };
 

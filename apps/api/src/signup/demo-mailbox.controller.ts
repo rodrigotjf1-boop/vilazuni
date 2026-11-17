@@ -31,7 +31,11 @@ export class DemoMailboxController {
       [to],
     );
     return {
-      messages: r.rows.map((m) => ({subject: m.subject as string, text: m.body_text as string, createdAt: m.created_at})),
+      messages: r.rows.map((m) => ({
+        subject: m.subject as string,
+        text: m.body_text as string,
+        createdAt: m.created_at,
+      })),
     };
   }
 }

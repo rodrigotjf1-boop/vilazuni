@@ -5,7 +5,17 @@ import {useQuery} from '@tanstack/react-query';
 import {ApiError, get, post} from '../lib/api';
 import {formatDate, isLang, type Lang} from '../i18n';
 import type {SignupPreview} from '../lib/types';
-import {Button, Card, ErrorState, Field, Loading, Notice, PageTitle, SelectField, useErrorText} from '../components/ui';
+import {
+  Button,
+  Card,
+  ErrorState,
+  Field,
+  Loading,
+  Notice,
+  PageTitle,
+  SelectField,
+  useErrorText,
+} from '../components/ui';
 import {LanguagePicker} from '../components/LanguagePicker';
 
 const MAX_CASAS = 5;
@@ -134,7 +144,10 @@ function EmailStep({
     setBusy(true);
     setError(null);
     try {
-      const r = await post<{verificationId: string}>(`${path}/code`, {email: email.trim(), preferredLanguage: lang});
+      const r = await post<{verificationId: string}>(`${path}/code`, {
+        email: email.trim(),
+        preferredLanguage: lang,
+      });
       onSent({verificationId: r.verificationId, email: email.trim().toLowerCase()});
     } catch (err) {
       setError(err);
@@ -145,7 +158,11 @@ function EmailStep({
   }
 
   return (
-    <form onSubmit={submit} className="grid gap-4 rounded-xl border border-linha bg-superficie p-5" noValidate>
+    <form
+      onSubmit={submit}
+      className="grid gap-4 rounded-xl border border-linha bg-superficie p-5"
+      noValidate
+    >
       <h2 className="text-lg font-semibold">{t('cadastro.passoEmail')}</h2>
       <p className="text-suave">{t('cadastro.passoEmailDica')}</p>
       <Field
@@ -170,7 +187,12 @@ function EmailStep({
         <option value="en">{t('idiomas.en')}</option>
       </SelectField>
       {!!error && <Notice tone="error">{errorText(error)}</Notice>}
-      <Button type="submit" busy={busy} busyLabel={t('cadastro.enviando')} disabled={!/^\S+@\S+\.\S+$/.test(email.trim())}>
+      <Button
+        type="submit"
+        busy={busy}
+        busyLabel={t('cadastro.enviando')}
+        disabled={!/^\S+@\S+\.\S+$/.test(email.trim())}
+      >
         {t('cadastro.enviarCodigo')}
       </Button>
     </form>
@@ -213,7 +235,10 @@ function FinishStep({
     setBusy('resend');
     setError(null);
     try {
-      const r = await post<{verificationId: string}>(`${path}/code`, {email: sent.email, preferredLanguage: lang});
+      const r = await post<{verificationId: string}>(`${path}/code`, {
+        email: sent.email,
+        preferredLanguage: lang,
+      });
       onResent({verificationId: r.verificationId, email: sent.email});
       setForm((f) => ({...f, code: ''}));
       setResent(true);
@@ -251,14 +276,23 @@ function FinishStep({
   }
 
   return (
-    <form onSubmit={submit} className="grid gap-4 rounded-xl border border-linha bg-superficie p-5" noValidate>
+    <form
+      onSubmit={submit}
+      className="grid gap-4 rounded-xl border border-linha bg-superficie p-5"
+      noValidate
+    >
       <h2 className="text-lg font-semibold">{t('cadastro.passoDados')}</h2>
       <Notice tone="info">{t('cadastro.codigoEnviado', {email: sent.email})}</Notice>
       <div className="flex flex-wrap gap-x-4 gap-y-1">
         <Button tone="quiet" onClick={onBack}>
           {t('cadastro.outroEmail')}
         </Button>
-        <Button tone="quiet" busy={busy === 'resend'} busyLabel={t('cadastro.enviando')} onClick={() => void resend()}>
+        <Button
+          tone="quiet"
+          busy={busy === 'resend'}
+          busyLabel={t('cadastro.enviando')}
+          onClick={() => void resend()}
+        >
           {resent ? `${t('cadastro.reenviar')} ✓` : t('cadastro.reenviar')}
         </Button>
       </div>

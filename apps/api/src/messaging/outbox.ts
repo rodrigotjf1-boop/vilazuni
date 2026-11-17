@@ -32,7 +32,13 @@ export async function enqueueEmail(client: PoolClient, e: EmailEnqueue, now: Dat
     `insert into outbox_event (id, condominium_id, kind, idempotency_key, payload, available_at)
      values ($1, $2, 'email', $3, $4, $5)
      on conflict (idempotency_key) do nothing returning id`,
-    [id, e.condominiumId, e.idempotencyKey, JSON.stringify({to: e.to, lang: e.lang, template: e.template, params: e.params}), now],
+    [
+      id,
+      e.condominiumId,
+      e.idempotencyKey,
+      JSON.stringify({to: e.to, lang: e.lang, template: e.template, params: e.params}),
+      now,
+    ],
   );
   return r.rows[0]?.id ?? id;
 }
@@ -62,7 +68,10 @@ export async function dispatchDue(pool: Pool, sender: EmailSender | null, now: D
 }
 
 async function deliver(pool: Pool, sender: EmailSender | null, ev: Row, now: Date) {
-  const done = (status: string, fields: {error?: string | null; providerRef?: string | null; available?: Date}) =>
+  const done = (
+    status: string,
+    fields: {error?: string | null; providerRef?: string | null; available?: Date},
+  ) =>
     pool.query(
       `update outbox_event set status = $2, last_error = $3, provider_ref = coalesce($4, provider_ref),
               available_at = coalesce($5, available_at), locked_until = null,
@@ -72,7 +81,15 @@ async function deliver(pool: Pool, sender: EmailSender | null, ev: Row, now: Dat
                              then jsonb_build_object('to', $7::text, 'template', payload->>'template', 'lang', payload->>'lang')
                              else payload end
         where id = $1`,
-      [ev.id, status, fields.error ?? null, fields.providerRef ?? null, fields.available ?? null, now, mask(String(ev.payload.to))],
+      [
+        ev.id,
+        status,
+        fields.error ?? null,
+        fields.providerRef ?? null,
+        fields.available ?? null,
+        now,
+        mask(String(ev.payload.to)),
+      ],
     );
   if (!sender) return done('skipped', {error: 'envio de e-mail não configurado'});
   try {
@@ -88,7 +105,10 @@ async function deliver(pool: Pool, sender: EmailSender | null, ev: Row, now: Dat
     return done('sent', {providerRef: result.providerRef});
   } catch (error) {
     // sem dado pessoal no erro guardado: só o tipo e a mensagem curta do provedor
-    const message = (error instanceof Error ? `${error.name}: ${error.message}` : 'falha no envio').slice(0, 300);
+    const message = (error instanceof Error ? `${error.name}: ${error.message}` : 'falha no envio').slice(
+      0,
+      300,
+    );
     if (ev.attempts >= MAX_ATTEMPTS) return done('dead', {error: message});
     return done('pending', {error: message, available: new Date(now.getTime() + backoffMs(ev.attempts))});
   }
@@ -121,7 +141,13 @@ export class OutboxRunner implements OnApplicationBootstrap, OnApplicationShutdo
         /* esvazia o que venceu */
       }
     } catch (error) {
-      console.error(JSON.stringify({nivel: 'erro', rotina: 'fila de saída', erro: error instanceof Error ? error.message : String(error)}));
+      console.error(
+        JSON.stringify({
+          nivel: 'erro',
+          rotina: 'fila de saída',
+          erro: error instanceof Error ? error.message : String(error),
+        }),
+      );
     } finally {
       this.running = false;
     }
