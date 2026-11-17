@@ -27,7 +27,7 @@ test('telas de Gestão sem rolagem lateral no celular', async ({page}) => {
   await page.getByRole('button', {name: 'Convidar proprietário'}).click();
   await semRolagemLateral(page);
   await page.goto('/gestao/pessoas');
-  await expect(page.getByRole('heading', {name: 'Papéis'})).toBeVisible();
+  await expect(page.getByRole('heading', {name: 'Papéis', exact: true})).toBeVisible();
   await page.getByRole('button', {name: 'Conceder papel'}).click();
   await semRolagemLateral(page);
 });

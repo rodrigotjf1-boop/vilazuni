@@ -96,7 +96,7 @@ test('síndica configura a verificação a partir da Gestão, concede papel, del
   await page.getByLabel('Guardei os códigos em lugar seguro').check();
   await page.getByRole('button', {name: 'Concluir'}).click();
   await expect(page).toHaveURL(/\/gestao\/pessoas$/);
-  await expect(page.getByRole('heading', {name: 'Papéis'})).toBeVisible();
+  await expect(page.getByRole('heading', {name: 'Papéis', exact: true})).toBeVisible();
 
   // conceder papel (ato crítico: o código acabou de ser confirmado)
   await page.getByRole('button', {name: 'Conceder papel'}).click();
