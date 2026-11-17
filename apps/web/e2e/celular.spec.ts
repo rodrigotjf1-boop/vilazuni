@@ -19,3 +19,15 @@ test('telas sem rolagem lateral no celular', async ({page}) => {
     await semRolagemLateral(page);
   }
 });
+
+test('telas de Gestão sem rolagem lateral no celular', async ({page}) => {
+  await entrar(page, 'tenaz');
+  await page.goto('/gestao/titularidades');
+  await expect(page.getByRole('heading', {name: 'Titularidades', level: 1})).toBeVisible();
+  await page.getByRole('button', {name: 'Convidar proprietário'}).click();
+  await semRolagemLateral(page);
+  await page.goto('/gestao/pessoas');
+  await expect(page.getByRole('heading', {name: 'Papéis'})).toBeVisible();
+  await page.getByRole('button', {name: 'Conceder papel'}).click();
+  await semRolagemLateral(page);
+});

@@ -14,6 +14,9 @@ import {Verificacao} from './pages/Verificacao';
 import {Sessoes} from './pages/Sessoes';
 import {EscolherCondominio} from './pages/EscolherCondominio';
 import {NaoEncontrado} from './pages/NaoEncontrado';
+import {Titularidades} from './pages/gestao/Titularidades';
+import {Pessoas} from './pages/gestao/Pessoas';
+import {Auditoria} from './pages/gestao/Auditoria';
 
 const queryClient: QueryClient = new QueryClient({
   // sessão que venceu no meio do uso: relê "quem sou eu" e a moldura manda para "Entrar" com o caminho de volta
@@ -44,6 +47,9 @@ const router = createBrowserRouter([
       {path: '/verificacao', element: <Verificacao />},
       {path: '/conta/sessoes', element: <Sessoes />},
       {path: '/escolher-condominio', element: <EscolherCondominio />},
+      {path: '/gestao/titularidades', element: <Titularidades />},
+      {path: '/gestao/pessoas', element: <Pessoas />},
+      {path: '/gestao/auditoria', element: <Auditoria />},
     ],
   },
   {path: '*', element: <NaoEncontrado />},

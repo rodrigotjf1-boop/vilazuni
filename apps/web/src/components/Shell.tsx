@@ -50,8 +50,17 @@ export function Shell() {
     return <Navigate to={`/escolher-condominio?de=${encodeURIComponent(location.pathname)}`} replace />;
 
   const mandate = access.data?.mandate;
+  // Gestão aparece para quem pode agir (já ou depois do código de verificação). Esconder não é barreira: cada rota
+  // da API decide de novo.
+  const can = (action: string) => {
+    const outcome = access.data?.actions[action];
+    return !!outcome && outcome !== 'negado';
+  };
   const links = [
     {to: '/minha-casa', label: t('nav.minhaCasa')},
+    ...(can('ownership.validate') ? [{to: '/gestao/titularidades', label: t('nav.titularidades')}] : []),
+    ...(can('person.read.all') ? [{to: '/gestao/pessoas', label: t('nav.pessoas')}] : []),
+    ...(can('audit.read') ? [{to: '/gestao/auditoria', label: t('nav.auditoria')}] : []),
     {to: '/verificacao', label: t('nav.verificacao')},
     {to: '/conta/sessoes', label: t('nav.sessoes')},
   ];

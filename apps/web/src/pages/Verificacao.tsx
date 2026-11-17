@@ -18,12 +18,15 @@ import {
   QrCode,
   useErrorText,
 } from '../components/ui';
+import {MfaPrompt} from '../components/MfaPrompt';
 
 /** Verificação em duas etapas (ADR-0010): configurar, confirmar o código nesta sessão, trocar de celular. */
 export function Verificacao() {
   const {t} = useTranslation();
   const status = useQuery({queryKey: ['mfa'], queryFn: () => get<MfaStatus>('/auth/mfa')});
   const [recoveryCodes, setRecoveryCodes] = useState<string[] | null>(null);
+  const navigate = useNavigate();
+  const [params] = useSearchParams();
 
   return (
     <div className="grid max-w-2xl gap-6">
@@ -31,7 +34,15 @@ export function Verificacao() {
       {status.isPending && <Loading />}
       {status.error && <ErrorState error={status.error} retry={() => void status.refetch()} />}
       {recoveryCodes ? (
-        <RecoveryCodes codes={recoveryCodes} onDone={() => setRecoveryCodes(null)} />
+        <RecoveryCodes
+          codes={recoveryCodes}
+          onDone={() => {
+            setRecoveryCodes(null);
+            // veio de uma tela de gestão: volta para ela (a sessão já está confirmada)
+            const next = params.get('de');
+            if (next) navigate(safeNext(next), {replace: true});
+          }}
+        />
       ) : (
         status.data &&
         (!status.data.enrolled ? (
@@ -186,80 +197,15 @@ function RecoveryCodes({codes, onDone}: {codes: string[]; onDone: () => void}) {
 
 /** Confirmar o código nesta sessão (gestão exige); volta para onde a pessoa estava. */
 export function Verify() {
-  const {t} = useTranslation();
-  const errorText = useErrorText();
-  const client = useQueryClient();
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const [mode, setMode] = useState<'app' | 'recovery'>('app');
-  const [value, setValue] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<unknown>(null);
-
-  async function submit(e: FormEvent) {
-    e.preventDefault();
-    setBusy(true);
-    setError(null);
-    try {
-      await post('/auth/mfa/verify', mode === 'app' ? {code: value} : {recoveryCode: value});
-      await client.invalidateQueries();
-      const next = params.get('de');
-      if (next) navigate(safeNext(next), {replace: true});
-    } catch (err) {
-      setError(err);
-    } finally {
-      setBusy(false);
-    }
-  }
-
   return (
-    <Card>
-      <h2 className="text-lg font-semibold">{t('mfa.verificar')}</h2>
-      <form onSubmit={submit} className="grid gap-4 sm:max-w-xs">
-        {mode === 'app' ? (
-          <Field
-            id="codigo"
-            label={t('mfa.codigo')}
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            maxLength={6}
-            required
-            value={value}
-            onChange={(e) => setValue(e.target.value.replace(/\D/g, ''))}
-          />
-        ) : (
-          <Field
-            id="recuperacao"
-            label={t('mfa.recuperacao')}
-            autoComplete="off"
-            autoCapitalize="characters"
-            maxLength={40}
-            required
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-          />
-        )}
-        {!!error && <Notice tone="error">{errorText(error)}</Notice>}
-        <Button
-          type="submit"
-          busy={busy}
-          busyLabel={t('mfa.confirmando')}
-          disabled={mode === 'app' ? value.length !== 6 : value.length < 10}
-        >
-          {t('mfa.confirmar')}
-        </Button>
-        <Button
-          tone="quiet"
-          onClick={() => {
-            setMode(mode === 'app' ? 'recovery' : 'app');
-            setValue('');
-            setError(null);
-          }}
-        >
-          {mode === 'app' ? t('mfa.usarRecuperacao') : t('mfa.usarApp')}
-        </Button>
-      </form>
-    </Card>
+    <MfaPrompt
+      onDone={() => {
+        const next = params.get('de');
+        if (next) navigate(safeNext(next), {replace: true});
+      }}
+    />
   );
 }
 

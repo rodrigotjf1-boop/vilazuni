@@ -5,7 +5,8 @@ Situação: aceita (17/11/2026) · respostas do dono às cinco decisões pendent
 ## 1. E-mail transacional (P23)
 
 - **Decidido:** usar o que a DMS já tem — **Amazon SES em São Paulo**, com assinatura DKIM alinhada. O Resend foi lembrado pelo dono como alternativa; fica fora enquanto o SES servir.
-- **Falta:** o remetente. Recomendação: verificar o domínio `vilazuni.com` na mesma conta do SES (registros DKIM no DNS da Hostinger); o passo a passo vai ao dono quando a integração entrar.
+- **Remetente (decidido pelo dono em 17/11):** o domínio **`chandra.vilazuni.com`**, verificado na mesma conta do SES (registros DKIM desse subdomínio no DNS da Hostinger, onde está `vilazuni.com`). O passo a passo vai ao dono quando a integração entrar. Um segundo condomínio terá o seu próprio subdomínio — o remetente é configuração por condomínio, não fixo no código.
+- **Falta:** a credencial de envio do SES (fica só no servidor, como as outras).
 - **Como entra no código:** adaptador `MessagingProvider`/e-mail (ADR-0008) com os modos de sempre; o envio sai pela fila durável com outbox (ADR-0006) — será o primeiro efeito externo da v1.
 
 ## 2. Cadastro dos proprietários (P02–P05)

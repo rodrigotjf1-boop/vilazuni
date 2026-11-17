@@ -2,15 +2,15 @@ import {expect, test} from '@playwright/test';
 import {generateSync} from 'otplib';
 import {entrar, senhaDe} from './apoio';
 
-test('síndica configura a verificação, guarda os códigos e usa um deles noutro aparelho', async ({
+test('prestador configura a verificação, guarda os códigos e usa um deles noutro aparelho', async ({
   page,
   browser,
   baseURL,
 }) => {
-  await entrar(page, 'sindica');
+  await entrar(page, 'prestador');
   await page.getByRole('link', {name: 'Verificação em duas etapas'}).click();
   await expect(page.getByText('Não configurada')).toBeVisible();
-  await page.getByLabel('Confirme sua senha para começar').fill(senhaDe('sindica'));
+  await page.getByLabel('Confirme sua senha para começar').fill(senhaDe('prestador'));
   await page.getByRole('button', {name: 'Configurar'}).click();
   await expect(page.getByRole('img', {name: 'QR Code para o aplicativo autenticador'})).toBeVisible();
   await expect(page.getByRole('link', {name: 'Abrir no aplicativo'})).toHaveAttribute(
@@ -41,7 +41,7 @@ test('síndica configura a verificação, guarda os códigos e usa um deles nout
   // outro aparelho: entra e confirma com um código de recuperação, voltando para onde ia
   const outro = await browser.newContext({baseURL, locale: 'pt-BR'});
   const p2 = await outro.newPage();
-  await entrar(p2, 'sindica');
+  await entrar(p2, 'prestador');
   await p2.goto('/verificacao?de=%2Fconta%2Fsessoes');
   await expect(p2.getByRole('heading', {name: 'Confirme o código para continuar'})).toBeVisible();
   await p2.getByRole('button', {name: 'Usar um código de recuperação'}).click();
