@@ -47,6 +47,17 @@ jobs:
   # Vilazuni v1 (monorepo novo — docs/adr/0001). Roda ao lado do app atual até a troca.
   v1:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-bookworm
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: synthetic-ci-only
+        ports: ['5432:5432']
+        options: --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      # banco NOVO por rodada (apps/api/test/global-setup.ts); senha só do CI, sem valor real
+      VZ_TEST_ADMIN_URL: postgresql://postgres:synthetic-ci-only@127.0.0.1:5432/postgres
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

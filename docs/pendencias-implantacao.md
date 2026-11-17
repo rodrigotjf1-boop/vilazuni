@@ -26,3 +26,4 @@ Cada item vira um registro no painel de implantação (Fase 2) com responsável,
 | P20 | Documentação técnica da elétrica | Projeto elétrico 2027 |
 | P21 | Número oficial de WhatsApp, templates aprovados e opt-in | Mensagens reais |
 | P22 | Conta e chave de assinatura Android do condomínio/projeto | APK de produção |
+| P23 | Provedor de e-mail transacional (remetente e domínio autenticados) | Envio automático do convite, autocadastro aberto e "esqueci a senha" (até lá a gestão envia o link do convite — ADR-0009) |

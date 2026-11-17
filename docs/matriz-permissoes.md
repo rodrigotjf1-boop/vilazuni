@@ -35,9 +35,12 @@ Um usuário pode ter vários vínculos ao mesmo tempo; cada ação usa só o ví
 
 Notas:
 
-- **Autocadastro** cria só pedido de titularidade **pendente**; papel enviado no corpo é ignorado (T01).
+- **Autocadastro/aceite** cria só pedido de titularidade **pendente**; campo de papel no corpo é **recusado** (`400 campo_nao_permitido`) e nada é concedido (T01).
+- **Ninguém decide o próprio pedido** de titularidade (`403 nao_pode_decidir_o_proprio`) — ADR-0009.
+- Casa de outra pessoa ou de outro condomínio responde `404` igual a "não existe" (T02, T03, T54); a negação fica na auditoria.
 - Ação de gestão com **mandato vencido** é negada mesmo com sessão aberta; o vínculo de proprietário da mesma pessoa continua valendo (T19).
-- Atos marcados "+ MFA" exigem sessão com MFA cumprido; sem isso, `403` com motivo `mfa_required`.
+- Atos marcados "+ MFA" exigem sessão com MFA cumprido; sem isso, `403` com motivo `mfa_exigido`.
+- "Visão mínima" do proprietário sobre as outras casas (ocupação/vaga, identificação mínima) entra na F1.2, com a ocupação; até lá `GET /units` é só de gestão e conselho.
 - Conselho fiscal **nunca** edita o que fiscaliza.
 - Tenaz não tem superadmin, senhas residenciais nem gravações por padrão.
 

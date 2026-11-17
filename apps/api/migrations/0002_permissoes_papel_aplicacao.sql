@@ -8,6 +8,7 @@ grant select, insert, update on
   to vilazuni_app;
 
 grant select, insert, update, delete on auth_session to vilazuni_app;
+grant select, insert on auth_refresh_retired to vilazuni_app;
 grant select, insert on audit_event to vilazuni_app;
 
 grant execute on function app_condominium() to vilazuni_app;

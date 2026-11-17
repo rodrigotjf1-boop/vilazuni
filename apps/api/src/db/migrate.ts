@@ -20,7 +20,10 @@ export async function migrate(ownerPool: Pool, dir = MIGRATIONS_DIR): Promise<st
   for (const file of files) {
     const sql = readFileSync(path.join(dir, file), 'utf8').replace(/\r\n/g, '\n');
     const checksum = createHash('sha256').update(sql).digest('hex');
-    const done = await ownerPool.query<{checksum: string}>('select checksum from schema_migration where name = $1', [file]);
+    const done = await ownerPool.query<{checksum: string}>(
+      'select checksum from schema_migration where name = $1',
+      [file],
+    );
     if (done.rows[0]) {
       if (done.rows[0].checksum !== checksum)
         throw new Error(`A migration ${file} já aplicada foi alterada. Crie uma nova migration.`);
@@ -35,7 +38,9 @@ export async function migrate(ownerPool: Pool, dir = MIGRATIONS_DIR): Promise<st
       applied.push(file);
     } catch (error) {
       await client.query('rollback');
-      throw new Error(`Falha na migration ${file}: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Falha na migration ${file}: ${error instanceof Error ? error.message : String(error)}`,
+      );
     } finally {
       client.release();
     }

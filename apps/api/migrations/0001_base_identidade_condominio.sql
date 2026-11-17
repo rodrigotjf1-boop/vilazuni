@@ -61,7 +61,9 @@ create table verified_contact (
   value text not null check (length(value) between 3 and 254),
   verified_at timestamptz,
   created_at timestamptz not null default now(),
-  unique (kind, value)
+  unique (kind, value),
+  -- e-mail sempre normalizado: "Ana@x" e "ana@x" seriam duas contas e o entrar (que normaliza) não acharia
+  check (kind <> 'email' or value = lower(btrim(value)))
 );
 
 create table auth_credential (
@@ -83,6 +85,8 @@ create table auth_session (
   csrf_hash bytea,
   refresh_hash bytea unique,
   refresh_family uuid,
+  -- nativo: o access vale pouco (15 min); a sessão (refresh) vale até expires_at
+  access_expires_at timestamptz,
   mfa_at timestamptz,
   user_agent text,
   created_at timestamptz not null default now(),
@@ -91,9 +95,18 @@ create table auth_session (
   revoked_at timestamptz,
   revoked_reason text,
   check (expires_at > created_at),
-  check ((transport = 'web' and csrf_hash is not null) or (transport = 'native' and refresh_hash is not null))
+  check ((transport = 'web' and csrf_hash is not null) or
+         (transport = 'native' and refresh_hash is not null and access_expires_at is not null))
 );
 create index auth_session_person on auth_session(person_id) where revoked_at is null;
+create index auth_session_family on auth_session(refresh_family) where refresh_family is not null;
+
+-- Refresh já trocado: se aparecer de novo, alguém copiou o token — a família inteira é revogada.
+create table auth_refresh_retired (
+  refresh_hash bytea primary key,
+  refresh_family uuid not null,
+  retired_at timestamptz not null default now()
+);
 
 -- ---------- Vínculos com unidades ----------
 create table ownership (

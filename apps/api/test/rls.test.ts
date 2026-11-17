@@ -27,7 +27,9 @@ beforeAll(async () => {
   app = new Pool({connectionString: inject('dbAppUrl'), max: 1}); // 1 conexão: o teste de vazamento reusa a mesma
   await seedCondominium(A, unitA, 'A');
   await seedCondominium(B, unitB, 'B');
-  await owner.query(`insert into person (id, display_name, is_demo) values ($1, '[DEMO] Pessoa', true)`, [person]);
+  await owner.query(`insert into person (id, display_name, is_demo) values ($1, '[DEMO] Pessoa', true)`, [
+    person,
+  ]);
   for (const [condo, unit] of [
     [A, unitA],
     [B, unitB],
@@ -46,11 +48,11 @@ afterAll(async () => {
 
 describe('RLS — isolamento por condomínio no banco', () => {
   it('o papel de aplicação não é superusuário nem tem BYPASSRLS, e não é dono das tabelas', async () => {
-    const r = await app.query(
-      `select rolsuper, rolbypassrls from pg_roles where rolname = current_user`,
-    );
+    const r = await app.query(`select rolsuper, rolbypassrls from pg_roles where rolname = current_user`);
     expect(r.rows[0]).toEqual({rolsuper: false, rolbypassrls: false});
-    const donas = await app.query(`select count(*)::int as n from pg_tables where schemaname = 'public' and tableowner = current_user`);
+    const donas = await app.query(
+      `select count(*)::int as n from pg_tables where schemaname = 'public' and tableowner = current_user`,
+    );
     expect(donas.rows[0].n).toBe(0);
   });
 
@@ -110,11 +112,16 @@ describe('RLS — isolamento por condomínio no banco', () => {
 
   it('auditoria é só acréscimo para a aplicação', async () => {
     await withCondominium(app, A, (c) =>
-      c.query(`insert into audit_event (condominium_id, actor_kind, action, result) values ($1, 'system', 'teste', 'ok')`, [A]),
+      c.query(
+        `insert into audit_event (condominium_id, actor_kind, action, result) values ($1, 'system', 'teste', 'ok')`,
+        [A],
+      ),
     );
-    await expect(withCondominium(app, A, (c) => c.query(`update audit_event set reason = 'x'`))).rejects.toThrow(
+    await expect(
+      withCondominium(app, A, (c) => c.query(`update audit_event set reason = 'x'`)),
+    ).rejects.toThrow(/permission denied/);
+    await expect(withCondominium(app, A, (c) => c.query(`delete from audit_event`))).rejects.toThrow(
       /permission denied/,
     );
-    await expect(withCondominium(app, A, (c) => c.query(`delete from audit_event`))).rejects.toThrow(/permission denied/);
   });
 });

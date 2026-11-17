@@ -20,7 +20,7 @@ const pool = (ok: boolean) =>
 
 let app: INestApplication | undefined;
 async function start(dbOk = true) {
-  app = await createApp(config, pool(dbOk), {quiet: true});
+  app = await createApp(config, {pool: pool(dbOk)}, {quiet: true});
   await app.listen(0, '127.0.0.1');
   return (await app.getUrl()).replace('[::1]', '127.0.0.1');
 }
