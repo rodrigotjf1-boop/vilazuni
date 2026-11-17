@@ -7,7 +7,7 @@ Administração, convivência e segurança de condomínios — appweb/PWA e apli
 | | Onde | Situação |
 |---|---|---|
 | **Vilazuni v1** (novo) | `apps/`, `packages/`, `docs/` | Em construção pela especificação v1.0 (17/11/2026). Ainda não está em produção. |
-| App anterior | `app/`, `deploy/` | No ar (0.7.8). Continua sem mudança até a troca ([ADR-0001](docs/adr/0001-reescrita-em-monorepo.md)). |
+| App anterior | `app/`, `deploy/` | No ar (0.7.9). Só correções e decisões do dono até a troca ([ADR-0001](docs/adr/0001-reescrita-em-monorepo.md)). |
 
 ## Vilazuni v1
 

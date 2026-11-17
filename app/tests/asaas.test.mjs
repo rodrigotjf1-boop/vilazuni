@@ -692,3 +692,181 @@ test('Asaas: conta vencida sai no Asaas com vencimento hoje; a conta guarda o ve
     await x.f.close();
   }
 });
+
+// M4 (decisão do dono de 17/11/2026): multa de 2% e juros de 1% ao mês cobrados PELO ASAAS, pela regra aprovada.
+async function approvedRule(x) {
+  const control = await x.f.invite('administradora', {
+    validUntil: '2026-12-31',
+    delegationReason: 'Operação sintética',
+    delegations: ['financeClose'],
+  });
+  const rule = await x.req('/finance/fees/rules/create', {
+    reference: 'REGRA-MERCADO',
+    basis: 'Padrão de mercado decidido pela gestão (sintético)',
+    dueFrom: '2026-10-01',
+    dueThrough: '2026-12-31',
+    fineBps: 200,
+    annualInterestBps: 1200,
+    reason: 'Multa de 2% e juros de 1% ao mês',
+  });
+  assert.equal(rule.status, 200, JSON.stringify(rule.body));
+  const ok = await x.f.request(
+    '/finance/fees/rules/decide',
+    {id: rule.body.id, version: rule.body.version, action: 'approve', validated: true, reason: 'Conferido'},
+    control.cookie,
+  );
+  assert.equal(ok.status, 200, JSON.stringify(ok.body));
+}
+// Pago com atraso: o Asaas soma os encargos ao valor e guarda o original (documentação oficial).
+async function receiveLate(x, fields) {
+  // a data do crédito não pode passar do "hoje" do teste (19/10); os encargos vêm do Asaas
+  Object.assign(x.remote.payments[0], {status: 'RECEIVED', creditDate: '2026-10-19', ...fields});
+  assert.equal((await x.webhook('evt_atraso_' + Date.now(), {id: x.remote.payments[0].id})).status, 200);
+  await x.f.api.paymentTick();
+}
+const late = {value: 10.25, originalValue: 10, interestValue: 0.25, netValue: 9.26};
+
+test('Asaas: a cobrança leva multa de 2% e juros de 1% ao mês da regra aprovada; sem regra, zero', async () => {
+  const sem = await setup();
+  try {
+    assert.equal((await sem.req('/payments/asaas/issue', sem.issue)).status, 200);
+    const data = sem.remote.calls.find((c) => c.action === 'issue').data;
+    assert.deepEqual(data.fine, {value: 0, type: 'PERCENTAGE'});
+    assert.deepEqual(data.interest, {value: 0});
+  } finally {
+    await sem.f.close();
+  }
+  const x = await setup();
+  try {
+    await approvedRule(x);
+    const preview = await x.req('/payments/preview', {
+      receivableId: x.receivable.id,
+      receivableVersion: x.receivable.version,
+      billingType: 'PIX',
+    });
+    assert.equal(preview.body.lateFees.finePercent, 2);
+    assert.equal(preview.body.lateFees.interestMonthlyPercent, 1);
+    assert.equal((await x.req('/payments/asaas/issue', x.issue)).status, 200);
+    const data = x.remote.calls.find((c) => c.action === 'issue').data;
+    assert.deepEqual(data.fine, {value: 2, type: 'PERCENTAGE'});
+    assert.deepEqual(data.interest, {value: 1});
+    const charge = (await x.req('/payments')).body.charges[0];
+    assert.deepEqual(charge.lateFees, {
+      finePercent: 2,
+      interestMonthlyPercent: 1,
+      ruleReference: 'REGRA-MERCADO',
+    });
+  } finally {
+    await x.f.close();
+  }
+});
+
+test('Asaas: pago com atraso quita a conta pelo valor dela e lança os encargos à parte', async () => {
+  const x = await setup();
+  try {
+    await approvedRule(x);
+    assert.equal((await x.req('/payments/asaas/issue', x.issue)).status, 200);
+    await receiveLate(x, late);
+    const finance = (await x.req('/state')).body.state.finance;
+    assert.equal(finance.receivables[0].status, 'received');
+    const incomes = finance.entries.filter((e) => e.kind === 'income').map((e) => e.amountCents);
+    assert.deepEqual(
+      incomes.sort((a, b) => a - b),
+      [25, 1000],
+      'a conta pelo valor dela e os encargos à parte',
+    );
+    assert.equal(finance.entries.find((e) => e.amountCents === 25).category, 'Encargos pagos pelo Asaas');
+    assert.equal(
+      finance.entries.filter((e) => e.kind === 'expense')[0].amountCents,
+      99,
+      'tarifa sobre o total',
+    );
+    assert.equal(finance.totalCents, 926);
+    const charge = (await x.req('/payments')).body.charges[0];
+    assert.equal(charge.status, 'received');
+    assert.equal(charge.lateFeeCents, 25);
+  } finally {
+    await x.f.close();
+  }
+});
+
+test('Asaas: encargos que não conferem (ou sem regra) vão para conferência, sem lançamento', async () => {
+  const x = await setup();
+  try {
+    await approvedRule(x);
+    assert.equal((await x.req('/payments/asaas/issue', x.issue)).status, 200);
+    await receiveLate(x, {...late, interestValue: 0.3});
+    assert.equal((await x.req('/payments')).body.charges[0].status, 'review');
+    assert.equal((await x.req('/state')).body.state.finance.totalCents, 0);
+  } finally {
+    await x.f.close();
+  }
+  const sem = await setup();
+  try {
+    assert.equal((await sem.req('/payments/asaas/issue', sem.issue)).status, 200);
+    await receiveLate(sem, late);
+    assert.equal(
+      (await sem.req('/payments')).body.charges[0].status,
+      'review',
+      'cobrança sem encargos previstos',
+    );
+    assert.equal((await sem.req('/state')).body.state.finance.totalCents, 0);
+  } finally {
+    await sem.f.close();
+  }
+});
+
+test('Asaas: estorno de cobrança paga com encargos devolve primeiro os encargos e só depois reabre a conta', async () => {
+  const x = await setup();
+  try {
+    await approvedRule(x);
+    assert.equal((await x.req('/payments/asaas/issue', x.issue)).status, 200);
+    await receiveLate(x, late);
+    let finance = (await x.req('/state')).body.state.finance;
+    const account = finance.accounts[0];
+    const deposit = await x.req('/finance/entries/create', {
+      operationId: randomUUID(),
+      kind: 'income',
+      date: '2026-10-18',
+      description: 'Outro recebimento sintético',
+      category: 'Receita teste',
+      reference: randomUUID(),
+      reason: 'Registro conferido',
+      amountCents: 2000,
+      accountId: account.id,
+      accountVersion: account.version,
+      fundId: x.fund.id,
+    });
+    assert.equal(deposit.status, 200, JSON.stringify(deposit.body));
+    // 1º estorno concluído: só os encargos (R$ 0,25) — a conta continua quitada.
+    Object.assign(x.remote.payments[0], {status: 'RECEIVED', refunds: [{status: 'DONE', value: 0.25}]});
+    await x.webhook('evt_estorno_encargos', {id: x.remote.payments[0].id});
+    await x.f.api.paymentTick();
+    let r = await refundOf(x, {reason: 'Estorno dos encargos conferido'});
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+    finance = (await x.req('/state')).body.state.finance;
+    assert.equal(finance.receivables[0].status, 'received');
+    assert.equal(finance.totalCents, 2901);
+    // 2º estorno: o valor da conta (R$ 10,00) — a dívida volta inteira; a tarifa não volta.
+    x.remote.payments[0].refunds.push({status: 'DONE', value: 10});
+    Object.assign(x.remote.payments[0], {status: 'REFUNDED'});
+    await x.webhook('evt_estorno_conta', {id: x.remote.payments[0].id});
+    x.f.advance(16 * 60000);
+    await x.f.api.paymentTick();
+    const cookie = (await x.f.request('/login', {email: 'admin@example.test', password: x.f.password}))
+      .cookie;
+    const q = (await x.f.request('/payments', undefined, cookie)).body.charges[0];
+    r = await x.f.request(
+      '/payments/asaas/refund',
+      {id: q.id, version: q.version, confirm: true, reason: 'Estorno da conta conferido'},
+      cookie,
+    );
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+    finance = (await x.f.request('/state', undefined, cookie)).body.state.finance;
+    assert.equal(finance.receivables[0].status, 'open');
+    assert.equal(finance.receivables[0].remainingCents, 1000);
+    assert.equal(finance.totalCents, 1901, '926 + 2.000 − 1.025 estornados; a tarifa de R$ 0,99 não volta');
+  } finally {
+    await x.f.close();
+  }
+});

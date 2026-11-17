@@ -16,6 +16,7 @@ import {
 import {settlementPosition, syncSettlement} from './finance-settlements.mjs';
 import {collectionHeld, payerLink} from './finance-collection-policy.mjs';
 import {ASAAS_EVENTS} from './asaas-client.mjs';
+import {MAX_FINE_BPS} from './finance-fees.mjs';
 
 const fail = (message, status = 403) => {
   throw Object.assign(Error(message), {status});
@@ -25,6 +26,27 @@ const ids = (value) => typeof value === 'string' && /^[A-Za-z0-9_-]{3,100}$/.tes
 // Conta já vencida: a cobrança no Asaas não nasce com data no passado — vence hoje (dia de Brasília). A conta a
 // receber guarda o vencimento original, que é de onde contam multa e juros.
 const chargeDueOn = (r, now) => (r.dueOn < localDay(now) ? localDay(now) : r.dueOn);
+// Multa e juros cobrados PELO ASAAS (decisão do dono de 17/11/2026: 2% de multa e 1% ao mês, proporcional aos dias):
+// a regra de encargos APROVADA que cobre o vencimento da conta vira multa (%) e juros AO MÊS (%) na cobrança — é
+// o formato da documentação oficial da criação de cobrança. Sem regra aprovada, a cobrança sai sem encargos, como
+// antes. O cálculo manual continua recusado para conta com cobrança externa: nunca cobra duas vezes.
+function lateFeesFor(s, tenant, r) {
+  const rule = rows(s, 'financialFeeRules', tenant)
+    .filter((x) => x.status === 'approved' && x.dueFrom <= r.dueOn && r.dueOn <= x.dueThrough)
+    .sort((a, b) => (b.approval?.at || '').localeCompare(a.approval?.at || ''))[0];
+  if (!rule) return null;
+  const fineBps = Math.min(rule.fineBps, MAX_FINE_BPS);
+  return {
+    ruleId: rule.id,
+    ruleVersion: rule.version,
+    ruleReference: rule.reference,
+    fineBps,
+    annualInterestBps: rule.annualInterestBps,
+    finePercent: fineBps / 100,
+    // juros anuais em pontos-base → % ao mês com 2 casas (1.200 pontos ao ano = 1% ao mês)
+    interestMonthlyPercent: Math.round(rule.annualInterestBps / 12) / 100,
+  };
+}
 // O id do EVENTO do webhook é opaco e, pela documentação oficial, tem "&" (ex.: evt_05b7…f621&368604920):
 // com a regra dos outros ids, todo aviso real voltava 400. Só serve de chave de idempotência.
 const eventIds = (value) => typeof value === 'string' && /^[A-Za-z0-9_&.:-]{3,150}$/.test(value);
@@ -402,6 +424,8 @@ export function previewAsaasCharge(s, users, u, input, now = Date.now()) {
     receivableVersion: r.version,
     connectionVersion: c.version,
     payerVersion: payer.version,
+    // quem confirma a emissão vê os encargos que o Asaas vai cobrar depois do vencimento
+    lateFees: lateFeesFor(s, u.tenant, r),
   };
 }
 export function claimAsaasCharge(s, users, u, input, now = Date.now()) {
@@ -429,6 +453,8 @@ export function claimAsaasCharge(s, users, u, input, now = Date.now()) {
     createdAt: new Date(now).toISOString(),
     receiptOperationId: randomUUID(),
     feeOperationId: randomUUID(),
+    lateFees: lateFeesFor(s, u.tenant, r),
+    lateFeeOperationId: randomUUID(),
   };
   q.externalReference = 'vilazuni:' + q.id;
   s.asaasCharges ??= [];
@@ -552,7 +578,9 @@ export function applyAsaasRefund(s, u, id, version, payment, reasonInput, now = 
     reason = text(reasonInput, 'Conferência do estorno no Asaas', 500);
   if (payment.id !== q.paymentId || payment.externalReference !== q.externalReference)
     fail('Retorno divergente da cobrança.', 409);
-  const gross = q.amountCents,
+  // O recebido = valor da conta + encargos pagos pelo Asaas (multa e juros).
+  const late = q.lateFeeCents || 0,
+    gross = q.amountCents + late,
     before = q.refundedCents || 0,
     reversed = providerReversedCents(payment, gross);
   if (reversed > gross) fail('O estorno informado é maior que o recebido. Confira no Asaas.', 409);
@@ -562,47 +590,69 @@ export function applyAsaasRefund(s, u, id, version, payment, reasonInput, now = 
       409,
     );
   const r = rows(s, 'financialReceivables', q.tenant).find((r) => r.id === q.receivableId),
-    original = rows(s, 'financialEntries', q.tenant).find((e) => e.id === q.receiptEntryId);
-  if (!r || !original || original.reversalId) fail('Conta ou lançamento de origem indisponível.', 409);
+    original = rows(s, 'financialEntries', q.tenant).find((e) => e.id === q.receiptEntryId),
+    lateEntry = late ? rows(s, 'financialEntries', q.tenant).find((e) => e.id === q.lateEntryId) : null;
+  // (os encargos já devolvidos por inteiro num estorno parcial não impedem o estorno seguinte, da conta)
+  if (!r || !original || original.reversalId || (late && !lateEntry))
+    fail('Conta ou lançamento de origem indisponível.', 409);
   if (r.activeAgreementId) fail('Conta em acordo: cancele o acordo antes de reabrir o saldo.', 409);
-  const delta = reversed - before,
+  // O estorno devolve primeiro os encargos e depois a conta: só a parte da conta reabre a dívida.
+  const lateDelta = Math.min(reversed, late) - Math.min(before, late),
+    baseDelta = reversed - before - lateDelta,
     on = openDate(s, u, localDay(now), now),
-    account = activeAccount(s, u, q.accountId),
-    entry = post(
+    account = activeAccount(s, u, q.accountId);
+  const reverse = (of, amount, extra) =>
+    post(
       s,
       u,
       {
         operationId: randomUUID(),
         kind: 'reversal',
         date: on,
-        description: 'Estorno Asaas · ' + r.description,
-        category: 'Estorno',
-        reference: 'Estorno Asaas ' + payment.id + ' · ' + reversed,
         reason,
-        amountCents: delta,
-        reversalOf: original.id,
-        receivableId: r.id,
+        amountCents: amount,
+        reversalOf: of.id,
         providerPaymentId: payment.id,
-        postings: [{accountId: account.id, fundId: r.fundId, amountCents: -delta}],
+        postings: [{accountId: account.id, fundId: r.fundId, amountCents: -amount}],
+        ...extra,
       },
       [{id: account.id, version: account.version}],
       now,
     );
-  if (reversed === gross) {
-    original.reversalId = entry.id;
-    original.version++;
+  if (lateDelta) {
+    const lateReversal = reverse(lateEntry, lateDelta, {
+      description: 'Estorno de encargos Asaas · ' + r.description,
+      category: 'Estorno',
+      reference: 'Estorno encargos Asaas ' + payment.id + ' · ' + reversed,
+    });
+    if (Math.min(reversed, late) === late) {
+      lateEntry.reversalId = lateReversal.id;
+      lateEntry.version++;
+    }
   }
-  r.version++;
-  r.events.push({date: on, kind: 'open', reason});
-  syncSettlement(s, q.tenant, 'receivable', r);
-  r.history.push({
-    at: new Date(now).toISOString(),
-    actor: u.name,
-    action: 'Estorno do Asaas conferido; saldo a receber reaberto',
-    entryId: entry.id,
-    amountCents: delta,
-    reason,
-  });
+  if (baseDelta) {
+    const entry = reverse(original, baseDelta, {
+      description: 'Estorno Asaas · ' + r.description,
+      category: 'Estorno',
+      reference: 'Estorno Asaas ' + payment.id + ' · ' + reversed,
+      receivableId: r.id,
+    });
+    if (reversed === gross) {
+      original.reversalId = entry.id;
+      original.version++;
+    }
+    r.version++;
+    r.events.push({date: on, kind: 'open', reason});
+    syncSettlement(s, q.tenant, 'receivable', r);
+    r.history.push({
+      at: new Date(now).toISOString(),
+      actor: u.name,
+      action: 'Estorno do Asaas conferido; saldo a receber reaberto',
+      entryId: entry.id,
+      amountCents: baseDelta,
+      reason,
+    });
+  }
   Object.assign(q, {
     status: 'refunded',
     refundedCents: reversed,
@@ -679,10 +729,12 @@ function reconcilePayment(s, connectionId, payment, now) {
       );
   if (!c || !q) fail('Cobrança externa ainda não vinculada.', 409);
   if (tenantSettings(s, c.tenant).status === 'closed') fail('Condomínio encerrado.', 409);
+  // Pago com atraso, o Asaas devolve o valor com os encargos e guarda o original em `originalValue`
+  // (documentação oficial: "filled when paid with interest and fine").
   if (
     !ids(payment.id) ||
     payment.externalReference !== q.externalReference ||
-    paymentCents(payment.value) !== q.amountCents ||
+    paymentCents(payment.originalValue == null ? payment.value : payment.originalValue) !== q.amountCents ||
     payment.billingType !== q.billingType ||
     payment.dueDate !== q.dueOn ||
     payment.customer !== payerForCharge(s, q).customerId ||
@@ -700,7 +752,10 @@ function reconcilePayment(s, connectionId, payment, now) {
   q.version++;
   delete q.error;
   // Estorno parcial pode chegar com a cobrança ainda "RECEIVED": o que manda é o que o provedor DEVOLVEU.
-  const reversed = q.receiptEntryId ? providerReversedCents(payment, q.amountCents) : 0;
+  // O recebido inclui os encargos pagos pelo Asaas: o estorno cheio devolve tudo.
+  const reversed = q.receiptEntryId
+    ? providerReversedCents(payment, q.amountCents + (q.lateFeeCents || 0))
+    : 0;
   // Estorno já lançado e nada novo devolvido: a cobrança segue como estornada (qualquer situação no provedor).
   if (q.refundedCents && reversed === q.refundedCents) {
     q.status = 'refunded';
@@ -746,17 +801,29 @@ function reconcilePayment(s, connectionId, payment, now) {
   }
   const gross = paymentCents(payment.value),
     net = paymentCents(payment.netValue),
-    fee = gross - net;
+    fee = gross - net,
+    late = gross - q.amountCents;
   if (net > gross) fail('Tarifa do provedor inválida.', 409);
+  if (late < 0) fail('Retorno divergente da cobrança.', 409);
+  if (late > 0) {
+    // Encargos só entram quando a cobrança os previa e os três campos do Asaas conferem entre si; senão, conferência
+    // humana — nunca um lançamento adivinhado.
+    const declared = payment.interestValue == null ? null : paymentCents(payment.interestValue);
+    if (!q.lateFees || payment.originalValue == null || (declared !== null && declared !== late)) {
+      q.status = 'review';
+      q.error = 'Recebido com encargos que não conferem com a cobrança: confira no Asaas antes de lançar.';
+      return {id: q.id, status: q.status};
+    }
+  }
   if (q.environment === 'sandbox') {
-    Object.assign(q, {status: 'received', netCents: net, feeCents: fee});
+    Object.assign(q, {status: 'received', netCents: net, feeCents: fee, lateFeeCents: late});
     return {id: q.id, status: q.status, simulation: true};
   }
   const r = rows(s, 'financialReceivables', q.tenant).find((r) => r.id === q.receivableId);
   if (
     !r ||
     r.version !== q.receivableVersion ||
-    settlementPosition(s, q.tenant, 'receivable', r).remainingCents !== gross
+    settlementPosition(s, q.tenant, 'receivable', r).remainingCents !== q.amountCents
   )
     fail('O saldo local mudou. Confira o recebimento antes de conciliar.', 409);
   const u = serviceUser(q.tenant),
@@ -775,14 +842,35 @@ function reconcilePayment(s, connectionId, payment, now) {
       category: r.category,
       reference: 'Asaas ' + payment.id,
       reason: 'Recebimento confirmado por consulta autenticada ao Asaas',
-      amountCents: gross,
+      amountCents: q.amountCents,
       receivableId: r.id,
       providerPaymentId: payment.id,
-      postings: [{accountId: account.id, fundId: r.fundId, amountCents: gross}],
+      postings: [{accountId: account.id, fundId: r.fundId, amountCents: q.amountCents}],
     },
     [{id: account.id, version: account.version}],
     now,
   );
+  // Encargos pagos pelo Asaas: receita à parte (a conta quita pelo valor dela; o que sobra é multa e juros).
+  const lateEntry = late
+    ? post(
+        s,
+        u,
+        {
+          operationId: q.lateFeeOperationId,
+          kind: 'income',
+          date: on,
+          description: 'Encargos de atraso · ' + r.description,
+          category: 'Encargos pagos pelo Asaas',
+          reference: 'Encargos Asaas ' + payment.id,
+          reason: 'Multa e juros cobrados pelo Asaas pela regra ' + q.lateFees.ruleReference,
+          amountCents: late,
+          providerPaymentId: payment.id,
+          postings: [{accountId: account.id, fundId: r.fundId, amountCents: late}],
+        },
+        [{id: account.id, version: account.version}],
+        now,
+      )
+    : null;
   if (fee)
     post(
       s,
@@ -809,7 +897,7 @@ function reconcilePayment(s, connectionId, payment, now) {
     actor: u.name,
     action: 'Recebimento Asaas conciliado',
     entryId: entry.id,
-    amountCents: gross,
+    amountCents: q.amountCents,
   });
   Object.assign(q, {
     status: 'received',
@@ -817,6 +905,8 @@ function reconcilePayment(s, connectionId, payment, now) {
     receivedOn: on,
     netCents: net,
     feeCents: fee,
+    lateFeeCents: late,
+    lateEntryId: lateEntry?.id || null,
   });
   audit(s, u, 'Recebimento e tarifa Asaas conciliados', q.id, now);
   return {id: q.id, status: q.status};
@@ -857,8 +947,17 @@ export function asaasView(s, u, users = [], now = Date.now()) {
             feeCents: q.feeCents,
             received: !!q.receiptEntryId,
             refundedCents: q.refundedCents || 0,
+            lateFeeCents: q.lateFeeCents || 0,
           }
         : {}),
+      // multa e juros que o Asaas cobra depois do vencimento (o pagador também vê)
+      lateFees: q.lateFees
+        ? {
+            finePercent: q.lateFees.finePercent,
+            interestMonthlyPercent: q.lateFees.interestMonthlyPercent,
+            ruleReference: q.lateFees.ruleReference,
+          }
+        : null,
     }));
   return {
     charges,

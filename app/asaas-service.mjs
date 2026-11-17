@@ -224,8 +224,9 @@ export function createAsaasService({
           dueDate: p.q.dueOn,
           description: p.q.description,
           externalReference: p.q.externalReference,
-          fine: {value: 0},
-          interest: {value: 0},
+          // multa (%) e juros AO MÊS (%) da regra aprovada; sem regra, zero (documentação oficial da criação)
+          fine: {value: p.q.lateFees?.finePercent || 0, type: 'PERCENTAGE'},
+          interest: {value: p.q.lateFees?.interestMonthlyPercent || 0},
           discount: {value: 0, type: 'FIXED'},
         });
         const result = await run(() =>
