@@ -5,6 +5,14 @@ import {hash, verify} from '@node-rs/argon2';
 export const newToken = (): string => randomBytes(32).toString('base64url');
 export const sha256 = (value: string): Buffer => createHash('sha256').update(value, 'utf8').digest();
 
+/**
+ * Token CSRF da sessão web DERIVADO do token de sessão (que é secreto e só o cookie HttpOnly carrega): a tela
+ * recupera o mesmo token depois de recarregar (`GET /auth/csrf`) e todas as abas usam o mesmo — sem guardar segredo
+ * novo. Quem não tem o cookie não consegue calcular.
+ */
+export const csrfFor = (sessionToken: string): string =>
+  createHash('sha256').update(`vz-csrf:${sessionToken}`, 'utf8').digest('base64url');
+
 export function sameHash(a: Buffer | null | undefined, b: Buffer): boolean {
   return !!a && a.length === b.length && timingSafeEqual(a, b);
 }

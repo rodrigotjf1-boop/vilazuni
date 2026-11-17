@@ -29,14 +29,21 @@ export class UnitsController {
   async mine(@Req() req: AuthedRequest) {
     if ((await this.actors.condominiumsOf(req.session!.personId)).length === 0) return {units: []};
     return this.actors.ownData(req, async (client) => {
+      // titularidade e residência (morador de contrato) — cada uma com a sua situação; mesma casa = um cartão só
       const r = await client.query(
-        `select o.id as link_id, o.status as link_status, o.starts_at, o.ends_at, o.requested_at, o.decision_note,
-                u.*, p.number as parking_number, p.accessible as parking_accessible
-           from ownership o
-           join unit u on u.condominium_id = o.condominium_id and u.id = o.unit_id
+        `select v.*, u.*, p.number as parking_number, p.accessible as parking_accessible
+           from (
+             select o.id as link_id, 'ownership' as link_type, o.unit_id as link_unit, o.status as link_status,
+                    o.starts_at as link_starts, o.ends_at as link_ends, o.requested_at as link_requested,
+                    case when o.status = 'rejected' then o.decision_note end as link_note
+               from ownership o where o.person_id = $1 and o.status in ('pending','validated','rejected')
+             union all
+             select r.id, 'residency', r.unit_id, r.status, r.starts_at, r.ends_at, r.created_at, null
+               from residency r where r.person_id = $1 and r.status in ('pending','active')
+           ) v
+           join unit u on u.id = v.link_unit
            left join parking_space p on p.condominium_id = u.condominium_id and p.unit_id = u.id
-          where o.person_id = $1 and o.status in ('pending','validated','rejected')
-          order by u.label, o.requested_at desc`,
+          order by u.label, v.link_type, v.link_requested desc`,
         [req.session!.personId],
       );
       const units = new Map<string, ReturnType<typeof unitView> & {links: unknown[]}>();
@@ -44,17 +51,29 @@ export class UnitsController {
         const unit = units.get(row.id) ?? {...unitView(row), links: []};
         unit.links.push({
           id: row.link_id,
-          type: 'ownership',
+          type: row.link_type,
           status: row.link_status,
-          startsAt: row.starts_at,
-          endsAt: row.ends_at,
-          requestedAt: row.requested_at,
+          startsAt: row.link_starts,
+          endsAt: row.link_ends,
+          requestedAt: row.link_requested,
           // o motivo da recusa é do próprio pedido da pessoa
-          decisionNote: row.link_status === 'rejected' ? row.decision_note : null,
+          decisionNote: row.link_note ?? null,
         });
         units.set(row.id, unit);
       }
       return {units: [...units.values()]};
+    });
+  }
+
+  /**
+   * Só o nome de cada casa, para quem pode pedir titularidade escolher qual ("informa as casas", especificação §6).
+   * Nada de titular, vaga ou situação — isso é da gestão.
+   */
+  @Get('unit-labels')
+  async labels(@Req() req: AuthedRequest) {
+    return this.actors.run(req, 'ownership.request', async (client) => {
+      const r = await client.query(`select id, label from unit where status = 'active' order by label`);
+      return {units: r.rows.map((u) => ({id: u.id as string, label: u.label as string}))};
     });
   }
 

@@ -16,6 +16,7 @@ import {UnitsController} from './units/units.controller.js';
 import {MfaController} from './auth/mfa.controller.js';
 import {GovernanceController} from './governance/governance.controller.js';
 import {VAULT, Vault} from './crypto/vault.js';
+import {AccessController} from './authz/access.controller.js';
 
 /** Fecha o pool do banco quando a aplicação para. */
 class PoolCloser implements OnApplicationShutdown {
@@ -45,6 +46,7 @@ export class AppModule {
         UnitsController,
         MfaController,
         GovernanceController,
+        AccessController,
       ],
       providers: [
         {provide: CONFIG, useValue: config},

@@ -8,9 +8,9 @@ import {CLOCK, type Clock} from '../clock.js';
 import {withCondominium} from '../db/tenant.js';
 import {parse, pathId} from '../http/validate.js';
 import {notFound, unauthorized, ApiError} from '../http/errors.js';
-import {Public, cookieName, type AuthedRequest} from './auth.guard.js';
+import {Public, cookieName, readCookie, type AuthedRequest} from './auth.guard.js';
 import {SessionService, WEB_SESSION_MS} from './session.service.js';
-import {dummyPasswordHash, verifyPassword, PASSWORD_MAX} from './crypto.js';
+import {csrfFor, dummyPasswordHash, verifyPassword, PASSWORD_MAX} from './crypto.js';
 import {LoginLimiter} from './login-limiter.js';
 import {ActorService} from '../authz/actor.service.js';
 
@@ -144,6 +144,17 @@ export class AuthController {
   }
 
   /** Quem sou eu + os condomínios onde tenho vínculo (sem dados de outras pessoas). */
+  /**
+   * Token CSRF da sessão web atual (a tela recarregada perde o da memória). Só a própria página o lê: outra origem
+   * não lê a resposta (CORS) e nem envia o cookie num pedido de fundo (SameSite=Lax).
+   */
+  @Get('auth/csrf')
+  csrf(@Req() req: AuthedRequest) {
+    const token = readCookie(req.headers.cookie, cookieName(this.config));
+    if (req.session!.transport !== 'web' || !token) throw notFound();
+    return {csrfToken: csrfFor(token)};
+  }
+
   @Get('me')
   async me(@Req() req: AuthedRequest) {
     const personId = req.session!.personId;

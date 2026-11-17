@@ -6,7 +6,7 @@ Cada item vira um registro no painel de implantação (Fase 2) com responsável,
 |---|---|---|
 | P01 | Convenção, regimento e atas | Regras publicadas como vigentes; votação vinculante |
 | P02 | Nomes/números oficiais das casas e vagas | Cadastro real das unidades e vagas |
-| P03 | Titulares, copropriedades e contatos | Validação real de titularidade |
+| P03 | Titulares, copropriedades e contatos — **vão chegar pelo próprio app**: o dono envia o link de cadastro aos proprietários (ADR-0011) | Validação real de titularidade |
 | P04 | Datas do mandato e escopo da isenção do síndico | Poderes de gestão reais; isenção na cobrança |
 | P05 | Atribuições da Tenaz | Escopos reais do papel `administrator` |
 | P06 | Contrato do prestador e acordo de uso da casa de zelador | Tarefas contratuais; receita e despesa separadas |
@@ -26,4 +26,4 @@ Cada item vira um registro no painel de implantação (Fase 2) com responsável,
 | P20 | Documentação técnica da elétrica | Projeto elétrico 2027 |
 | P21 | Número oficial de WhatsApp, templates aprovados e opt-in | Mensagens reais |
 | P22 | Conta e chave de assinatura Android do condomínio/projeto | APK de produção |
-| P23 | Provedor de e-mail transacional (remetente e domínio autenticados) | Envio automático do convite, autocadastro aberto e "esqueci a senha" (até lá a gestão envia o link do convite — ADR-0009) |
+| P23 | E-mail transacional — **provedor decidido: Amazon SES da DMS** (ADR-0011); falta o remetente (domínio `vilazuni.com` verificado no SES) e a credencial de envio | Cadastro por link com e-mail confirmado, envio automático do convite e "esqueci a senha" (até lá a gestão envia o link do convite — ADR-0009) |
