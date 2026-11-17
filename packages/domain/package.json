@@ -1,0 +1,15 @@
+{
+  "name": "@vilazuni/domain",
+  "version": "1.0.0-alpha.0",
+  "private": true,
+  "description": "Regras puras do Vilazuni (sem banco, sem rede): tempo, dinheiro, medidas, piscina, permissões.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "development": "./src/index.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": ["dist"]
+}

@@ -18,3 +18,9 @@ marca/
 **/*.dmp
 **/.backups
 **/.diagnostics
+
+# Vilazuni v1
+docs/especificacao/privado
+**/.pgdata
+**/.storage
+**/dist

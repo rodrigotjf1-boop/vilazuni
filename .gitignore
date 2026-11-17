@@ -25,3 +25,15 @@ mobile/ios/*.xcodeproj/
 *.jks
 *.keystore
 *.mobileprovision
+
+# Vilazuni v1 (monorepo novo)
+dist/
+.turbo/
+*.tsbuildinfo
+.pgdata/
+.storage/
+apps/mobile/android/
+apps/mobile/ios/
+# Especificação original (endereço e pontos fracos da segurança física do condomínio):
+# fica só local enquanto o repositório for público. Ver docs/especificacao/README.md.
+docs/especificacao/privado/

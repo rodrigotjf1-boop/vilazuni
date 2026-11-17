@@ -43,3 +43,22 @@ jobs:
       - run: npm audit --omit=dev --audit-level=high
         working-directory: app
       - run: docker build -f deploy/Dockerfile -t vilazuni:ci .
+
+  # Vilazuni v1 (monorepo novo — docs/adr/0001). Roda ao lado do app atual até a troca.
+  v1:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.22.1'
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - run: npm ci --ignore-scripts
+      - name: Formatação (prettier)
+        run: npm run format:check
+      - name: Compilação (TypeScript)
+        run: npm run build
+      - name: Testes
+        run: npm test
+      - run: npm audit --omit=dev --audit-level=high
