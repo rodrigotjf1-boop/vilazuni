@@ -32,6 +32,8 @@ dist/
 *.tsbuildinfo
 .pgdata/
 .storage/
+# senhas geradas pela semeadura demonstrativa (npm run seed:demo)
+.demo/
 apps/mobile/android/
 apps/mobile/ios/
 # Especificação original (endereço e pontos fracos da segurança física do condomínio):

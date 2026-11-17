@@ -5,21 +5,42 @@ import {DB_POOL} from '../db/database.js';
 import {CLOCK, type Clock} from '../clock.js';
 import {withCondominium, uuidv7} from '../db/tenant.js';
 import {parse} from '../http/validate.js';
-import {badRequest, conflict, gone, notFound} from '../http/errors.js';
+import {badRequest, conflict, forbidden, gone, notFound} from '../http/errors.js';
 import {Public, type AuthedRequest} from '../auth/auth.guard.js';
 import {ActorService} from '../authz/actor.service.js';
 import {audit} from '../audit/audit.js';
 import {hashPassword, newToken, sha256, verifyPassword, PASSWORD_MAX, PASSWORD_MIN} from '../auth/crypto.js';
+import {ADMINISTRATOR_SCOPE_NAMES, ASSIGNABLE_ROLES} from '../governance/governance.controller.js';
 
-const createSchema = z
-  .object({
-    // Morador de contrato entra na F1.2, junto com a validação dele (ninguém fica pendente sem quem valide).
-    purpose: z.enum(['ownership']),
-    unitId: z.string().uuid(),
-    contactValue: z.string().trim().toLowerCase().email().max(254),
-    expiresInHours: z.number().int().min(1).max(168).default(72),
-  })
-  .strict();
+/** Papéis que entram por convite. Síndico não: ele precisa do mandato (ata) e entra por `POST /roles`. */
+export const INVITABLE_ROLES = ASSIGNABLE_ROLES.filter((r) => r !== 'syndic') as [
+  Exclude<(typeof ASSIGNABLE_ROLES)[number], 'syndic'>,
+  ...Exclude<(typeof ASSIGNABLE_ROLES)[number], 'syndic'>[],
+];
+
+const contact = z.string().trim().toLowerCase().email().max(254);
+const expires = z.number().int().min(1).max(168).default(72);
+const createSchema = z.discriminatedUnion('purpose', [
+  // Morador de contrato entra na F1.2, junto com a validação dele (ninguém fica pendente sem quem valide).
+  z
+    .object({
+      purpose: z.literal('ownership'),
+      unitId: z.string().uuid(),
+      contactValue: contact,
+      expiresInHours: expires,
+    })
+    .strict(),
+  // Papel (Tenaz, prestador, conselho…): quem convida decide — é ato crítico (segundo fator recente).
+  z
+    .object({
+      purpose: z.literal('role'),
+      role: z.enum(INVITABLE_ROLES),
+      scopes: z.array(z.enum(ADMINISTRATOR_SCOPE_NAMES)).max(3).default([]),
+      contactValue: contact,
+      expiresInHours: expires,
+    })
+    .strict(),
+]);
 
 const acceptSchema = z
   .object({
@@ -40,6 +61,9 @@ type InvitationRow = {
   condominium_id: string;
   purpose: 'ownership' | 'residency' | 'role';
   unit_id: string | null;
+  role: string | null;
+  scopes: string[];
+  created_by: string;
   contact_value: string;
   expires_at: Date;
   attempts: number;
@@ -62,21 +86,32 @@ export class InvitationsController {
   @Post()
   async create(@Req() req: AuthedRequest, @Body() body: unknown) {
     const input = parse(createSchema, body);
-    return this.actors.run(req, 'invitation.create', async (client, actor) => {
-      const unit = await client.query('select id from unit where id = $1', [input.unitId]);
-      if (!unit.rowCount) throw notFound();
+    const action = input.purpose === 'role' ? 'role.assign' : 'invitation.create';
+    if (input.purpose === 'role' && input.role !== 'administrator' && input.scopes.length)
+      throw badRequest('escopo_so_da_administradora', 'Escopos valem só para a administradora.');
+    return this.actors.run(req, action, async (client, actor) => {
+      if (input.purpose === 'ownership') {
+        const unit = await client.query('select id from unit where id = $1', [input.unitId]);
+        if (!unit.rowCount) throw notFound();
+      }
       const token = newToken();
       const now = this.clock.now();
       const id = uuidv7(now.getTime());
       const expiresAt = new Date(now.getTime() + input.expiresInHours * 3_600_000);
+      const unitId = input.purpose === 'ownership' ? input.unitId : null;
+      const role = input.purpose === 'role' ? input.role : null;
+      const scopes = input.purpose === 'role' ? input.scopes : [];
       await client.query(
-        `insert into invitation (id, condominium_id, purpose, unit_id, contact_kind, contact_value, token_hash, expires_at, created_by, created_at)
-         values ($1, $2, $3, $4, 'email', $5, $6, $7, $8, $9)`,
+        `insert into invitation (id, condominium_id, purpose, unit_id, role, scopes, contact_kind, contact_value, token_hash,
+                                 expires_at, created_by, created_at)
+         values ($1, $2, $3, $4, $5, $6, 'email', $7, $8, $9, $10, $11)`,
         [
           id,
           actor.condominiumId,
           input.purpose,
-          input.unitId,
+          unitId,
+          role,
+          scopes,
           input.contactValue,
           sha256(token),
           expiresAt,
@@ -91,7 +126,7 @@ export class InvitationsController {
         objectType: 'invitation',
         objectId: id,
         correlationId: req.correlationId,
-        detail: {purpose: input.purpose, unitId: input.unitId},
+        detail: {purpose: input.purpose, unitId, role, scopes},
       });
       // O token aparece só nesta resposta; no banco fica o hash.
       return {id, token, path: `/convite/${token}`, expiresAt};
@@ -142,6 +177,8 @@ export class InvitationsController {
         condominiumName: inv.condominium_name,
         purpose: inv.purpose,
         unitLabel: inv.unit_label,
+        role: inv.role,
+        scopes: inv.scopes,
         contactHint: mask(inv.contact_value),
         expiresAt: inv.expires_at,
       };
@@ -170,6 +207,7 @@ export class InvitationsController {
       if (typeof personId !== 'string') return personId;
       const now = this.clock.now();
       const linkId = uuidv7(now.getTime());
+      if (inv.purpose === 'role') return this.acceptRole(req, client, inv, personId, linkId, now);
       if (inv.purpose !== 'ownership')
         return {error: gone('convite_invalido', 'Este convite não vale mais.')};
       await client.query('savepoint vinculo');
@@ -205,7 +243,57 @@ export class InvitationsController {
       return {personId, linkId, purpose: inv.purpose};
     });
     if ('error' in outcome) throw outcome.error;
-    return {personId: outcome.personId, link: {id: outcome.linkId, type: outcome.purpose, status: 'pending'}};
+    return {
+      personId: outcome.personId,
+      link: {
+        id: outcome.linkId,
+        type: outcome.purpose,
+        status: outcome.purpose === 'role' ? 'active' : 'pending',
+      },
+    };
+  }
+
+  /**
+   * Convite de papel: quem convidou já decidiu (com segundo fator recente); o aceite cria o papel ATIVO.
+   * Quem convidou não aceita o próprio convite (ninguém concede papel a si mesmo).
+   */
+  private async acceptRole(
+    req: AuthedRequest,
+    client: PoolClient,
+    inv: InvitationRow,
+    personId: string,
+    linkId: string,
+    now: Date,
+  ) {
+    if (personId === inv.created_by)
+      return {error: forbidden('nao_pode_conceder_a_si', 'Quem convidou não aceita o próprio convite.')};
+    const markUsed = () =>
+      client.query('update invitation set used_at = $2, used_by = $3 where id = $1', [inv.id, now, personId]);
+    const dup = await client.query(
+      `select 1 from role_assignment where person_id = $1 and role = $2 and status = 'active'
+          and (ends_at is null or ends_at > $3) limit 1`,
+      [personId, inv.role, now],
+    );
+    if (dup.rowCount) {
+      await markUsed();
+      return {error: conflict('papel_ja_ativo', 'Você já tem esse papel.')};
+    }
+    await client.query(
+      `insert into role_assignment (id, condominium_id, person_id, role, scopes, starts_at, granted_by, reason, created_at)
+       values ($1, $2, $3, $4, $5, $6, $7, 'Convite aceito', $6)`,
+      [linkId, inv.condominium_id, personId, inv.role, inv.scopes, now, inv.created_by],
+    );
+    await markUsed();
+    await audit(client, {
+      condominiumId: inv.condominium_id,
+      actorPersonId: personId,
+      action: 'invitation.accept',
+      objectType: 'role_assignment',
+      objectId: linkId,
+      correlationId: req.correlationId,
+      detail: {role: inv.role, scopes: inv.scopes, grantedBy: inv.created_by},
+    });
+    return {personId, linkId, purpose: 'role' as const};
   }
 
   /** Conta existente: precisa provar a senha dela. Conta nova: o link enviado ao e-mail prova o contato. */

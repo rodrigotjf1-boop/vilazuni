@@ -1,13 +1,15 @@
 import 'reflect-metadata';
 import {randomBytes} from 'node:crypto';
 import {inject} from 'vitest';
-import {Pool} from 'pg';
+import pg, {Pool} from 'pg';
 import type {INestApplication} from '@nestjs/common';
 import {createApp} from '../../src/bootstrap.js';
 import {loadConfig} from '../../src/config.js';
 import {withCondominium, uuidv7} from '../../src/db/tenant.js';
 import {hashPassword} from '../../src/auth/crypto.js';
 import type {Clock} from '../../src/clock.js';
+import {generateSecret, generateSync} from 'otplib';
+import {Vault} from '../../src/crypto/vault.js';
 
 /**
  * Apoio dos testes da API: a aplicação de verdade (guarda, filtro, RLS) contra o Postgres do teste, com o
@@ -18,6 +20,29 @@ export const PASSWORD = 'Senha-demo-forte-2026';
 export const T0 = Date.UTC(2026, 10, 17, 12, 0, 0);
 export const DAY = 24 * 60 * 60 * 1000;
 export const MIN = 60 * 1000;
+
+/**
+ * Consultas simultâneas no mesmo cliente do pg: aviso hoje, erro no pg 9 (LIC-004). Os testes da API conferem
+ * que a lista fica vazia.
+ */
+export const avisosDoPg: string[] = [];
+// O aviso do pg sai por util.deprecate, que não chega aos processos de teste do vitest: conta direto as consultas
+// em andamento de cada cliente (só nos testes).
+const emAndamento = new WeakMap<object, number>();
+const queryOriginal = pg.Client.prototype.query as (...args: unknown[]) => unknown;
+(pg.Client.prototype as unknown as {query: (...args: unknown[]) => unknown}).query = function (
+  this: object,
+  ...args: unknown[]
+) {
+  const antes = emAndamento.get(this) ?? 0;
+  if (antes > 0) avisosDoPg.push(`consulta simultânea no mesmo cliente: ${String(args[0]).slice(0, 60)}`);
+  const r = queryOriginal.apply(this, args) as Promise<unknown> | undefined;
+  if (r && typeof r.then === 'function') {
+    emAndamento.set(this, antes + 1);
+    r.finally(() => emAndamento.set(this, (emAndamento.get(this) ?? 1) - 1)).catch(() => undefined);
+  }
+  return r;
+};
 
 /** Sufixo por rodada: e-mails e nomes não colidem entre arquivos que dividem o banco. */
 export const RUN = randomBytes(4).toString('hex');
@@ -39,12 +64,20 @@ export interface Api {
   close: () => Promise<void>;
 }
 
-export async function startApi(clock: Clock): Promise<Api> {
-  const config = loadConfig({
+/** Chave-mestra do cofre gerada POR RODADA (nunca uma chave fixa no código). */
+export const TEST_MASTER_KEYS = `t1:${randomBytes(32).toString('base64')}`;
+
+export const testConfig = (extra: Record<string, string> = {}) =>
+  loadConfig({
     DATABASE_URL: inject('dbAppUrl'),
     ALLOWED_ORIGINS: ORIGIN,
     COOKIE_SECURE: 'false',
+    VILAZUNI_MASTER_KEYS: TEST_MASTER_KEYS,
+    ...extra,
   });
+
+export async function startApi(clock: Clock, extra: Record<string, string> = {}): Promise<Api> {
+  const config = testConfig(extra);
   const pool = new Pool({connectionString: inject('dbAppUrl'), max: 4});
   const app = await createApp(config, {pool, clock}, {quiet: true});
   await app.listen(0, '127.0.0.1');
@@ -116,6 +149,26 @@ export class WebClient {
   }
   get = (path: string, o?: CallOptions) => this.call('GET', path, undefined, o);
   post = (path: string, body?: unknown, o?: CallOptions) => this.call('POST', path, body ?? {}, o);
+
+  /** Confirma o segundo fator nesta sessão com o código do "aplicativo" no instante do relógio do servidor. */
+  mfa(secret: string, clock: FakeClock): Promise<Reply> {
+    return this.post('/auth/mfa/verify', {code: totpAt(secret, clock)});
+  }
+}
+
+/** O código que o aplicativo autenticador mostraria no instante do relógio controlado. */
+export const totpAt = (secret: string, clock: FakeClock) =>
+  generateSync({secret, epoch: Math.floor(clock.t / 1000)});
+
+/** Segundo fator JÁ configurado (segredo cifrado pelo cofre, como a API grava). Devolve o segredo. */
+export async function seedTotp(owner: Pool, personId: string): Promise<string> {
+  const secret = generateSecret();
+  const sealed = new Vault(testConfig()).seal(secret, `totp:${personId}`);
+  await owner.query(
+    `insert into auth_credential (id, person_id, kind, secret, confirmed_at) values ($1, $2, 'totp', $3, now())`,
+    [uuidv7(), personId, sealed],
+  );
+  return secret;
 }
 
 /** App nativo: bearer curto + refresh, sem cookie. */

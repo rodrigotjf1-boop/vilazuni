@@ -13,6 +13,9 @@ import {ActorService} from './authz/actor.service.js';
 import {InvitationsController} from './invitations/invitations.controller.js';
 import {OwnershipController} from './ownership/ownership.controller.js';
 import {UnitsController} from './units/units.controller.js';
+import {MfaController} from './auth/mfa.controller.js';
+import {GovernanceController} from './governance/governance.controller.js';
+import {VAULT, Vault} from './crypto/vault.js';
 
 /** Fecha o pool do banco quando a aplicação para. */
 class PoolCloser implements OnApplicationShutdown {
@@ -40,6 +43,8 @@ export class AppModule {
         InvitationsController,
         OwnershipController,
         UnitsController,
+        MfaController,
+        GovernanceController,
       ],
       providers: [
         {provide: CONFIG, useValue: config},
@@ -48,6 +53,7 @@ export class AppModule {
         PoolCloser,
         SessionService,
         ActorService,
+        {provide: VAULT, useClass: Vault},
         // Toda rota exige sessão, salvo as marcadas com @Public() (negar por padrão).
         {provide: APP_GUARD, useClass: AuthGuard},
         {provide: APP_FILTER, useClass: ErrorFilter},

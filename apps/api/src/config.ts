@@ -36,10 +36,44 @@ const schema = z
       .enum(['true', 'false'])
       .default('false')
       .transform((v) => v === 'true'),
+    /**
+     * Chaves-mestras do cofre (ADR-0007), "id:base64" separadas por vírgula; a PRIMEIRA cifra, as demais só abrem
+     * (rotação). Cada uma tem 32 bytes. Nunca no banco nem no repositório.
+     */
+    VILAZUNI_MASTER_KEYS: z
+      .string()
+      .default('')
+      .transform((s, ctx) => {
+        const keys: {id: string; key: Uint8Array}[] = [];
+        for (const part of s
+          .split(',')
+          .map((p) => p.trim())
+          .filter(Boolean)) {
+          const sep = part.indexOf(':');
+          const id = part.slice(0, sep);
+          const key = Buffer.from(part.slice(sep + 1), 'base64');
+          if (sep < 1 || !/^[a-z0-9]{1,16}$/.test(id) || key.length !== 32) {
+            ctx.addIssue({code: 'custom', message: 'Cada chave é "id:base64" com 32 bytes (id em a-z0-9).'});
+            return [];
+          }
+          if (keys.some((k) => k.id === id)) {
+            ctx.addIssue({code: 'custom', message: `Id de chave repetido: ${id}.`});
+            return [];
+          }
+          keys.push({id, key: new Uint8Array(key)});
+        }
+        return keys;
+      }),
   })
   .superRefine((env, ctx) => {
     if (env.ALLOWED_ORIGINS.includes('*'))
       ctx.addIssue({code: 'custom', path: ['ALLOWED_ORIGINS'], message: 'Origem curinga não é permitida.'});
+    if (env.VILAZUNI_ENV !== 'demo' && env.VILAZUNI_MASTER_KEYS.length === 0)
+      ctx.addIssue({
+        code: 'custom',
+        path: ['VILAZUNI_MASTER_KEYS'],
+        message: 'Fora da demonstração o cofre precisa de chave-mestra.',
+      });
     if (env.VILAZUNI_ENV === 'production' && !env.COOKIE_SECURE)
       ctx.addIssue({code: 'custom', path: ['COOKIE_SECURE'], message: 'Produção exige cookie seguro.'});
     if (env.VILAZUNI_ENV === 'production') {
