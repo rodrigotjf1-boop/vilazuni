@@ -31,6 +31,32 @@ export async function apiComo(key: string, baseURL: string) {
   return {ctx, headers: {'x-csrf-token': csrfToken, origin}};
 }
 
+/**
+ * O código de cadastro que chegou na caixa da DEMONSTRAÇÃO (o e-mail não sai do servidor no modo demo). Espera o
+ * despachante da fila entregar. Use um e-mail novo por teste: devolve o código do e-mail mais recente.
+ */
+export async function codigoDoEmail(baseURL: string, email: string): Promise<string> {
+  const origin = new URL(baseURL).origin;
+  const ctx = await request.newContext({baseURL: `${origin}/api/v1/`});
+  try {
+    let codigo = '';
+    await expect
+      .poll(
+        async () => {
+          const r = await ctx.get(`demo/mailbox?to=${encodeURIComponent(email)}`);
+          const texto: string = (await r.json()).messages?.[0]?.text ?? '';
+          codigo = /: (\d{6})\b/.exec(texto)?.[1] ?? '';
+          return codigo;
+        },
+        {message: `código na caixa de ${email}`, timeout: 10_000},
+      )
+      .toMatch(/^\d{6}$/);
+    return codigo;
+  } finally {
+    await ctx.dispose();
+  }
+}
+
 /** O corpo da página nunca rola na horizontal (regra de toda tela). */
 export async function semRolagemLateral(page: Page) {
   const {scroll, client} = await page.evaluate(() => ({

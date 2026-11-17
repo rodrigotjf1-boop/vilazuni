@@ -11,7 +11,7 @@ Situação: ⬜ não iniciado · 🟡 em andamento · ✅ implementado e testado
 | RQ-003 | Energia: `kWh = W/1000 × h/dia × dias`; vazio = pendente; zero confirmado ≠ ausente; mesma bomba não duplica horas | §13 | Piscina › Custos | `/pool/cost-estimates` | `pump_usage` | T35, T36 | 🟡 regra pura |
 | RQ-004 | Unidades de estoque: kg↔g e L↔mL; massa↔volume nunca sem densidade | §12 | Estoque | `/stock/*` | `stock_item` | T32 | 🟡 regra pura |
 | RQ-005 | Dinheiro em centavos inteiros; multa até 2%; juros sem regra = pendente | §9 | Minhas contribuições | `/charges` | `financial_rule_version` | T28 | 🟡 regra pura |
-| RQ-010 | Autocadastro nunca concede papel; titularidade nasce pendente | §6 | Pedir titularidade | `POST /ownership-requests`, `POST /auth/invitations/:token/accept` | `ownership` | T01 | ✅ API e telas (convite, Minha casa › pedir outra casa); cadastro por link na F1.1d |
+| RQ-010 | Autocadastro nunca concede papel; titularidade nasce pendente | §6 | Pedir titularidade, Cadastro | `POST /ownership-requests`, `POST /auth/invitations/:token/accept`, `POST /signup/:token/finish` | `ownership` | T01 | ✅ API e telas (convite, Minha casa › pedir outra casa, cadastro pelo link) |
 | RQ-011 | Autorização por papel + condomínio + unidade + vínculo + período + ação, negar por padrão | §6 | todas | todas | `role_assignment`, `ownership` | T02–T05, T20 | ✅ API e telas (quem mora e Gestão) |
 | RQ-012 | Isolamento por condomínio com chave composta e RLS | §5, §6 | — | todas | todas de negócio | T03, T54 | ✅ banco + API |
 | RQ-013 | Convite de uso único, hash, validade, tentativas | §6 | Aceitar convite | `/auth/invitations` | `invitation` | T06 | ✅ API e tela Aceitar convite |
@@ -22,6 +22,8 @@ Situação: ⬜ não iniciado · 🟡 em andamento · ✅ implementado e testado
 | RQ-018 | MFA obrigatório para síndico, Tenaz financeiro, suporte e atos críticos | §6 | Entrar, Conta | `/auth/mfa` | `auth_credential`, `auth_recovery_code` | T06 (código repetido) | 🟡 API ✅ (TOTP no cofre, recuperação, trava, recente nos atos críticos); tela Verificação em duas etapas ✅; suporte na Fase 2 |
 | RQ-019 | Seed repetível do Chandra com 14 casas, 14 vagas e pessoas fictícias identificadas; impossível em produção | §24 | — | `npm run seed:demo` | todas | — | ✅ (casos da F1.1; estadias, finanças e estoque entram com as fases deles) |
 | RQ-020 | Auditoria só acréscimo: ator, papel, ação, objeto, resultado, motivo, correlation_id | §22 | Gestão › Auditoria | `/audit-events` | `audit_event` | — | ✅ gravação e leitura (paginada, por condomínio); tela Gestão › Auditoria ✅ |
+| RQ-021 | Cadastro dos proprietários pelo link do condomínio (decisão do dono, ADR-0011): link com validade, limite e revogação, guardado como hash; e-mail confirmado por código (15 min, uso único, 5 tentativas, limite por hora); conta existente prova a senha; até 5 casas pendentes sem duplicar | §6 | Gestão › Titularidades (link), Cadastro | `/signup-links`, `GET /signup/:token`, `POST /signup/:token/code`, `POST /signup/:token/finish` | `signup_link`, `email_verification` | T01, T06 (adaptados ao link) | ✅ API e telas (modo demonstração; envio real espera P23) |
+| RQ-022 | Efeito externo pela fila de saída: mudança e envio na mesma transação, idempotência, tentativas com espera, desistência com motivo, conteúdo sensível apagado depois do envio | §19, §22 | — | — | `outbox_event` | — | ✅ para e-mail (ADR-0012); worker separado e conciliação quando chegarem cobrança e WhatsApp |
 
 ## Fases seguintes
 

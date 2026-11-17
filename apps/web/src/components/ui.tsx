@@ -13,11 +13,12 @@ import {ApiError} from '../lib/api';
 /** Peças pequenas e repetidas das telas. Alvo de toque confortável (44 px), foco visível, texto de 16 px. */
 
 type Tone = 'primary' | 'secondary' | 'danger' | 'quiet';
+// o recuo lateral fica em cada tom: "px-4" na base e "px-0" no discreto disputavam e o discreto saía recuado
 const TONES: Record<Tone, string> = {
-  primary: 'bg-primaria text-white hover:bg-primaria-escura disabled:opacity-60',
-  secondary: 'bg-superficie text-texto border border-linha hover:border-primaria disabled:opacity-60',
-  danger: 'bg-superficie text-erro border border-erro hover:bg-erro hover:text-white disabled:opacity-60',
-  quiet: 'text-primaria underline underline-offset-4 hover:text-primaria-escura px-0',
+  primary: 'px-4 bg-primaria text-white hover:bg-primaria-escura disabled:opacity-60',
+  secondary: 'px-4 bg-superficie text-texto border border-linha hover:border-primaria disabled:opacity-60',
+  danger: 'px-4 bg-superficie text-erro border border-erro hover:bg-erro hover:text-white disabled:opacity-60',
+  quiet: 'text-primaria underline underline-offset-4 hover:text-primaria-escura',
 };
 
 export function Button({
@@ -34,7 +35,7 @@ export function Button({
       {...rest}
       disabled={rest.disabled || busy}
       aria-busy={busy || undefined}
-      className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-4 font-medium transition-colors ${TONES[tone]} ${className}`}
+      className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-lg font-medium transition-colors ${TONES[tone]} ${className}`}
     >
       {busy && busyLabel ? busyLabel : children}
     </button>

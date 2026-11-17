@@ -1,6 +1,7 @@
 # ADR-0006 — Fila durável e outbox transacional
 
 - **Situação:** aceita (17/11/2026); implementação a partir do primeiro efeito externo (convite/notificação).
+- **Revisão (ADR-0012, 17/11/2026):** no piloto, o primeiro efeito (o e-mail do código de cadastro) sai por um despachante dentro da API, com `SKIP LOCKED`, sem worker separado nem pg-boss. O worker e o pg-boss entram com a cobrança e o WhatsApp; o resto desta decisão continua.
 
 ## Decisão
 

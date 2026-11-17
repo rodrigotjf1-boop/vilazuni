@@ -9,6 +9,7 @@ import {ApiError} from './lib/api';
 import {Shell} from './components/Shell';
 import {Entrar} from './pages/Entrar';
 import {Convite} from './pages/Convite';
+import {Cadastro} from './pages/Cadastro';
 import {MinhaCasa} from './pages/MinhaCasa';
 import {Verificacao} from './pages/Verificacao';
 import {Sessoes} from './pages/Sessoes';
@@ -39,6 +40,7 @@ const queryClient: QueryClient = new QueryClient({
 const router = createBrowserRouter([
   {path: '/entrar', element: <Entrar />},
   {path: '/convite/:token', element: <Convite />},
+  {path: '/cadastro/:token', element: <Cadastro />},
   {
     element: <Shell />,
     children: [

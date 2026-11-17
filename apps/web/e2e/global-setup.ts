@@ -81,6 +81,10 @@ export default async function globalSetup() {
     ALLOWED_ORIGINS: `http://127.0.0.1:${WEB_PORT}`,
     COOKIE_SECURE: 'false',
     VILAZUNI_MASTER_KEYS: `e2e:${randomBytes(32).toString('base64')}`,
+    // e-mail em modo demonstração: nada sai; a caixa da demonstração (rota) entrega o código aos testes
+    MESSAGING_MODE: 'demo',
+    DEMO_MAILBOX_ROUTE: 'true',
+    OUTBOX_INTERVAL_MS: '200',
   });
   await waitFor(`http://127.0.0.1:${API_PORT}/api/v1/ready`, api.child, 'API', api.log);
   const web = start('Prévia do app web', [viteBin, 'preview'], webDir, {

@@ -17,6 +17,7 @@ import {
 } from '../../components/ui';
 import {MfaPrompt, needsMfa, useMfaRetry} from '../../components/MfaPrompt';
 import {InviteOwner} from './InviteOwner';
+import {SignupLinks} from './SignupLinks';
 
 type Status = 'pending' | 'validated' | 'rejected';
 const TABS: {status: Status; key: string}[] = [
@@ -39,6 +40,7 @@ export function Titularidades() {
     <div className="grid gap-6">
       <PageTitle lead={t('gestao.titularidades.explica')}>{t('gestao.titularidades.titulo')}</PageTitle>
       {prompt}
+      <SignupLinks guard={guard} />
       <InviteOwner guard={guard} />
       <div role="group" aria-label={t('gestao.titularidades.filtro')} className="flex flex-wrap gap-2">
         {TABS.map((tab) => (

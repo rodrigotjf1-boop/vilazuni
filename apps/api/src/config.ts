@@ -64,10 +64,25 @@ const schema = z
         }
         return keys;
       }),
+    /** região do Amazon SES (envio de e-mail no modo sandbox/live; credenciais pelas variáveis padrão da AWS) */
+    SES_REGION: z.string().regex(/^[a-z]{2}-[a-z]+-\d$/).default('sa-east-1'),
+    /** a cada quantos ms a fila de saída é despachada; 0 desliga (testes chamam o despachante direto) */
+    OUTBOX_INTERVAL_MS: z.coerce.number().int().min(0).max(600_000).default(5000),
+    /** caixa de e-mail da demonstração por rota (só demonstração + envio em modo demo; usada nos testes de tela) */
+    DEMO_MAILBOX_ROUTE: z
+      .enum(['true', 'false'])
+      .default('false')
+      .transform((v) => v === 'true'),
   })
   .superRefine((env, ctx) => {
     if (env.ALLOWED_ORIGINS.includes('*'))
       ctx.addIssue({code: 'custom', path: ['ALLOWED_ORIGINS'], message: 'Origem curinga não é permitida.'});
+    if (env.DEMO_MAILBOX_ROUTE && (env.VILAZUNI_ENV !== 'demo' || env.MESSAGING_MODE !== 'demo'))
+      ctx.addIssue({
+        code: 'custom',
+        path: ['DEMO_MAILBOX_ROUTE'],
+        message: 'A caixa da demonstração só existe em demonstração com envio em modo demo.',
+      });
     if (env.VILAZUNI_ENV !== 'demo' && env.VILAZUNI_MASTER_KEYS.length === 0)
       ctx.addIssue({
         code: 'custom',

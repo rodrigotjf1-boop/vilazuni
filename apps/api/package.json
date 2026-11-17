@@ -13,6 +13,7 @@
     "seed:demo": "node dist/cli/seed-demo.js"
   },
   "dependencies": {
+    "@aws-sdk/client-sesv2": "3.1161.0",
     "@nestjs/common": "12.5.1",
     "@nestjs/core": "12.5.1",
     "@nestjs/platform-express": "12.5.1",
