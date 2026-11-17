@@ -10,7 +10,8 @@
     "dev": "tsc -b && node dist/main.js",
     "migrate": "node dist/cli/migrate.js",
     "dev:db": "node dist/cli/dev-db.js",
-    "seed:demo": "node dist/cli/seed-demo.js"
+    "seed:demo": "node dist/cli/seed-demo.js",
+    "limpar:demo": "node dist/cli/limpar-demo.js"
   },
   "dependencies": {
     "@aws-sdk/client-sesv2": "3.1161.0",
