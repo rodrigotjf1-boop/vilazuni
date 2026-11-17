@@ -23,7 +23,9 @@ Situação: aceita (17/11/2026) · respostas do dono às cinco decisões pendent
 - **Decidido:** o padrão de mercado mais baixo — **multa de 2%** e **juros de 1% ao mês, proporcionais aos dias de atraso** (cerca de 0,033% ao dia), enviados ao Asaas nas cobranças do app 0.7.8.
 - A frase do dono ("1% a cada dia excedente") foi lida como 1% ao mês por dia de atraso, que é o padrão de mercado e o que o Asaas aplica. 1% **ao dia** daria mais de 30% ao mês e passaria do limite legal; não é aplicado.
 - Na v1, esses valores viram a proposta da regra financeira do piloto na Fase 2, a conferir com a convenção (P01, P07). A ADR-0005 continua: sem regra cadastrada, a cobrança fica pendente.
+- **Como ficou no app atual (0.7.9):** os valores vêm da **regra de encargos aprovada** que cobre o vencimento da conta (cadastrada por uma pessoa e aprovada por outra, como já era). A cobrança leva multa (%) e juros ao mês (%) ao Asaas; a tela da prévia mostra os encargos. Pago com atraso, a conta quita pelo valor dela e os encargos entram à parte ("Encargos pagos pelo Asaas"); se os campos do Asaas não conferirem entre si, a cobrança vai para conferência, sem lançamento adivinhado. O estorno devolve primeiro os encargos e só depois reabre a conta. Sem regra aprovada, a cobrança sai sem encargos, como antes, e o cálculo manual continua recusado para conta cobrada pelo Asaas (nunca cobra duas vezes).
+- **Limite conhecido:** conta que já estava vencida é emitida com vencimento no dia (ERR-021 do registro interno); o Asaas só cobra multa e juros depois desse novo vencimento — o atraso anterior à emissão não entra na cobrança.
 
 ## 5. Troca do app atual pela v1
 
-- **Decidido:** seguir a recomendação — a v1 substitui o app 0.7.8 depois que a **Fase 1 inteira** funcionar em demonstração, com a **exportação dos dados atuais** antes. A troca terá registro próprio.
+- **Decidido:** seguir a recomendação — a v1 substitui o app atual (0.7.x) depois que a **Fase 1 inteira** funcionar em demonstração, com a **exportação dos dados atuais** antes. A troca terá registro próprio.

@@ -36,7 +36,6 @@ Total: **111 testes, 111 aprovados** (`npm test`, 17/11/2026, Postgres 18 local;
 
 - **F1.1c-2**: telas de Gestão — Titularidades (validar, recusar, convidar), Pessoas e papéis (conceder, encerrar, mandato, delegação, convite de papel), Auditoria; o pedido do código quando a ação exige.
 - **F1.1d** (ADR-0011): cadastro por link do condomínio com e-mail confirmado por código (Amazon SES da DMS, pela fila com outbox) e o comando que limpa a base de teste.
-- **App atual (M4)**: multa de 2% e juros de 1% ao mês proporcionais nas cobranças do Asaas (ADR-0011).
 
 ## Decidido
 
@@ -55,4 +54,6 @@ Ver `docs/pendencias-implantacao.md` (P01–P23). Nada bloqueia o desenvolviment
 
 ## App anterior
 
-`app/` (0.7.8) segue no ar sem mudança até a troca (ADR-0001).
+`app/` segue no ar até a troca (ADR-0001), só com correções e decisões do dono.
+
+- **0.7.9 — M4 (ADR-0011):** multa e juros da regra de encargos aprovada vão para o Asaas na cobrança (multa em %, juros em % ao mês); a prévia mostra os encargos. Pago com atraso: a conta quita pelo valor dela e os encargos entram à parte ("Encargos pagos pelo Asaas"); campos do Asaas que não conferem entre si mandam para conferência. Estorno devolve primeiro os encargos, depois reabre a conta. Testes: 4 casos novos em `app/tests/asaas.test.mjs` (3 falham contra o código anterior); suíte do Asaas 17/17. Deploy: clique do dono no Easypanel; conferir `/healthz` = 0.7.9.
