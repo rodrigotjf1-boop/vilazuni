@@ -2,7 +2,7 @@
 
 Atualizado a cada PR. "Implementado" = no código, com teste executado e resultado registrado. Mock, teste não executado ou integração sem homologação **não** contam como prontos.
 
-Última atualização: 17/11/2026 — F1.1c-1 (primeiras telas: entrar, convite, minha casa, verificação em duas etapas, sessões).
+Última atualização: 17/11/2026 — F1.1c-2 (telas de Gestão: titularidades, pessoas e papéis, auditoria).
 
 ## Implementado e testado
 
@@ -29,12 +29,13 @@ Atualizado a cada PR. "Implementado" = no código, com teste executado e resulta
 | API: saúde, prontidão, CORS, cabeçalhos seguros, configuração validada (id de correlação e "negar por padrão" contam nos casos de sessão) | `apps/api` | 6 casos ✅ |
 | API para as telas: token CSRF recuperável depois de recarregar (derivado da sessão), "o que posso ver aqui" com aviso de mandato a 30 dias, lista mínima de casas para pedir titularidade, residência em "Minhas casas" | `apps/api/src/auth`, `authz/access.controller.ts`, `units` | 5 casos ✅ |
 | **Telas (F1.1c-1)** — React + Vite, pt-BR/es/en: Entrar (com retorno seguro), Aceitar convite, Minha casa (vínculos, vaga, coproprietários, pedir outra casa), Verificação em duas etapas (QR Code, códigos de recuperação, confirmar, trocar de celular), Sessões e aparelhos, Escolher condomínio; avisos de demonstração e de fim de mandato | `apps/web` | 16 de ponta a ponta ✅ (computador e celular) + 2 de regra |
+| **Telas de Gestão (F1.1c-2)**: Titularidades (pendentes, validadas, recusadas; validar com data; recusar com motivo que a pessoa vê; convidar proprietário com link de uso único mostrado uma vez), Pessoas e papéis (pessoas com casas e papéis; papéis com mandatos e delegações; conceder papel — síndico com mandato e ata; encerrar; registrar mandato; delegar só o delegável; encerrar delegação; convidar para papel; aviso "sem mandato vigente"), Auditoria (filtro por resultado e ação, mais antigos). O menu mostra cada área conforme o que a pessoa pode fazer; ação que pede o código mostra o pedido ali mesmo e repete a ação; quem não configurou vai configurar e volta. Formulário salvo fecha (nada preenchido para segundo envio) | `apps/web/src/pages/gestao` | 4 de ponta a ponta ✅ (Tenaz valida e convida; recusa com motivo visto pela pessoa; síndica configura o código pela Gestão, concede, delega, encerra e confere a auditoria; celular sem rolagem lateral) |
 
-Total: **111 testes, 111 aprovados** (`npm test`, 17/11/2026, Postgres 18 local; CI com Postgres 17): 37 de regras puras, 72 da API (sessões 14, identidade 16, gestão 17, semeadura 4, cofre 6, detector 1, saúde 6, RLS 8) e 2 de regra das telas. **Ponta a ponta:** 16 aprovados (`npm run e2e`: banco novo, semeadura, API compilada, prévia das telas, Chromium no computador e no Pixel 7). Compilação sem erro; `npm audit` sem vulnerabilidade. Telas conferidas também por foto no computador e a 390 px.
+Total: **111 testes, 111 aprovados** (`npm test`, 17/11/2026, Postgres 18 local; CI com Postgres 17): 37 de regras puras, 72 da API (sessões 14, identidade 16, gestão 17, semeadura 4, cofre 6, detector 1, saúde 6, RLS 8) e 2 de regra das telas. **Ponta a ponta:** 20 aprovados (`npm run e2e`: banco novo, semeadura, API compilada, prévia das telas, Chromium no computador e no Pixel 7). Compilação sem erro; `npm audit` sem vulnerabilidade. Telas conferidas também por foto no computador e a 390 px.
 
 ## Em andamento
 
-- **F1.1c-2**: telas de Gestão — Titularidades (validar, recusar, convidar), Pessoas e papéis (conceder, encerrar, mandato, delegação, convite de papel), Auditoria; o pedido do código quando a ação exige.
+- **Entrada com o cenário 3D** aprovado em 12/11 (ADR-0001) no fundo do "Entrar", com imagem parada para celular fraco e para quem desliga animações; o resto das telas segue o layout novo da especificação.
 - **F1.1d** (ADR-0011): cadastro por link do condomínio com e-mail confirmado por código (Amazon SES da DMS, pela fila com outbox) e o comando que limpa a base de teste.
 
 ## Decidido

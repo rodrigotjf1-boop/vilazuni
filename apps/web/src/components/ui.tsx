@@ -108,7 +108,10 @@ export function Notice({tone = 'info', children}: {tone?: keyof typeof NOTICE; c
 
 export function Card({children, className = ''}: {children: ReactNode; className?: string}) {
   return (
-    <section className={`grid gap-3 rounded-xl border border-linha bg-superficie p-4 sm:p-5 ${className}`}>
+    // content-start: cartão mais alto (h-full na grade) não estica as linhas de dentro (etiquetas ficavam altas)
+    <section
+      className={`grid content-start gap-3 rounded-xl border border-linha bg-superficie p-4 sm:p-5 ${className}`}
+    >
       {children}
     </section>
   );

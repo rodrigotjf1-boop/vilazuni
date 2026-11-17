@@ -65,3 +65,72 @@ export interface SessionRow {
   expiresAt: string;
   current: boolean;
 }
+
+// ---------------- Gestão ----------------
+
+export interface OwnershipRequest {
+  id: string;
+  status: 'pending' | 'validated' | 'rejected';
+  version: number;
+  unit: {id: string; label: string};
+  person: {id: string; displayName: string; email: string | null};
+  shareNote: string | null;
+  requestedAt: string;
+  startsAt: string | null;
+  decidedAt: string | null;
+  decisionNote: string | null;
+}
+
+export interface PersonRow {
+  id: string;
+  displayName: string;
+  demo: boolean;
+  email: string | null;
+  ownerships: {
+    id: string;
+    unitId: string;
+    unitLabel: string;
+    status: 'pending' | 'validated';
+    startsAt: string | null;
+  }[];
+  roles: {id: string; role: string; scopes: string[]; startsAt: string; endsAt: string | null}[];
+}
+
+export interface RoleRow {
+  id: string;
+  person: {id: string; displayName: string};
+  role: string;
+  scopes: string[];
+  status: 'active' | 'ended';
+  startsAt: string;
+  endsAt: string | null;
+  reason: string | null;
+  mandates: {
+    id: string;
+    status: 'active' | 'ended';
+    startsAt: string;
+    endsAt: string;
+    minutesReference: string;
+  }[];
+  delegations: {
+    id: string;
+    status: 'active' | 'ended';
+    actions: string[];
+    startsAt: string;
+    endsAt: string;
+    documentReference: string;
+  }[];
+}
+
+export interface AuditEvent {
+  id: number;
+  at: string;
+  actor: {id: string; displayName: string} | null;
+  actorKind: 'person' | 'service' | 'system';
+  action: string;
+  objectType: string | null;
+  objectId: string | null;
+  result: 'ok' | 'denied' | 'error';
+  reason: string | null;
+  correlationId: string | null;
+}
