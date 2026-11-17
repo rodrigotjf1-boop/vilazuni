@@ -2,6 +2,8 @@
 
 Identidade: Vilazuni (produto) e o condomínio ativo no cabeçalho. Paleta da especificação, contraste conferido por combinação: fundo `#F5F8F7`, superfície `#FFFFFF`, primária `#286A61`, texto `#173B3B`, areia `#E7D9BE`, informação `#42759A`, atenção `#886414`, erro `#B23A48`. Corpo ~16 px, foco visível, alvos de toque confortáveis. Validar em 360, 768 e 1440 px, teclado, leitor de tela e fonte ampliada.
 
+Layout (decisão de 17/11/2026): as telas de uso seguem este layout; a tela **Entrar** tem ao fundo o cenário 3D da vila aprovado pelo dono em 12/11 (do app anterior), decorativo, com o formulário num painel claro por cima — parado com "reduzir movimento" e em aparelho fraco; sem WebGL, fundo na cor da marca.
+
 ## Navegação por perfil (celular: até 5 destinos)
 
 | Perfil | Destinos |
