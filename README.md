@@ -30,7 +30,7 @@ VILAZUNI_ENV=demo DATABASE_URL=... ALLOWED_ORIGINS=http://localhost:5173 COOKIE_
   VILAZUNI_MASTER_KEYS="d1:<32 bytes em base64>" npm start -w @vilazuni/api
 ```
 
-A semeadura cria 14 casas e 14 vagas provisórias e pessoas fictícias `[DEMO]`, com senhas geradas na hora (gravadas em `apps/api/.demo/credenciais-chandra.txt`, fora do git). Ela recusa rodar fora de `VILAZUNI_ENV=demo` e em banco com pessoas reais. Em servidor, as migrations rodam com `npm run migrate -w @vilazuni/api` e `DATABASE_OWNER_URL` (papel dono); a API usa sempre o papel sem BYPASSRLS.
+A semeadura cria 14 casas e 14 vagas provisórias e pessoas fictícias `[DEMO]`, com senhas geradas na hora (gravadas em `apps/api/.demo/credenciais-chandra.txt`, fora do git). Ela recusa rodar fora de `VILAZUNI_ENV=demo` e em banco com pessoas reais. Para limpar a base de teste depois: `VILAZUNI_ENV=demo DATABASE_OWNER_URL=... npm run limpar:demo -w @vilazuni/api` mostra o que sairia; com `-- --apagar` apaga só o que é de demonstração (nunca roda em produção — [ADR-0012](docs/adr/0012-fila-de-saida-e-cadastro-por-link.md)). Em servidor, as migrations rodam com `npm run migrate -w @vilazuni/api` e `DATABASE_OWNER_URL` (papel dono); a API usa sempre o papel sem BYPASSRLS.
 
 Documentação:
 

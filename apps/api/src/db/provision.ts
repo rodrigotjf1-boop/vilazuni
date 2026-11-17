@@ -33,6 +33,20 @@ export async function provision(adminUrl: string, database: string, passwords: P
     // desligar a RLS; BYPASSRLS não aumenta o risco. A APLICAÇÃO nunca tem BYPASSRLS (ADR-0004).
     await upsertRole(admin, 'vilazuni_owner', passwords.owner, true);
     await upsertRole(admin, 'vilazuni_app', passwords.app, false);
+  } finally {
+    await admin.end();
+  }
+  await createDatabase(adminUrl, database);
+}
+
+/**
+ * Só o banco (os papéis já existem): cria, entrega ao dono e libera a conexão do papel da aplicação. Não mexe nas
+ * senhas dos papéis — um teste pode montar um banco à parte sem derrubar as conexões dos outros.
+ */
+export async function createDatabase(adminUrl: string, database: string): Promise<void> {
+  if (!NAME.test(database)) throw new Error('Nome de banco inválido.');
+  const admin = new Pool({connectionString: adminUrl, max: 1});
+  try {
     const exists = await admin.query('select 1 from pg_database where datname = $1', [database]);
     if (!exists.rowCount) await admin.query(`create database ${database} owner vilazuni_owner`);
   } finally {

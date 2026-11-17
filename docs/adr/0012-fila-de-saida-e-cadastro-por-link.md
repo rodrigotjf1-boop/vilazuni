@@ -41,4 +41,11 @@ Situação: aceita (17/11/2026) · F1.1d. Implementa a decisão 2 do ADR-0011 (c
 
 - Para ligar de verdade (P23): verificar `chandra.vilazuni.com` no SES (registros DKIM no DNS da Hostinger), pedir a saída do sandbox do SES, criar a credencial só de envio, pôr no servidor da v1, gravar o remetente do Chandra e mudar para `MESSAGING_MODE=live`. O passo a passo vai ao dono quando a v1 for implantada.
 - Até lá, a demonstração funciona inteira com a caixa da demonstração, e o convite individual (ADR-0009) continua como caminho sem e-mail.
-- Falta (F1.1d, parte 3): o comando que limpa a base de teste — apaga só o que é de demonstração e recusa rodar em produção (ADR-0011 §2).
+- **Limpeza da base de teste (F1.1d, parte 3 — ADR-0011 §2):** `npm run limpar:demo -w @vilazuni/api` com o papel
+  dono (`DATABASE_OWNER_URL`) e `VILAZUNI_ENV=demo` ou `sandbox` escrito (sem ele, ou em produção, recusa).
+  Sem `-- --apagar` é só a prévia: faz tudo numa transação e desfaz, mostrando as contagens exatas. Apaga os
+  condomínios com `environment = 'demo'` e tudo deles (inclusive a auditoria deles), as pessoas `[DEMO]` e as contas
+  criadas nos condomínios de demonstração (cadastro pelo link, convite) — salvo quem tem qualquer registro em
+  condomínio de sandbox ou produção, que fica e é contado. A limpeza deixa um registro na auditoria geral
+  (`demo.cleanup`, com as contagens). Quem testou com o e-mail de verdade num condomínio de demonstração refaz o
+  cadastro pelo link do condomínio real.
