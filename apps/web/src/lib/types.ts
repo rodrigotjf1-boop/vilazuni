@@ -134,3 +134,19 @@ export interface AuditEvent {
   reason: string | null;
   correlationId: string | null;
 }
+
+export interface SignupPreview {
+  condominiumName: string;
+  expiresAt: string;
+  units: {id: string; label: string}[];
+  emailAvailable: boolean;
+}
+
+export interface SignupLinkRow {
+  id: string;
+  createdAt: string;
+  expiresAt: string;
+  maxUses: number;
+  uses: number;
+  status: 'active' | 'expired' | 'exhausted' | 'revoked';
+}

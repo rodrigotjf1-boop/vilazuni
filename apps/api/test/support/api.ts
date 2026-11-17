@@ -73,6 +73,8 @@ export const testConfig = (extra: Record<string, string> = {}) =>
     ALLOWED_ORIGINS: ORIGIN,
     COOKIE_SECURE: 'false',
     VILAZUNI_MASTER_KEYS: TEST_MASTER_KEYS,
+    // o despachante da fila não roda sozinho nos testes: cada teste o chama quando quer (dispatchDue)
+    OUTBOX_INTERVAL_MS: '0',
     ...extra,
   });
 

@@ -33,7 +33,7 @@ Legenda: **2F** = exige o segundo fator confirmado na sessão; **2F recente** = 
 | `unit.manage` (criar/editar casas e vagas) | — | — | — | ✅ 2F | delegação, 2F | — | — | — |
 | `ownership.request` (pedir titularidade) | ✅ (pendente) | ✅ (pendente) | — | ✅ | com vínculo | ✅ | — | — |
 | `ownership.validate` (validar/recusar) | — | — | — | ✅ 2F | delegação, 2F | — | escopo `cadastro` | — |
-| `invitation.create` (convidar para titularidade) | — | — | — | ✅ 2F | delegação, 2F | — | escopo `cadastro` | — |
+| `invitation.create` (convidar para titularidade; gerar, listar e revogar o link de cadastro do condomínio) | — | — | — | ✅ 2F | delegação, 2F | — | escopo `cadastro` | — |
 | `person.read.all` (Gestão › Pessoas e papéis) | — | — | — | ✅ 2F | delegação, 2F | — | escopo `cadastro` | — |
 | `audit.read` | — | — | — | ✅ 2F | delegação, 2F | ✅ | — | — |
 | `role.assign` (papel e convite para papel) / `mandate.manage` / `delegation.manage` | — | — | — | ✅ 2F recente | nunca (não se delega) | — | — | — |

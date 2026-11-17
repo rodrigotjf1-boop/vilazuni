@@ -21,10 +21,11 @@ Desktop: menu lateral agrupado em Meu espaço, Condomínio, Operação e Gestão
 |---|---|---|---|
 | Entrar | `/entrar` | `POST /auth/login`, `POST /auth/mfa/verify` | todos |
 | Aceitar convite | `/convite/:token` | `GET/POST /auth/invitations/:token` | convidado |
+| Cadastro pelo link do condomínio | `/cadastro/:token` | `GET /signup/:token`, `POST /signup/:token/code`, `POST /signup/:token/finish` | quem recebeu o link (público) |
 | Pedir titularidade | `/minha-casa/pedido` | `POST /ownership-requests` | quem entrou sem vínculo |
 | Minha casa | `/minha-casa` | `GET /me/units` | proprietário, morador |
 | Sessões | `/conta/sessoes` | `GET/DELETE /auth/sessions` | todos |
-| Gestão › Titularidades | `/gestao/titularidades` | `GET /ownership-requests`, `POST …/validate`, `…/reject` | síndico, delegação |
+| Gestão › Titularidades | `/gestao/titularidades` | `GET /ownership-requests`, `POST …/validate`, `…/reject`, `GET/POST /signup-links`, `POST /signup-links/:id/revoke` | síndico, delegação |
 | Gestão › Pessoas e papéis | `/gestao/pessoas` | `GET /memberships`, `POST /auth/invitations`, `/mandates`, `/delegations` | síndico |
 | Gestão › Unidades e vagas | `/gestao/unidades` | `GET/PATCH /units`, `/parking-spaces` | síndico |
 

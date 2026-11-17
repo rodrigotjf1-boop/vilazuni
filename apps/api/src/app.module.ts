@@ -17,6 +17,11 @@ import {MfaController} from './auth/mfa.controller.js';
 import {GovernanceController} from './governance/governance.controller.js';
 import {VAULT, Vault} from './crypto/vault.js';
 import {AccessController} from './authz/access.controller.js';
+import {SignupLinksController} from './signup/signup-links.controller.js';
+import {SignupController} from './signup/signup.controller.js';
+import {DemoMailboxController} from './signup/demo-mailbox.controller.js';
+import {EMAIL_SENDER, createEmailSender} from './messaging/email.js';
+import {OutboxRunner} from './messaging/outbox.js';
 
 /** Fecha o pool do banco quando a aplicação para. */
 class PoolCloser implements OnApplicationShutdown {
@@ -47,6 +52,9 @@ export class AppModule {
         MfaController,
         GovernanceController,
         AccessController,
+        SignupLinksController,
+        SignupController,
+        DemoMailboxController,
       ],
       providers: [
         {provide: CONFIG, useValue: config},
@@ -56,6 +64,13 @@ export class AppModule {
         SessionService,
         ActorService,
         {provide: VAULT, useClass: Vault},
+        // envio de e-mail pelo modo da configuração (desligado → null: quem depende responde "envio indisponível")
+        {
+          provide: EMAIL_SENDER,
+          useFactory: (c: AppConfig, p: Pool) => createEmailSender(c, p),
+          inject: [CONFIG, DB_POOL],
+        },
+        OutboxRunner,
         // Toda rota exige sessão, salvo as marcadas com @Public() (negar por padrão).
         {provide: APP_GUARD, useClass: AuthGuard},
         {provide: APP_FILTER, useClass: ErrorFilter},

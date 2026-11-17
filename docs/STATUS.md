@@ -2,7 +2,7 @@
 
 Atualizado a cada PR. "Implementado" = no código, com teste executado e resultado registrado. Mock, teste não executado ou integração sem homologação **não** contam como prontos.
 
-Última atualização: 17/11/2026 — F1.1c-2 (telas de Gestão: titularidades, pessoas e papéis, auditoria).
+Última atualização: 17/11/2026 — F1.1d (cadastro dos proprietários pelo link do condomínio, com o código por e-mail pela fila de saída).
 
 ## Implementado e testado
 
@@ -32,11 +32,14 @@ Atualizado a cada PR. "Implementado" = no código, com teste executado e resulta
 | **Telas de Gestão (F1.1c-2)**: Titularidades (pendentes, validadas, recusadas; validar com data; recusar com motivo que a pessoa vê; convidar proprietário com link de uso único mostrado uma vez), Pessoas e papéis (pessoas com casas e papéis; papéis com mandatos e delegações; conceder papel — síndico com mandato e ata; encerrar; registrar mandato; delegar só o delegável; encerrar delegação; convidar para papel; aviso "sem mandato vigente"), Auditoria (filtro por resultado e ação, mais antigos). O menu mostra cada área conforme o que a pessoa pode fazer; ação que pede o código mostra o pedido ali mesmo e repete a ação; quem não configurou vai configurar e volta. Formulário salvo fecha (nada preenchido para segundo envio) | `apps/web/src/pages/gestao` | 4 de ponta a ponta ✅ (Tenaz valida e convida; recusa com motivo visto pela pessoa; síndica configura o código pela Gestão, concede, delega, encerra e confere a auditoria; celular sem rolagem lateral) |
 | **Entrada com o cenário 3D** aprovado em 12/11 (ADR-0001): a vila do condomínio ao fundo do "Entrar" (módulos WebGL do app anterior, sem biblioteca, carregados à parte — 16 KB comprimidos), tomadas de cartão-postal em sequência; parada com "reduzir movimento" e em aparelho fraco; sem WebGL, o fundo na cor da marca. Decorativa (sem foco, escondida do leitor de tela); o painel do formulário fica por cima, claro, à direita em tela larga | `apps/web/src/cena`, `components/CenaEntrada.tsx` | 2 de ponta a ponta ✅ + conferida por foto |
 
-Total: **111 testes, 111 aprovados** (`npm test`, 17/11/2026, Postgres 18 local; CI com Postgres 17): 37 de regras puras, 72 da API (sessões 14, identidade 16, gestão 17, semeadura 4, cofre 6, detector 1, saúde 6, RLS 8) e 2 de regra das telas. **Ponta a ponta:** 22 aprovados (`npm run e2e`: banco novo, semeadura, API compilada, prévia das telas, Chromium no computador e no Pixel 7). Compilação sem erro; `npm audit` sem vulnerabilidade. Telas conferidas também por foto no computador e a 390 px.
+| **Cadastro pelo link do condomínio (F1.1d, ADR-0011/0012)**: a gestão gera o link (validade, limite de cadastros, mostrado uma vez com QR Code, lista com uso e situação, revogar); a página pública `/cadastro/:token` pede o e-mail, manda o código de 6 dígitos (15 min, uso único, 5 tentativas, 5 por e-mail/hora) e conclui com conta nova ou a senha da conta existente, pedindo até 5 casas — todas **pendentes**, sem papel, sem duplicar vínculo; origem de fora recusada; auditoria | `apps/api/src/signup`, `apps/web/src/pages/Cadastro.tsx`, `pages/gestao/SignupLinks.tsx`, migration `0004` | 14 casos da API ✅ + 2 de ponta a ponta ✅ (gerar, cadastrar com código errado e certo, pedido pendente na gestão, a conta nova entra, revogar; link inexistente) + celular sem rolagem lateral |
+| **Fila de saída e e-mail por adaptador (ADR-0012)**: a mudança e o envio na mesma transação, chave de idempotência, despachante com `SKIP LOCKED`, 5 tentativas com espera crescente, `dead`/`skipped` com motivo, o código sai do registro depois do envio; e-mail `disabled` / `demo` (caixa da demonstração) / `sandbox`/`live` (Amazon SES, ainda sem credencial — P23); textos em pt-BR, es e en | `apps/api/src/messaging` | 3 casos ✅ (falha e desistência sem guardar o código, envio desligado, sem remetente, idioma) |
+
+Total: **128 testes, 128 aprovados** (`npm test`, 17/11/2026, Postgres 18 local; CI com Postgres 17): 37 de regras puras, 89 da API (sessões 14, identidade 16, gestão 17, cadastro por link e fila 17, semeadura 4, cofre 6, detector 1, saúde 6, RLS 8) e 2 de regra das telas. **Ponta a ponta:** 24 aprovados (`npm run e2e`: banco novo, semeadura, API compilada com o e-mail em modo demonstração, prévia das telas, Chromium no computador e no Pixel 7). Compilação sem erro. Telas conferidas também por foto no computador e a 375 px.
 
 ## Em andamento
 
-- **F1.1d** (ADR-0011): cadastro por link do condomínio com e-mail confirmado por código (Amazon SES da DMS, pela fila com outbox) e o comando que limpa a base de teste.
+- **F1.1d, parte 3** (ADR-0011 §2): o comando que limpa a base de teste — apaga só o que é de demonstração e recusa rodar em produção.
 
 ## Decidido
 
@@ -44,14 +47,15 @@ Total: **111 testes, 111 aprovados** (`npm test`, 17/11/2026, Postgres 18 local;
 - ADR-0010 — segundo fator (TOTP no cofre, recuperação, trava), gestão com 2F, atos críticos com 2F recente, ninguém concede a si, delegação limitada, mandatos sem sobreposição.
 - ADR-0011 — decisões do dono de 17/11: Amazon SES da DMS, cadastro dos proprietários por link do condomínio, repositório público até o fim (sensível fora do git), multa 2% + juros 1% ao mês no app atual, troca após a Fase 1.
 - ADR-0002 revisto — SQL escrito à mão com o driver `pg` (sem Drizzle) e as versões exatas das telas.
+- ADR-0012 — fila de saída dentro da API (sem worker separado no piloto), e-mail por adaptador (demo com caixa própria; SES no `live`), regras do link e do código de cadastro.
 
 ## Variáveis novas da API
 
-`VILAZUNI_MASTER_KEYS` (obrigatória fora da demonstração; `id:base64` de 32 bytes, a primeira cifra) e `DATABASE_OWNER_URL` (só para `npm run migrate`). Nenhum valor real no repositório.
+`VILAZUNI_MASTER_KEYS` (obrigatória fora da demonstração; `id:base64` de 32 bytes, a primeira cifra) e `DATABASE_OWNER_URL` (só para `npm run migrate`). F1.1d: `MESSAGING_MODE` (`disabled` até o SES ser ligado), `SES_REGION` (padrão `sa-east-1`), `OUTBOX_INTERVAL_MS` (padrão 5000), `DEMO_MAILBOX_ROUTE` (só demonstração); no `live`, `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` de uma credencial que só envia. Nenhum valor real no repositório.
 
 ## Bloqueado por informação externa
 
-Ver `docs/pendencias-implantacao.md` (P01–P23). Nada bloqueia o desenvolvimento; bloqueia só o efeito real ligado a cada item. P23: provedor decidido (SES da DMS); falta o remetente e a credencial de envio.
+Ver `docs/pendencias-implantacao.md` (P01–P23). Nada bloqueia o desenvolvimento; bloqueia só o efeito real ligado a cada item. P23: provedor (SES da DMS) e remetente (`chandra.vilazuni.com`) decididos; o código está pronto e testado em modo demonstração; falta verificar o subdomínio no SES e a credencial de envio, na implantação da v1.
 
 ## App anterior
 
