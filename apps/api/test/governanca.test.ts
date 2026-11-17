@@ -401,6 +401,59 @@ describe('auditoria', () => {
   });
 });
 
+describe('o que a tela pode mostrar', () => {
+  it('cada pessoa recebe as ações dela no condomínio ativo, com o motivo do segundo fator', async () => {
+    const gestao = (await gestora.get('/me/access')).body;
+    expect(gestao.condominiumId).toBe(G.id);
+    expect(gestao.actions['unit.read.all']).toBe('ok');
+    expect(['ok', 'mfa_recente_exigido']).toContain(gestao.actions['role.assign']);
+    expect(gestao.mandate).toMatchObject({warning: false});
+    expect(gestao.mandate.daysLeft).toBeGreaterThan(300);
+
+    const semCodigo = (await (await entrar('sindica')).get('/me/access')).body;
+    expect(semCodigo.actions['unit.read.all']).toBe('mfa_exigido');
+    expect(semCodigo.actions['unit.read.own']).toBe('negado'); // depende da casa; a tela usa /me/units
+
+    const dona = (await (await entrar('coDona')).get('/me/access')).body;
+    expect(dona.actions).toMatchObject({
+      'ownership.request': 'ok',
+      'unit.read.all': 'negado',
+      'audit.read': 'negado',
+    });
+    expect(dona.mandate).toBeNull();
+
+    const semVinculo = (await (await entrar('externo')).get('/me/access')).body;
+    expect(semVinculo).toEqual({condominiumId: null, actions: {}, mandate: null});
+  });
+
+  it('avisa o síndico 30 dias antes do fim do mandato', async () => {
+    const relogio = new FakeClock(MANDATE_END - 10 * DAY);
+    const outra = await startApi(relogio);
+    try {
+      const c = new WebClient(outra.url);
+      await c.login(emailOf('sindica'));
+      expect((await c.get('/me/access')).body.mandate).toMatchObject({daysLeft: 10, warning: true});
+    } finally {
+      await outra.close();
+    }
+  });
+
+  it('lista mínima de casas para pedir titularidade: só nome, só do condomínio da pessoa', async () => {
+    const r = await (await entrar('coDona')).get('/unit-labels');
+    expect(r.status).toBe(200);
+    expect(r.body.units.map((u: {label: string}) => u.label)).toEqual([
+      'Casa 01',
+      'Casa 02',
+      'Casa 03',
+      'Casa 04',
+    ]);
+    expect(Object.keys(r.body.units[0]).sort()).toEqual(['id', 'label']);
+    const vizinha = await (await entrar('donaH')).get('/unit-labels');
+    expect(vizinha.body.units.map((u: {id: string}) => u.id)).toEqual([H.units[0]!.id]);
+    expect((await (await entrar('externo')).get('/unit-labels')).status).toBe(403);
+  });
+});
+
 describe('trocar de aparelho', () => {
   it('pede senha e código recente, e nenhuma sessão continua verificada', async () => {
     const outraSessao = await entrar('sindica');

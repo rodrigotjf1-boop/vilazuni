@@ -26,6 +26,22 @@ export type Action =
   | 'delegation.manage'
   | 'audit.read';
 
+/** Todas as ações, para a tela saber o que mostrar (quem barra continua sendo `decide` em cada rota). */
+export const ACTIONS: readonly Action[] = [
+  'condominium.read',
+  'unit.read.own',
+  'unit.read.all',
+  'unit.manage',
+  'ownership.request',
+  'ownership.validate',
+  'invitation.create',
+  'person.read.all',
+  'role.assign',
+  'mandate.manage',
+  'delegation.manage',
+  'audit.read',
+];
+
 interface Period {
   startsAt: Date | null;
   endsAt: Date | null;

@@ -94,6 +94,12 @@ describe('semeadura demonstrativa do Chandra', () => {
     expect(pedidos.map((p: {unit: {label: string}}) => p.unit.label)).toEqual(['Casa 10']);
 
     const morador = await entrar('morador-contrato');
+    const casasDoMorador = (await morador.get('/me/units')).body.units;
+    expect(casasDoMorador).toHaveLength(1);
+    expect(casasDoMorador[0]).toMatchObject({
+      label: 'Casa 06',
+      links: [{type: 'residency', status: 'active'}],
+    });
     expect((await morador.get(`/units/${demoId('casa-6')}`)).status).toBe(200);
     expect((await morador.get(`/units/${demoId('casa-7')}`)).status).toBe(404);
   });

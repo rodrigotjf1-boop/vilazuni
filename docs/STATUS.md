@@ -2,7 +2,7 @@
 
 Atualizado a cada PR. "Implementado" = no código, com teste executado e resultado registrado. Mock, teste não executado ou integração sem homologação **não** contam como prontos.
 
-Última atualização: 17/11/2026 — F1.1b (segundo fator, papéis, mandatos, delegações, auditoria e semeadura demonstrativa).
+Última atualização: 17/11/2026 — F1.1c-1 (primeiras telas: entrar, convite, minha casa, verificação em duas etapas, sessões).
 
 ## Implementado e testado
 
@@ -27,17 +27,23 @@ Atualizado a cada PR. "Implementado" = no código, com teste executado e resulta
 | Pedido, lista, validação e recusa de titularidade (versão, repetição idempotente, ninguém decide o próprio, recusa com motivo) | `apps/api/src/ownership` | 3 casos ✅ |
 | Minhas casas, todas as casas (gestão/conselho), uma casa (a própria ou pela gestão; a de outra pessoa/condomínio = 404 igual a "não existe"); pessoa em dois condomínios escolhe qual | `apps/api/src/units` | T02, T03, T04, T05, T19, T20, T54 — 6 casos ✅ |
 | API: saúde, prontidão, CORS, cabeçalhos seguros, configuração validada (id de correlação e "negar por padrão" contam nos casos de sessão) | `apps/api` | 6 casos ✅ |
+| API para as telas: token CSRF recuperável depois de recarregar (derivado da sessão), "o que posso ver aqui" com aviso de mandato a 30 dias, lista mínima de casas para pedir titularidade, residência em "Minhas casas" | `apps/api/src/auth`, `authz/access.controller.ts`, `units` | 5 casos ✅ |
+| **Telas (F1.1c-1)** — React + Vite, pt-BR/es/en: Entrar (com retorno seguro), Aceitar convite, Minha casa (vínculos, vaga, coproprietários, pedir outra casa), Verificação em duas etapas (QR Code, códigos de recuperação, confirmar, trocar de celular), Sessões e aparelhos, Escolher condomínio; avisos de demonstração e de fim de mandato | `apps/web` | 16 de ponta a ponta ✅ (computador e celular) + 2 de regra |
 
-Total: **105 testes, 105 aprovados** (`npm test`, 17/11/2026, Postgres 18 local; CI com Postgres 17): 37 de regras puras e 68 da API (sessões 13, identidade 16, gestão 14, semeadura 4, cofre 6, detector 1, saúde 6, RLS 8). Compilação TypeScript 6.0.3 estrita sem erro; `npm audit` sem vulnerabilidade.
+Total: **111 testes, 111 aprovados** (`npm test`, 17/11/2026, Postgres 18 local; CI com Postgres 17): 37 de regras puras, 72 da API (sessões 14, identidade 16, gestão 17, semeadura 4, cofre 6, detector 1, saúde 6, RLS 8) e 2 de regra das telas. **Ponta a ponta:** 16 aprovados (`npm run e2e`: banco novo, semeadura, API compilada, prévia das telas, Chromium no computador e no Pixel 7). Compilação sem erro; `npm audit` sem vulnerabilidade. Telas conferidas também por foto no computador e a 390 px.
 
 ## Em andamento
 
-- **F1.1c**: telas (React 19 + Vite, pt-BR/es/en) — Entrar, Aceitar convite, Verificação em duas etapas, Minha casa, Gestão › Titularidades, Gestão › Pessoas e papéis, Gestão › Auditoria; aviso de mandato a 30 dias do fim.
+- **F1.1c-2**: telas de Gestão — Titularidades (validar, recusar, convidar), Pessoas e papéis (conceder, encerrar, mandato, delegação, convite de papel), Auditoria; o pedido do código quando a ação exige.
+- **F1.1d** (ADR-0011): cadastro por link do condomínio com e-mail confirmado por código (Amazon SES da DMS, pela fila com outbox) e o comando que limpa a base de teste.
+- **App atual (M4)**: multa de 2% e juros de 1% ao mês proporcionais nas cobranças do Asaas (ADR-0011).
 
 ## Decidido
 
 - ADR-0009 — entrada por convite no piloto, ninguém decide o próprio pedido, decisão com versão e repetição idempotente, e-mail normalizado no banco.
 - ADR-0010 — segundo fator (TOTP no cofre, recuperação, trava), gestão com 2F, atos críticos com 2F recente, ninguém concede a si, delegação limitada, mandatos sem sobreposição.
+- ADR-0011 — decisões do dono de 17/11: Amazon SES da DMS, cadastro dos proprietários por link do condomínio, repositório público até o fim (sensível fora do git), multa 2% + juros 1% ao mês no app atual, troca após a Fase 1.
+- ADR-0002 revisto — SQL escrito à mão com o driver `pg` (sem Drizzle) e as versões exatas das telas.
 
 ## Variáveis novas da API
 
@@ -45,7 +51,7 @@ Total: **105 testes, 105 aprovados** (`npm test`, 17/11/2026, Postgres 18 local;
 
 ## Bloqueado por informação externa
 
-Ver `docs/pendencias-implantacao.md` (P01–P23). Nada bloqueia o desenvolvimento; bloqueia só o efeito real ligado a cada item. Novo: P23 (provedor de e-mail transacional).
+Ver `docs/pendencias-implantacao.md` (P01–P23). Nada bloqueia o desenvolvimento; bloqueia só o efeito real ligado a cada item. P23: provedor decidido (SES da DMS); falta o remetente e a credencial de envio.
 
 ## App anterior
 

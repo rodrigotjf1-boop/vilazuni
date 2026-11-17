@@ -186,6 +186,29 @@ describe('entrar: respostas iguais e limite de tentativas', () => {
   });
 });
 
+describe('tela recarregada', () => {
+  it('recupera o MESMO token CSRF pela sessão; sessão nativa e sem sessão não têm', async () => {
+    const aba = new WebClient(api.url);
+    await aba.login(emailOf('ana'));
+    const recarregada = new WebClient(api.url);
+    recarregada.cookie = aba.cookie; // o navegador mantém o cookie; a memória da página se perdeu
+    expect(await recarregada.call('DELETE', '/auth/sessions', undefined, {csrf: null})).toMatchObject({
+      status: 403,
+      body: {error: 'csrf_invalido'},
+    });
+    const r = await recarregada.get('/auth/csrf');
+    expect(r.status).toBe(200);
+    expect(r.body.csrfToken).toBe(aba.csrf);
+    recarregada.csrf = r.body.csrfToken;
+    expect((await recarregada.call('DELETE', '/auth/sessions')).status).toBe(200);
+
+    const app = new NativeClient(api.url);
+    await app.login(emailOf('davi'));
+    expect((await app.get('/auth/csrf')).status).toBe(404);
+    expect((await fetch(api.url + '/auth/csrf')).status).toBe(401);
+  });
+});
+
 describe('negar por padrão', () => {
   it('rota sem @Public exige sessão', async () => {
     for (const [method, path] of [

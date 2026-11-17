@@ -1,0 +1,44 @@
+@import 'tailwindcss';
+
+/* Paleta da especificação (docs/mapa-telas.md), contraste conferido por combinação. Fonte do sistema: nenhuma
+   requisição a terceiros só para carregar letra. */
+@theme {
+  --color-fundo: #f5f8f7;
+  --color-superficie: #ffffff;
+  --color-texto: #173b3b;
+  --color-suave: #4c6866;
+  --color-linha: #d3e0dd;
+  --color-primaria: #286a61;
+  --color-primaria-escura: #1f544d;
+  --color-primaria-clara: #e3efec;
+  --color-areia: #e7d9be;
+  --color-areia-clara: #f4ecdd;
+  --color-info: #42759a;
+  --color-atencao: #886414;
+  --color-erro: #b23a48;
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: ui-monospace, 'Cascadia Mono', 'SF Mono', Consolas, monospace;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+body {
+  background: var(--color-fundo);
+  color: var(--color-texto);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.55;
+}
+:focus-visible {
+  outline: 3px solid var(--color-info);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

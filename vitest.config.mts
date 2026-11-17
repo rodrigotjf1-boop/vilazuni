@@ -14,6 +14,11 @@ export default defineConfig({
       },
       {
         extends: true,
+        // regras puras das telas (as telas inteiras são conferidas no navegador: npm run e2e)
+        test: {name: 'web', include: ['apps/web/src/**/*.test.ts']},
+      },
+      {
+        extends: true,
         test: {
           name: 'api',
           include: ['apps/api/test/**/*.test.ts'],

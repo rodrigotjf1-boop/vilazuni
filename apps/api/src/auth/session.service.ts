@@ -3,7 +3,7 @@ import type {Pool, PoolClient} from 'pg';
 import {DB_POOL} from '../db/database.js';
 import {CLOCK, type Clock} from '../clock.js';
 import {uuidv7} from '../db/tenant.js';
-import {newToken, sha256} from './crypto.js';
+import {csrfFor, newToken, sha256} from './crypto.js';
 
 /**
  * Sessões (ADR-0003). Web: cookie opaco + token CSRF. Nativo: access de 15 min + refresh rotativo de 30 dias;
@@ -41,7 +41,7 @@ export class SessionService {
 
   async createWeb(personId: string, userAgent: string | undefined, db: Pool | PoolClient = this.pool) {
     const sessionToken = newToken();
-    const csrfToken = newToken();
+    const csrfToken = csrfFor(sessionToken);
     const now = this.clock.now();
     const id = uuidv7(now.getTime());
     await db.query(
