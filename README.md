@@ -1,26 +1,32 @@
 # Vilazuni
 
-Plataforma de gestão e convivência para múltiplos condomínios. Piloto: **Condomínio Chandra**.
+Administração, convivência e segurança de condomínios — appweb/PWA e aplicativo Android. Piloto: **Condomínio Chandra**.
 
-## Documentação
+## Dois apps neste repositório, durante a transição
 
-- [Plano consolidado](PLANO_DO_PROJETO.md)
-- [Especificação funcional](ESPECIFICACAO_INICIAL.md)
-- [Pesquisa e prioridades](SUGESTOES_E_PRIORIDADES.md)
-- [Modelo de dados](fundacao/MODELO_DE_DADOS.md)
-- [Permissões](fundacao/PERMISSOES.md)
-- [Fichas, privacidade e avisos importantes](fundacao/FICHAS_PRIVACIDADE_E_AVISOS.md)
-- [Demonstração completa com cadastros fictícios](fundacao/DEMONSTRACAO_COMPLETA.md)
-- [Fluxos e telas](fundacao/FLUXOS_E_TELAS.md)
-- [Piloto e backlog](fundacao/CHANDRA_E_BACKLOG.md)
-- [Conceito de identidade visual](marca/IDENTIDADE.md)
+| | Onde | Situação |
+|---|---|---|
+| **Vilazuni v1** (novo) | `apps/`, `packages/`, `docs/` | Em construção pela especificação v1.0 (17/11/2026). Ainda não está em produção. |
+| App anterior | `app/`, `deploy/` | No ar (0.7.8). Continua sem mudança até a troca ([ADR-0001](docs/adr/0001-reescrita-em-monorepo.md)). |
 
-## Demonstração local
+## Vilazuni v1
 
-Há uma versão executável em [app](app/README.md). Para abrir no Windows, executar `Iniciar Vilazuni.cmd` e visitar o endereço informado. O primeiro acesso solicita a criação da conta local de gestão; depois, a gestão emite convites pelo botão com seu nome. Login e permissões são verificados no servidor. Casas e operações locais continuam com dados fictícios; a versão 0.2.0 inclui preparo de PostgreSQL, MFA, recuperação e implantação. A primeira implantação web na VPS Hostinger com Easypanel foi realizada; a ativação operacional segue o [guia Easypanel](deploy/easypanel/README.md). Não inserir dados reais de moradores no piloto local.
+Arquitetura (monólito modular): `apps/api` (NestJS 12, REST `/api/v1`), `apps/worker` (fila durável), `apps/web` (React + Vite), `apps/mobile` (Capacitor), `packages/domain` (regras puras), `packages/contracts`, `packages/i18n`, `infra`, `docs`.
 
-[Estado de desenvolvimento e limitações](STATUS_DO_PROJETO.md).
+```bash
+npm ci
+npm run build
+npm test
+```
 
-## Entrega 0.2.0
+Documentação:
 
-As etapas técnicas 6–8 incluem assistência/governança, PWA e projetos móveis, teste controlado de equipamentos e distribuição para vários condomínios. Veja [estado atual](STATUS_DO_PROJETO.md), [implantação](deploy/README.md) e [aplicativos](mobile/README.md). Credenciais, domínio, distribuição assinada e homologação real pertencem à ativação operacional posterior.
+- [Plano por fases](docs/PLANO.md) · [Situação](docs/STATUS.md) · [Requisitos com IDs](docs/requisitos.md)
+- [Decisões (ADRs)](docs/adr/) · [Permissões](docs/matriz-permissoes.md) · [Modelo de dados](docs/modelo-dados.md)
+- [Ameaças](docs/threat-model.md) · [Telas](docs/mapa-telas.md) · [Pendências do condomínio](docs/pendencias-implantacao.md)
+
+Dados de demonstração são fictícios e identificados. Nenhuma cobrança, mensagem ou comando físico real sai sem ativação autorizada.
+
+## App anterior
+
+Documentação em [app/README.md](app/README.md), [deploy/README.md](deploy/README.md) e `fundacao/`. Não inserir dados reais de moradores no ambiente local.

@@ -1,0 +1,26 @@
+{
+  "name": "vilazuni",
+  "private": true,
+  "version": "1.0.0-alpha.0",
+  "description": "Vilazuni v1 — administração condominial (piloto Chandra). O app anterior segue em app/ até a troca (docs/adr/0001).",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "build": "tsc -b packages/domain apps/api",
+    "test": "vitest run",
+    "start:api": "node apps/api/dist/main.js",
+    "format": "prettier --write \"packages/*/src/**/*.ts\" \"apps/*/src/**/*.ts\" \"apps/*/test/**/*.ts\"",
+    "format:check": "prettier --check \"packages/*/src/**/*.ts\" \"apps/*/src/**/*.ts\" \"apps/*/test/**/*.ts\""
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "prettier": "3.3.3",
+    "typescript": "6.0.3",
+    "vitest": "5.1.0"
+  }
+}
