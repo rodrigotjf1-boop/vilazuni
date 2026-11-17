@@ -26,10 +26,22 @@ const schema = z
     MESSAGING_MODE: z.enum(ADAPTER_MODES).default('disabled'),
     AI_MODE: z.enum(ADAPTER_MODES).default('disabled'),
     ACCESS_CONTROLLER_MODE: z.enum(ADAPTER_MODES).default('disabled'),
+    /** cookie com Secure + prefixo __Host-; "false" só em HTTP local de teste (produção recusa) */
+    COOKIE_SECURE: z
+      .enum(['true', 'false'])
+      .default('true')
+      .transform((v) => v === 'true'),
+    /** atrás do proxy do Easypanel: o endereço do cliente vem do X-Forwarded-For (último salto confiável) */
+    TRUST_PROXY: z
+      .enum(['true', 'false'])
+      .default('false')
+      .transform((v) => v === 'true'),
   })
   .superRefine((env, ctx) => {
     if (env.ALLOWED_ORIGINS.includes('*'))
       ctx.addIssue({code: 'custom', path: ['ALLOWED_ORIGINS'], message: 'Origem curinga não é permitida.'});
+    if (env.VILAZUNI_ENV === 'production' && !env.COOKIE_SECURE)
+      ctx.addIssue({code: 'custom', path: ['COOKIE_SECURE'], message: 'Produção exige cookie seguro.'});
     if (env.VILAZUNI_ENV === 'production') {
       for (const key of ['BILLING_MODE', 'MESSAGING_MODE', 'AI_MODE', 'ACCESS_CONTROLLER_MODE'] as const)
         if (env[key] === 'demo')

@@ -11,17 +11,17 @@ Situação: ⬜ não iniciado · 🟡 em andamento · ✅ implementado e testado
 | RQ-003 | Energia: `kWh = W/1000 × h/dia × dias`; vazio = pendente; zero confirmado ≠ ausente; mesma bomba não duplica horas | §13 | Piscina › Custos | `/pool/cost-estimates` | `pump_usage` | T35, T36 | 🟡 regra pura |
 | RQ-004 | Unidades de estoque: kg↔g e L↔mL; massa↔volume nunca sem densidade | §12 | Estoque | `/stock/*` | `stock_item` | T32 | 🟡 regra pura |
 | RQ-005 | Dinheiro em centavos inteiros; multa até 2%; juros sem regra = pendente | §9 | Minhas contribuições | `/charges` | `financial_rule_version` | T28 | 🟡 regra pura |
-| RQ-010 | Autocadastro nunca concede papel; titularidade nasce pendente | §6 | Pedir titularidade | `POST /ownership-requests` | `ownership` | T01 | ⬜ |
-| RQ-011 | Autorização por papel + condomínio + unidade + vínculo + período + ação, negar por padrão | §6 | todas | todas | `role_assignment`, `ownership` | T02–T05, T20 | ⬜ |
-| RQ-012 | Isolamento por condomínio com chave composta e RLS | §5, §6 | — | todas | todas de negócio | T03, T54 | ⬜ |
-| RQ-013 | Convite de uso único, hash, validade, tentativas | §6 | Aceitar convite | `/auth/invitations` | `invitation` | T06 | ⬜ |
-| RQ-014 | Sessão web por cookie HttpOnly + CSRF + origem; nativa por bearer + refresh rotativo | §6 | Entrar, Sessões | `/auth/login`, `/auth/refresh`, `/auth/logout`, `/auth/sessions` | `auth_session` | T56 | ⬜ |
-| RQ-015 | Mandato do síndico com início, fim e ata; vencido perde gestão, mantém proprietário | §6 | Gestão › Pessoas | `/mandates` | `mandate` | T19 | ⬜ |
-| RQ-016 | Subsíndico, conselho e Tenaz só no escopo concedido | §6 | Gestão › Pessoas | `/delegations` | `delegation`, `role_assignment` | T20 | ⬜ |
-| RQ-017 | Proprietário com duas casas; copropriedade sem duplicar dívida ou vaga | §5, §6 | Minha casa | `/me/units` | `ownership` | T04, T05 | ⬜ |
+| RQ-010 | Autocadastro nunca concede papel; titularidade nasce pendente | §6 | Pedir titularidade | `POST /ownership-requests`, `POST /auth/invitations/:token/accept` | `ownership` | T01 | 🟡 API ✅, tela na F1.1b |
+| RQ-011 | Autorização por papel + condomínio + unidade + vínculo + período + ação, negar por padrão | §6 | todas | todas | `role_assignment`, `ownership` | T02–T05, T20 | 🟡 API ✅, tela na F1.1b |
+| RQ-012 | Isolamento por condomínio com chave composta e RLS | §5, §6 | — | todas | todas de negócio | T03, T54 | ✅ banco + API |
+| RQ-013 | Convite de uso único, hash, validade, tentativas | §6 | Aceitar convite | `/auth/invitations` | `invitation` | T06 | 🟡 API ✅, tela na F1.1b |
+| RQ-014 | Sessão web por cookie HttpOnly + CSRF + origem; nativa por bearer + refresh rotativo | §6 | Entrar, Sessões | `/auth/login`, `/auth/refresh`, `/auth/logout`, `/auth/sessions` | `auth_session` | T56 | 🟡 API ✅, tela na F1.1b |
+| RQ-015 | Mandato do síndico com início, fim e ata; vencido perde gestão, mantém proprietário | §6 | Gestão › Pessoas | `/mandates` | `mandate` | T19 | 🟡 regra + API ✅ (mandato semeado); rota `/mandates` na F1.1b |
+| RQ-016 | Subsíndico, conselho e Tenaz só no escopo concedido | §6 | Gestão › Pessoas | `/delegations` | `delegation`, `role_assignment` | T20 | 🟡 regra + API ✅ (delegação semeada); rota `/delegations` na F1.1b |
+| RQ-017 | Proprietário com duas casas; copropriedade sem duplicar dívida ou vaga | §5, §6 | Minha casa | `/me/units`, `/units/:id` | `ownership` | T04, T05 | 🟡 API ✅ (vaga única por casa); dívida na Fase 2 |
 | RQ-018 | MFA obrigatório para síndico, Tenaz financeiro, suporte e atos críticos | §6 | Entrar, Conta | `/auth/mfa` | `auth_credential` | — | ⬜ |
 | RQ-019 | Seed repetível do Chandra com 14 casas, 14 vagas e pessoas fictícias identificadas; impossível em produção | §24 | — | — | todas | — | ⬜ |
-| RQ-020 | Auditoria só acréscimo: ator, papel, ação, objeto, resultado, motivo, correlation_id | §22 | Gestão › Auditoria | `/audit-events` | `audit_event` | — | ⬜ |
+| RQ-020 | Auditoria só acréscimo: ator, papel, ação, objeto, resultado, motivo, correlation_id | §22 | Gestão › Auditoria | `/audit-events` | `audit_event` | — | 🟡 gravação ✅ (inclui negações); leitura `/audit-events` na F1.1b |
 
 ## Fases seguintes
 

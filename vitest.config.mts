@@ -6,7 +6,21 @@ export default defineConfig({
     conditions: ['development'],
   },
   test: {
-    include: ['packages/*/src/**/*.test.ts', 'apps/*/src/**/*.test.ts', 'apps/*/test/**/*.test.ts'],
     environment: 'node',
+    projects: [
+      {
+        extends: true,
+        test: {name: 'regras', include: ['packages/*/src/**/*.test.ts']},
+      },
+      {
+        extends: true,
+        test: {
+          name: 'api',
+          include: ['apps/api/test/**/*.test.ts'],
+          // Banco novo e descartável por rodada, no Postgres de verdade.
+          globalSetup: ['apps/api/test/global-setup.ts'],
+        },
+      },
+    ],
   },
 });

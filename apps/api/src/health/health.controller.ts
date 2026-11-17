@@ -3,8 +3,10 @@ import type {Pool} from 'pg';
 import {DB_POOL, databaseReady} from '../db/database.js';
 import {CONFIG, type AppConfig} from '../config.js';
 import {API_VERSION} from '../version.js';
+import {Public} from '../auth/auth.guard.js';
 
 /** Saúde (o processo está vivo) e prontidão (o banco responde). Sem dado sensível na resposta. */
+@Public()
 @Controller()
 export class HealthController {
   constructor(
