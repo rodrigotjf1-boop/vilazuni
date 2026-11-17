@@ -1,6 +1,6 @@
 import {Inject, Injectable} from '@nestjs/common';
 import type {Pool, PoolClient} from 'pg';
-import {decide, type Action, type ActorContext, type Decision} from '@vilazuni/domain';
+import {decide, MFA_RECENT_MS, type Action, type ActorContext, type Decision} from '@vilazuni/domain';
 import {DB_POOL} from '../db/database.js';
 import {CLOCK, type Clock} from '../clock.js';
 import {withCondominium} from '../db/tenant.js';
@@ -8,6 +8,19 @@ import {badRequest, forbidden, notFound} from '../http/errors.js';
 import type {AuthedRequest} from '../auth/auth.guard.js';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+type MandateLink = {status: 'active' | 'ended'; startsAt: Date; endsAt: Date};
+
+/** O mandato que vale AGORA; sem nenhum vigente, o último que venceu (para dizer "mandato vencido"). */
+export function currentMandate(list: MandateLink[], now: Date): MandateLink | null {
+  const t = now.getTime();
+  const vigente = list.find((m) => m.startsAt.getTime() <= t && t < m.endsAt.getTime());
+  if (vigente) return vigente;
+  const vencidos = list
+    .filter((m) => m.endsAt.getTime() <= t)
+    .sort((a, b) => b.endsAt.getTime() - a.endsAt.getTime());
+  return vencidos[0] ?? list[0] ?? null;
+}
 
 /**
  * Monta o contexto do ator NA HORA, a partir do banco: vínculos, papéis, mandatos e delegações vigentes.
@@ -47,38 +60,43 @@ export class ActorService {
     client: PoolClient,
     personId: string,
     condominiumId: string,
-    mfaSatisfied: boolean,
+    mfaAt: Date | null,
   ): Promise<ActorContext> {
     const now = this.clock.now();
-    const [own, res, roles, mandates, delegations] = await Promise.all([
-      client.query(`select unit_id, status, starts_at, ends_at from ownership where person_id = $1`, [
-        personId,
-      ]),
-      client.query(`select unit_id, status, starts_at, ends_at from residency where person_id = $1`, [
-        personId,
-      ]),
-      client.query(
-        `select id, role, status, scopes, starts_at, ends_at from role_assignment where person_id = $1`,
-        [personId],
-      ),
-      client.query(
-        `select m.role_assignment_id, m.status, m.starts_at, m.ends_at from mandate m
-           join role_assignment a on a.condominium_id = m.condominium_id and a.id = m.role_assignment_id
-          where a.person_id = $1`,
-        [personId],
-      ),
-      client.query(
-        `select d.role_assignment_id, d.status, d.actions, d.starts_at, d.ends_at from delegation d
-           join role_assignment a on a.condominium_id = d.condominium_id and a.id = d.role_assignment_id
-          where a.person_id = $1`,
-        [personId],
-      ),
-    ]);
+    const mfaSatisfied = mfaAt !== null;
+    const mfaRecent = mfaAt !== null && now.getTime() - mfaAt.getTime() <= MFA_RECENT_MS;
+    // Uma consulta por vez no MESMO cliente (a transação é uma conexão só): consultas simultâneas no mesmo
+    // cliente são aviso no pg 8 e erro no pg 9 (LIC-004, ERR-023 do registro interno).
+    const own = await client.query(
+      `select unit_id, status, starts_at, ends_at from ownership where person_id = $1`,
+      [personId],
+    );
+    const res = await client.query(
+      `select unit_id, status, starts_at, ends_at from residency where person_id = $1`,
+      [personId],
+    );
+    const roles = await client.query(
+      `select id, role, status, scopes, starts_at, ends_at from role_assignment where person_id = $1`,
+      [personId],
+    );
+    const mandates = await client.query(
+      `select m.role_assignment_id, m.status, m.starts_at, m.ends_at from mandate m
+         join role_assignment a on a.condominium_id = m.condominium_id and a.id = m.role_assignment_id
+        where a.person_id = $1`,
+      [personId],
+    );
+    const delegations = await client.query(
+      `select d.role_assignment_id, d.status, d.actions, d.starts_at, d.ends_at from delegation d
+         join role_assignment a on a.condominium_id = d.condominium_id and a.id = d.role_assignment_id
+        where a.person_id = $1`,
+      [personId],
+    );
     return {
       personId,
       condominiumId,
       now,
       mfaSatisfied,
+      mfaRecent,
       ownerships: own.rows.map((o) => ({
         unitId: o.unit_id,
         status: o.status,
@@ -97,11 +115,12 @@ export class ActorService {
         scopes: r.scopes,
         startsAt: r.starts_at,
         endsAt: r.ends_at,
-        mandate:
+        mandate: currentMandate(
           mandates.rows
-            .filter((m) => m.role_assignment_id === r.id)
-            .map((m) => ({status: m.status, startsAt: m.starts_at, endsAt: m.ends_at}))
-            .find((m) => m.status === 'active') ?? null,
+            .filter((m) => m.role_assignment_id === r.id && m.status === 'active')
+            .map((m) => ({status: m.status, startsAt: m.starts_at, endsAt: m.ends_at})),
+          now,
+        ),
         delegations: delegations.rows
           .filter((d) => d.role_assignment_id === r.id)
           .map((d) => ({status: d.status, actions: d.actions, startsAt: d.starts_at, endsAt: d.ends_at})),
@@ -126,12 +145,14 @@ export class ActorService {
     let denied: Decision | undefined;
     try {
       return await withCondominium(this.pool, condominiumId, async (client) => {
-        const actor = await this.load(client, req.session!.personId, condominiumId, !!req.session!.mfaAt);
+        const actor = await this.load(client, req.session!.personId, condominiumId, req.session!.mfaAt);
         const decisions = actions.map((a) => decide(actor, a, resource));
         if (!decisions.some((d) => d.allow)) {
-          denied = decisions.find((d) => d.reason === 'mfa_exigido') ?? decisions[0]!;
+          denied = decisions.find((d) => d.reason.startsWith('mfa_')) ?? decisions[0]!;
           if (denied.reason === 'mfa_exigido')
             throw forbidden('mfa_exigido', 'Esta ação pede a verificação em duas etapas.');
+          if (denied.reason === 'mfa_recente_exigido')
+            throw forbidden('mfa_recente_exigido', 'Confirme o código do aplicativo autenticador de novo.');
           throw options.denyAs === 'not_found' ? notFound() : forbidden();
         }
         return fn(client, actor);

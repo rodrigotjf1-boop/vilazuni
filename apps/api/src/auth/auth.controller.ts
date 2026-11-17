@@ -164,7 +164,17 @@ export class AuthController {
         displayName: p.rows[0].display_name,
         preferredLanguage: p.rows[0].preferred_language,
       },
-      mfa: !!req.session!.mfaAt,
+      // `enrolled`: a pessoa configurou o segundo fator; `satisfied`: esta sessão já confirmou o código
+      mfa: {
+        enrolled:
+          (
+            await this.pool.query(
+              `select 1 from auth_credential where person_id = $1 and kind = 'totp' and confirmed_at is not null`,
+              [personId],
+            )
+          ).rowCount === 1,
+        satisfied: !!req.session!.mfaAt,
+      },
       condominiums,
     };
   }

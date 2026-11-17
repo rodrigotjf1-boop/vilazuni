@@ -12,7 +12,9 @@ import {
   seedPerson,
   seedResidency,
   seedRole,
+  seedTotp,
   startApi,
+  avisosDoPg,
   type Api,
   type SeededCondominium,
 } from './support/api.js';
@@ -29,10 +31,21 @@ const ids: Record<string, string> = {};
 const MANDATE_END = T0 + 335 * DAY;
 
 const casa = (n: number) => A.units[n - 1]!.id;
+/** Segredo do aplicativo autenticador de quem faz gestão (síndico, subsíndico delegado). */
+const totp: Record<string, string> = {};
+/**
+ * Uma sessão por pessoa, guardada: o mesmo código não vale duas vezes (proteção contra repetição), então quem tem
+ * segundo fator confirma UMA vez e segue com a sessão.
+ */
+const sessoes = new Map<string, WebClient>();
 const entrar = async (who: string) => {
+  const guardada = sessoes.get(who);
+  if (guardada) return guardada;
   const c = new WebClient(api.url);
   const r = await c.login(emailOf(who));
   expect(r.status, `entrar como ${who}`).toBe(200);
+  if (totp[who]) expect((await c.mfa(totp[who]!, clock)).status, `segundo fator de ${who}`).toBe(200);
+  sessoes.set(who, c);
   return c;
 };
 
@@ -75,6 +88,8 @@ beforeAll(async () => {
   await seedOwnership(owner, B.id, B.units[0]!.id, ids.donoB!);
   await seedOwnership(owner, B.id, B.units[0]!.id, ids.duplo!);
   await seedResidency(owner, A.id, casa(5), ids.duplo!);
+  totp.sindico = await seedTotp(owner, ids.sindico!);
+  totp.subDelegado = await seedTotp(owner, ids.subDelegado!);
   api = await startApi(clock);
 });
 afterAll(async () => {
@@ -395,6 +410,7 @@ describe('T19 — mandato vencido', () => {
     try {
       const c = new WebClient(outra.url);
       expect((await c.login(emailOf('sindico'))).status).toBe(200);
+      expect((await c.mfa(totp.sindico!, relogio)).status).toBe(200);
       expect((await c.get('/units')).status).toBe(200);
       relogio.advance(3 * MIN);
       expect(await c.get('/units')).toMatchObject({status: 403, body: {error: 'sem_permissao'}});
@@ -408,5 +424,12 @@ describe('T19 — mandato vencido', () => {
     } finally {
       await outra.close();
     }
+  });
+});
+
+describe('banco', () => {
+  it('nenhuma consulta simultânea no mesmo cliente (vira erro no pg 9)', async () => {
+    await new Promise((r) => setTimeout(r, 20));
+    expect(avisosDoPg).toEqual([]);
   });
 });
