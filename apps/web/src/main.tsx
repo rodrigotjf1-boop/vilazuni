@@ -1,6 +1,6 @@
 import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
-import {createBrowserRouter, Navigate} from 'react-router';
+import {createBrowserRouter} from 'react-router';
 import {RouterProvider} from 'react-router/dom';
 import {QueryCache, QueryClient, QueryClientProvider} from '@tanstack/react-query';
 import './i18n';
@@ -11,6 +11,12 @@ import {Entrar} from './pages/Entrar';
 import {Convite} from './pages/Convite';
 import {Cadastro} from './pages/Cadastro';
 import {MinhaCasa} from './pages/MinhaCasa';
+import {Estadias} from './pages/Estadias';
+import {Inicio} from './pages/Inicio';
+import {Calendario} from './pages/Calendario';
+import {Operacao} from './pages/Operacao';
+import {Mais} from './pages/Mais';
+import {MinhaEstadia} from './pages/MinhaEstadia';
 import {Verificacao} from './pages/Verificacao';
 import {Sessoes} from './pages/Sessoes';
 import {EscolherCondominio} from './pages/EscolherCondominio';
@@ -41,11 +47,16 @@ const router = createBrowserRouter([
   {path: '/entrar', element: <Entrar />},
   {path: '/convite/:token', element: <Convite />},
   {path: '/cadastro/:token', element: <Cadastro />},
+  {path: '/minha-estadia', element: <MinhaEstadia />},
   {
     element: <Shell />,
     children: [
-      {index: true, element: <Navigate to="/minha-casa" replace />},
+      {index: true, element: <Inicio />},
       {path: '/minha-casa', element: <MinhaCasa />},
+      {path: '/estadias', element: <Estadias />},
+      {path: '/estadias/calendario', element: <Calendario />},
+      {path: '/operacao', element: <Operacao />},
+      {path: '/mais', element: <Mais />},
       {path: '/verificacao', element: <Verificacao />},
       {path: '/conta/sessoes', element: <Sessoes />},
       {path: '/escolher-condominio', element: <EscolherCondominio />},

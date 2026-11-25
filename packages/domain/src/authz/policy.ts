@@ -24,6 +24,10 @@ export type Action =
   | 'role.assign'
   | 'mandate.manage'
   | 'delegation.manage'
+  | 'stay.read.own'
+  | 'stay.write.own'
+  | 'stay.read.all'
+  | 'stay.manage'
   | 'audit.read';
 
 /** Todas as ações, para a tela saber o que mostrar (quem barra continua sendo `decide` em cada rota). */
@@ -39,6 +43,10 @@ export const ACTIONS: readonly Action[] = [
   'role.assign',
   'mandate.manage',
   'delegation.manage',
+  'stay.read.own',
+  'stay.write.own',
+  'stay.read.all',
+  'stay.manage',
   'audit.read',
 ];
 
@@ -115,6 +123,8 @@ const SYNDIC_ACTIONS: ReadonlySet<Action> = new Set([
   'role.assign',
   'mandate.manage',
   'delegation.manage',
+  'stay.read.all',
+  'stay.manage',
   'audit.read',
 ]);
 
@@ -122,6 +132,13 @@ const SYNDIC_ACTIONS: ReadonlySet<Action> = new Set([
 export const DELEGABLE_ACTIONS: ReadonlySet<Action> = new Set(
   [...SYNDIC_ACTIONS].filter((a) => !MFA_ACTIONS.has(a) && a !== 'condominium.read'),
 );
+
+export function canReceiveDelegation(role: Role, action: Action): boolean {
+  if (!DELEGABLE_ACTIONS.has(action)) return false;
+  if (action === 'stay.read.all') return role === 'subsyndic' || role === 'service_provider';
+  if (action === 'stay.manage') return role === 'subsyndic';
+  return true;
+}
 
 /** Conselho fiscal: leitura do que fiscaliza; nunca edita. */
 const FISCAL_ACTIONS: ReadonlySet<Action> = new Set([
@@ -179,7 +196,7 @@ function roleActions(ctx: ActorContext): {free: Set<Action>; managed: Set<Action
     // ato crítico).
     for (const d of r.delegations ?? [])
       if (d.status === 'active' && inPeriod(d, ctx.now))
-        for (const a of d.actions) if (DELEGABLE_ACTIONS.has(a as Action)) managed.add(a as Action);
+        for (const a of d.actions) if (canReceiveDelegation(r.role, a as Action)) managed.add(a as Action);
   }
   return {free, managed, expiredMandate};
 }
@@ -206,6 +223,12 @@ export function decide(ctx: ActorContext, action: Action, resource: {unitId?: st
     case 'ownership.request':
       // quem já tem algum vínculo (mesmo pendente) no condomínio pode pedir outra casa; nasce PENDENTE
       allowed = hasOwnOrResident || pendingAny || free.has(action);
+      break;
+    case 'stay.read.own':
+      allowed = resource.unitId ? owned.includes(resource.unitId) : owned.length > 0;
+      break;
+    case 'stay.write.own':
+      allowed = resource.unitId !== undefined && owned.includes(resource.unitId);
       break;
     default:
       allowed = free.has(action);

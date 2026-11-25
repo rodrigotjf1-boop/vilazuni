@@ -35,6 +35,10 @@ Legenda: **2F** = exige o segundo fator confirmado na sessão; **2F recente** = 
 | `ownership.validate` (validar/recusar) | — | — | — | ✅ 2F | delegação, 2F | — | escopo `cadastro` | — |
 | `invitation.create` (convidar para titularidade; gerar, listar e revogar o link de cadastro do condomínio) | — | — | — | ✅ 2F | delegação, 2F | — | escopo `cadastro` | — |
 | `person.read.all` (Gestão › Pessoas e papéis) | — | — | — | ✅ 2F | delegação, 2F | — | escopo `cadastro` | — |
+| `stay.read.own` / `stay.write.own` | Casas com titularidade vigente | — | — | — | — | — | — | — |
+| `stay.read.all` | — | — | — | ✅ 2F | delegação, 2F | — | — | Zeladoria com delegação de consulta e 2F |
+| `stay.manage` | — | — | — | ✅ 2F | delegação, 2F | — | — | — |
+| Consulta pelo link de **Minha estadia** | — | — | Dados básicos da estadia, dentro da janela | — | — | — | — | — |
 | `audit.read` | — | — | — | ✅ 2F | delegação, 2F | ✅ | — | — |
 | `role.assign` (papel e convite para papel) / `mandate.manage` / `delegation.manage` | — | — | — | ✅ 2F recente | nunca (não se delega) | — | — | — |
 | `session.manage.own` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
@@ -52,4 +56,4 @@ Notas:
 - Conselho fiscal **nunca** edita o que fiscaliza.
 - Tenaz não tem superadmin, senhas residenciais nem gravações por padrão.
 
-As ações das fases seguintes (estadia, segredos, finanças, piscina, câmeras, IA) entram nesta matriz no incremento que as implementa.
+As ações de segredos, finanças, piscina, câmeras e IA entram nesta matriz nos respectivos incrementos.

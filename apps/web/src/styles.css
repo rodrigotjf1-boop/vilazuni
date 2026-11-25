@@ -1,20 +1,21 @@
 @import 'tailwindcss';
+@import './workspace.css';
 
 /* Paleta da especificação (docs/mapa-telas.md), contraste conferido por combinação. Fonte do sistema: nenhuma
    requisição a terceiros só para carregar letra. */
 @theme {
-  --color-fundo: #f5f8f7;
-  --color-superficie: #ffffff;
-  --color-texto: #173b3b;
-  --color-suave: #4c6866;
-  --color-linha: #d3e0dd;
-  --color-primaria: #286a61;
-  --color-primaria-escura: #1f544d;
-  --color-primaria-clara: #e3efec;
-  --color-areia: #e7d9be;
-  --color-areia-clara: #f4ecdd;
-  --color-info: #42759a;
-  --color-atencao: #886414;
+  --color-fundo: #f5f1e9;
+  --color-superficie: #fffdf8;
+  --color-texto: #263a31;
+  --color-suave: #53655b;
+  --color-linha: #e0ddcf;
+  --color-primaria: #2b5442;
+  --color-primaria-escura: #203c32;
+  --color-primaria-clara: #e4eee5;
+  --color-areia: #e9d4b6;
+  --color-areia-clara: #f6ecdd;
+  --color-info: #376c87;
+  --color-atencao: #754407;
   --color-erro: #b23a48;
   --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --font-mono: ui-monospace, 'Cascadia Mono', 'SF Mono', Consolas, monospace;

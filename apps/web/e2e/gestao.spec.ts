@@ -12,11 +12,13 @@ test('Tenaz (escopo cadastro, sem código) valida a titularidade pendente e conv
 }) => {
   await entrar(page, 'tenaz');
   const nav = page.getByRole('navigation', {name: 'Navegação principal'});
-  await expect(nav.getByRole('link', {name: 'Titularidades'})).toBeVisible();
-  await expect(nav.getByRole('link', {name: 'Pessoas e papéis'})).toBeVisible();
-  await expect(nav.getByRole('link', {name: 'Auditoria'})).toHaveCount(0);
+  await nav.getByRole('link', {name: 'Mais', exact: true}).click();
+  const links = page.getByRole('main');
+  await expect(links.getByRole('link', {name: 'Titularidades'})).toBeVisible();
+  await expect(links.getByRole('link', {name: 'Pessoas e papéis'})).toBeVisible();
+  await expect(links.getByRole('link', {name: 'Auditoria'})).toHaveCount(0);
 
-  await nav.getByRole('link', {name: 'Titularidades'}).click();
+  await links.getByRole('link', {name: 'Titularidades'}).click();
   const pedido = cartao(page, 'Casa 10 · [DEMO] Pedido Pendente');
   await expect(pedido).toBeVisible();
   await pedido.getByRole('button', {name: 'Validar'}).click();
@@ -42,6 +44,7 @@ test('Tenaz (escopo cadastro, sem código) valida a titularidade pendente e conv
   // quem tinha o pedido pendente agora vê a casa validada
   const dona = await outro.newPage();
   await entrar(dona, 'pedido-pendente');
+  await dona.goto('/minha-casa');
   await expect(dona.getByRole('heading', {name: 'Casa 10'})).toBeVisible();
   await expect(dona.getByText(/Validada desde/)).toBeVisible();
   await outro.close();
@@ -69,6 +72,7 @@ test('recusa exige motivo, e a pessoa vê o motivo em Minha casa', async ({page,
   const outro = await browser.newContext({baseURL, locale: 'pt-BR'});
   const dona = await outro.newPage();
   await entrar(dona, 'proprietaria-06');
+  await dona.goto('/minha-casa');
   const casa13 = cartao(dona, 'Casa 13');
   await expect(casa13.getByText('Recusada')).toBeVisible();
   await expect(casa13.getByText('Motivo: Documento da casa não confere [DEMO]')).toBeVisible();
@@ -80,7 +84,8 @@ test('síndica configura a verificação a partir da Gestão, concede papel, del
 }) => {
   await entrar(page, 'sindica');
   const nav = page.getByRole('navigation', {name: 'Navegação principal'});
-  await nav.getByRole('link', {name: 'Pessoas e papéis'}).click();
+  await nav.getByRole('link', {name: 'Mais', exact: true}).click();
+  await page.getByRole('main').getByRole('link', {name: 'Pessoas e papéis'}).click();
   await expect(
     page.getByText(
       'Esta área pede a verificação em duas etapas, que ainda não está configurada na sua conta.',
@@ -128,7 +133,8 @@ test('síndica configura a verificação a partir da Gestão, concede papel, del
   await expect(novo.getByText('Encerrado', {exact: true})).toBeVisible();
 
   // auditoria: as três ações e a negação do começo (faltava o código)
-  await nav.getByRole('link', {name: 'Auditoria'}).click();
+  await nav.getByRole('link', {name: 'Mais', exact: true}).click();
+  await page.getByRole('main').getByRole('link', {name: 'Auditoria'}).click();
   const registro = page.getByRole('list', {name: 'Auditoria'});
   await expect(registro.getByText('Papel concedido').first()).toBeVisible();
   await expect(registro.getByText('Delegação concedida').first()).toBeVisible();

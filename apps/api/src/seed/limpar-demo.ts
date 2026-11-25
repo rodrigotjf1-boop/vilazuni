@@ -36,6 +36,8 @@ const TIES_OUTSIDE = `
               where c.environment <> 'demo' and (i.created_by = p.id or i.used_by = p.id))
   or exists (select 1 from signup_link s join condominium c on c.id = s.condominium_id
               where c.environment <> 'demo' and (s.created_by = p.id or s.revoked_by = p.id))
+  or exists (select 1 from stay s join condominium c on c.id = s.condominium_id
+              where c.environment <> 'demo' and s.created_by = p.id)
   or exists (select 1 from audit_event e join condominium c on c.id = e.condominium_id
               where c.environment <> 'demo' and e.actor_person_id = p.id)`;
 
@@ -91,6 +93,7 @@ export async function cleanDemoData(
     for (const table of ['delegation', 'mandate', 'role_assignment', 'invitation', 'residency', 'ownership'])
       await del(table, `delete from ${table} where ${inCondo}`);
     await del('parking_space', `delete from parking_space where ${inCondo}`);
+    await del('stay', `delete from stay where ${inCondo}`);
     await del('unit', `delete from unit where ${inCondo}`);
     await del('condominium', `delete from condominium where id in (select id from limpeza_condominio)`);
 
