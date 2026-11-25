@@ -7,6 +7,8 @@ export type Stay = {
   id: string;
   unitId: string;
   unitLabel: string;
+  registeredBy: string;
+  arrivalInstructions?: string;
   checkInAt: string;
   checkOutAt: string;
   members: Member[];
@@ -25,7 +27,6 @@ export type StayList = {
   visibleUnits: Unit[];
   timezone: string;
   serverNow: string;
-  manage: boolean;
   more: boolean;
 };
 
@@ -34,7 +35,7 @@ type StayQuery = {
   from?: string;
   to?: string;
   id?: string;
-  view?: 'context' | 'arrivals' | 'upcoming';
+  view?: 'context' | 'arrivals' | 'upcoming' | 'day';
 };
 
 export function useStays(query: StayQuery = {}) {

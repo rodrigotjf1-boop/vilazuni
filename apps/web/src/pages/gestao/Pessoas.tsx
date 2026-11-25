@@ -39,7 +39,7 @@ const DELEGABLE = [
   'person.read.all',
   'audit.read',
   'stay.read.all',
-  'stay.manage',
+  'bulletin.publish',
 ];
 type Guard = (error: unknown, again: () => void) => boolean;
 const actionKey = (a: string) =>
@@ -47,7 +47,9 @@ const actionKey = (a: string) =>
     ? 'stay.grantRead'
     : a === 'stay.manage'
       ? 'stay.grantManage'
-      : `gestao.acoes.${a.replace(/\./g, '_')}`;
+      : a === 'bulletin.publish'
+        ? 'bulletin.grantPublish'
+        : `gestao.acoes.${a.replace(/\./g, '_')}`;
 /** Síndico sem mandato vigente não tem poder de gestão (a API decide; aqui só se avisa). */
 const hasCurrentMandate = (r: RoleRow) => {
   const now = Date.now();
@@ -474,7 +476,7 @@ function Delegate({role: r, guard, onClose, onSaved}: FormProps) {
         <div className="grid gap-1 sm:grid-cols-2">
           {DELEGABLE.filter((a) => {
             if (a === 'stay.read.all') return r.role === 'subsyndic' || r.role === 'service_provider';
-            if (a === 'stay.manage') return r.role === 'subsyndic';
+            if (a === 'bulletin.publish') return r.role === 'subsyndic';
             return true;
           }).map((a) => (
             <label key={a} className="flex min-h-11 items-center gap-3">

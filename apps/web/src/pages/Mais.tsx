@@ -11,6 +11,7 @@ export function Mais() {
   const {active, access, logout, signingOut, name, hasChoices} = useOutletContext<ShellContext>();
   const actions = access.data?.actions;
   const links = [
+    {to: '/gestao/mural', label: t('bulletin.manage'), show: canOpen(actions, 'bulletin.publish')},
     {to: '/operacao', label: t('layout.operation'), show: canOpen(actions, 'stay.read.all')},
     {to: '/estadias/calendario', label: t('layout.calendarTitle'), show: canOpen(actions, 'stay.read.all')},
     {

@@ -22,6 +22,8 @@ const period = {
   checkOutAt: z.iso.datetime({offset: true}).transform((s) => new Date(s)),
 };
 
+const arrivalInstructions = z.string().trim().max(2000).optional();
+
 export const createStaySchema = z
   .object({
     unitId: z.uuid(),
@@ -34,10 +36,13 @@ export const createStaySchema = z
       .default([])
       .transform((plates) => [...new Set(plates)]),
     exceptionReason: z.string().trim().min(3).max(500).optional(),
+    arrivalInstructions,
   })
   .strict();
 
-export const editPeriodSchema = z.object({...period, version: z.number().int().positive()}).strict();
+export const editPeriodSchema = z
+  .object({...period, version: z.number().int().positive(), arrivalInstructions})
+  .strict();
 
 export function checkStayPeople(input: z.infer<typeof createStaySchema>) {
   assertValidPeriod(input);

@@ -23,7 +23,7 @@ const delegated = (role: Role, endsAt: Date | null = null): ActorContext => ({
       status: 'active',
       startsAt: null,
       endsAt: null,
-      delegations: [{status: 'active', actions: ['stay.read.all', 'stay.manage'], startsAt: null, endsAt}],
+      delegations: [{status: 'active', actions: ['stay.read.all'], startsAt: null, endsAt}],
     },
   ],
 });
@@ -35,10 +35,19 @@ describe('Visibilidade de estadias', () => {
     expect(decide(ctx, 'stay.read.all').allow).toBe(false);
   });
 
-  it('permite ao subsíndico gerir por delegação, e à zeladoria autorizada apenas consultar', () => {
-    expect(decide(delegated('subsyndic'), 'stay.manage').allow).toBe(true);
-    expect(decide(delegated('service_provider'), 'stay.read.all').allow).toBe(true);
-    expect(decide(delegated('service_provider'), 'stay.manage').allow).toBe(false);
+  it('permite a leitura ao subsíndico vigente com segundo fator', () => {
+    const deputy = delegated('subsyndic');
+    delete deputy.roles[0]!.delegations;
+    expect(decide(deputy, 'stay.read.all').allow).toBe(true);
+    expect(decide({...deputy, mfaSatisfied: false}, 'stay.read.all').reason).toBe('mfa_exigido');
+    deputy.roles[0]!.endsAt = ctx.now;
+    expect(decide(deputy, 'stay.read.all').allow).toBe(false);
+  });
+
+  it('permite ao prestador apenas a leitura delegada e vigente', () => {
+    const staff = delegated('service_provider');
+    expect(decide(staff, 'stay.read.all').allow).toBe(true);
+    expect(decide(staff, 'stay.write.own', {unitId: 'casa1'}).allow).toBe(false);
     expect(decide(delegated('service_provider', ctx.now), 'stay.read.all').allow).toBe(false);
     expect(decide(delegated('administrator'), 'stay.read.all').allow).toBe(false);
   });

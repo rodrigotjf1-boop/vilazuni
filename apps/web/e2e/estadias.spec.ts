@@ -1,6 +1,6 @@
-import {randomUUID} from 'node:crypto';
 import {expect, test} from '@playwright/test';
 import {generateSync} from 'otplib';
+import {stayTimeInput} from '../src/lib/stay-time';
 import {apiComo, entrar, semRolagemLateral, senhaDe} from './apoio';
 
 test('Portal, Mesa e Calendário consultam a mesma estadia com os acessos de cada perfil', async ({
@@ -11,32 +11,38 @@ test('Portal, Mesa e Calendário consultam a mesma estadia com os acessos de cad
   const owner = await apiComo('duas-casas', baseURL!);
   const list = await owner.ctx.get('stays?scope=own');
   expect(list.ok()).toBeTruthy();
-  const {ownUnits, serverNow} = await list.json();
-  const now = Date.parse(serverNow);
-  const request = await owner.ctx.post('stays', {
-    headers: owner.headers,
-    data: {
-      unitId: ownUnits[0].id,
-      requestId: randomUUID(),
-      checkInAt: serverNow,
-      checkOutAt: new Date(now + 86_400_000).toISOString(),
-      members: [
-        {name: 'Responsável de teste', band: 'adult', contact: 'responsavel@example.test'},
-        {name: 'Integrante de teste', band: 'adult', contact: 'integrante@example.test'},
-      ],
-      plates: ['ABC1D23'],
-    },
-  });
-  expect(request.status()).toBe(201);
-  const {id} = await request.json();
+  const {ownUnits, serverNow, timezone} = await list.json();
+  const after = new Date(Date.parse(serverNow) + 86_400_000).toISOString();
   await owner.ctx.dispose();
 
   await entrar(page, 'duas-casas');
   await expect(page.getByRole('heading', {name: 'Sua casa no condomínio'})).toBeVisible();
   await expect(page.getByRole('link', {name: 'Calendário de ocupação'})).toHaveCount(0);
-  await page.getByRole('link', {name: /Casa 03/}).click();
-  await expect(page).toHaveURL(new RegExp(`estadia=${id}`));
+  await page.getByRole('link', {name: 'Cadastrar estadia'}).click();
+  await page.getByLabel('Casa', {exact: true}).selectOption(ownUnits[0].id);
+  await page.getByLabel('Check-in', {exact: true}).fill(stayTimeInput(serverNow, timezone));
+  await page.getByLabel('Checkout', {exact: true}).fill(stayTimeInput(after, timezone));
+  await page.getByLabel('Nome do responsável principal').fill('Responsável de teste');
+  await page.getByLabel('Contato do responsável principal').fill('responsavel@example.test');
+  await page.getByLabel('Nome do segundo responsável').fill('Integrante de teste');
+  await page.getByLabel('Contato do segundo responsável').fill('integrante@example.test');
+  await page.getByLabel('Placas previstas').fill('ABC1D23');
+  await page.getByLabel('Orientações de chegada').fill('Procure a recepção de teste ao chegar.');
+  await page.getByRole('button', {name: 'Comunicar estadia'}).click();
+  await expect(page).toHaveURL(/estadia=[0-9a-f-]{36}/);
   await expect(page.getByText('Responsável de teste', {exact: false})).toBeVisible();
+  await expect(page.getByText('Comunicada', {exact: true})).toBeVisible();
+  await page.getByRole('button', {name: 'Gerar link do hóspede'}).click();
+  const link = page.getByRole('textbox', {name: 'Link do hóspede'});
+  await expect(link).toHaveValue(/minha-estadia#/);
+  const guest = await browser.newPage({locale: 'pt-BR'});
+  try {
+    await guest.goto(await link.inputValue());
+    await expect(guest.getByText('Procure a recepção de teste ao chegar.')).toBeVisible();
+    await expect(guest.getByText('Responsável de teste', {exact: false})).toHaveCount(0);
+  } finally {
+    await guest.close();
+  }
 
   const session = await browser.newContext({
     baseURL,
@@ -58,6 +64,7 @@ test('Portal, Mesa e Calendário consultam a mesma estadia com os acessos de cad
     await team.getByRole('button', {name: 'Concluir'}).click();
 
     await expect(team.getByRole('heading', {name: 'Mesa de operação'})).toBeVisible();
+    await expect(team.getByRole('heading', {name: 'Check-ins e checkouts de hoje'})).toBeVisible();
     await expect(team.getByRole('button', {name: /Responsável de teste/})).toBeVisible();
     await expect(team.getByRole('textbox', {name: 'Placa', exact: true})).toHaveValue('ABC1D23');
     await semRolagemLateral(team);
