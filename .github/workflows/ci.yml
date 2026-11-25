@@ -80,3 +80,10 @@ jobs:
       - run: npm audit --omit=dev --audit-level=high
       - name: Empacotamento da v1
         run: docker build -f deploy/v1/Dockerfile -t vilazuni-v1:ci .
+      - name: Conferir a imagem da v1 em execução
+        run: |
+          docker run --rm -d --name vilazuni-v1-smoke -p 127.0.0.1:4285:3100 \
+            -e DATABASE_URL=postgresql://fake:fake@127.0.0.1:1/test -e OUTBOX_INTERVAL_MS=0 vilazuni-v1:ci
+          trap 'docker logs vilazuni-v1-smoke; docker stop vilazuni-v1-smoke' EXIT
+          curl -fsS --retry 8 --retry-connrefused http://127.0.0.1:4285/api/v1/health
+          curl -fsS http://127.0.0.1:4285/estadias | grep -F 'name="vilazuni-app"'

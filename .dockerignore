@@ -24,3 +24,4 @@ docs/especificacao/privado
 **/.pgdata
 **/.storage
 **/dist
+**/*.tsbuildinfo
