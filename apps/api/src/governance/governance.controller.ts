@@ -1,7 +1,7 @@
 import {Body, Controller, Get, HttpCode, Inject, Param, Post, Query, Req} from '@nestjs/common';
 import type {PoolClient} from 'pg';
 import {z} from 'zod';
-import {DELEGABLE_ACTIONS, type ActorContext} from '@vilazuni/domain';
+import {canReceiveDelegation, DELEGABLE_ACTIONS, type Action, type ActorContext} from '@vilazuni/domain';
 import {ActorService} from '../authz/actor.service.js';
 import type {AuthedRequest} from '../auth/auth.guard.js';
 import {CLOCK, type Clock} from '../clock.js';
@@ -430,6 +430,8 @@ export class GovernanceController {
       if (!role) throw notFound();
       if (role.status !== 'active') throw conflict('papel_ja_encerrado', 'Este papel já foi encerrado.');
       if (role.role === 'syndic') throw badRequest('delegacao_para_sindico', 'Síndico não recebe delegação.');
+      if (input.actions.some((a) => !canReceiveDelegation(role.role, a as Action)))
+        throw badRequest('acao_nao_delegavel', 'Este papel não pode receber uma das ações selecionadas.');
       if (role.person_id === actor.personId)
         throw forbidden('nao_pode_conceder_a_si', 'Outra pessoa da gestão precisa conceder a sua delegação.');
       const id = uuidv7(now.getTime());

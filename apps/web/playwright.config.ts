@@ -15,7 +15,13 @@ export default defineConfig({
   timeout: 45_000,
   expect: {timeout: 8_000},
   reporter: [['list']],
-  use: {baseURL: WEB, locale: 'pt-BR', timezoneId: 'America/Sao_Paulo', trace: 'retain-on-failure'},
+  use: {
+    baseURL: WEB,
+    locale: 'pt-BR',
+    timezoneId: 'America/Sao_Paulo',
+    trace: 'retain-on-failure',
+    launchOptions: {executablePath: process.env.VZ_E2E_CHROMIUM},
+  },
   projects: [
     {name: 'computador', use: {...devices['Desktop Chrome']}, testIgnore: /celular\.spec\.ts/},
     {name: 'celular', use: {...devices['Pixel 7']}, testMatch: /celular\.spec\.ts/},

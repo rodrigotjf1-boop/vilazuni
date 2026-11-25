@@ -3,6 +3,8 @@ import {initReactI18next} from 'react-i18next';
 import ptBR from './pt-BR';
 import es from './es';
 import en from './en';
+import {stayText} from './stays';
+import {layoutText} from './layout';
 
 export const LANGS = ['pt-BR', 'es', 'en'] as const;
 export type Lang = (typeof LANGS)[number];
@@ -36,7 +38,11 @@ export function setLanguage(lang: Lang) {
 }
 
 void i18n.use(initReactI18next).init({
-  resources: {'pt-BR': {translation: ptBR}, es: {translation: es}, en: {translation: en}},
+  resources: {
+    'pt-BR': {translation: {...ptBR, stay: stayText['pt-BR'], layout: layoutText['pt-BR']}},
+    es: {translation: {...es, stay: stayText.es, layout: layoutText.es}},
+    en: {translation: {...en, stay: stayText.en, layout: layoutText.en}},
+  },
   lng: initialLanguage(),
   fallbackLng: 'pt-BR',
   // o React já escapa o que mostra

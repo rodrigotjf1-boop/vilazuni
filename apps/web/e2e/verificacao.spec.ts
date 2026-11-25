@@ -8,6 +8,10 @@ test('prestador configura a verificação, guarda os códigos e usa um deles nou
   baseURL,
 }) => {
   await entrar(page, 'prestador');
+  await page
+    .getByRole('navigation', {name: 'Navegação principal'})
+    .getByRole('link', {name: 'Mais', exact: true})
+    .click();
   await page.getByRole('link', {name: 'Verificação em duas etapas'}).click();
   await expect(page.getByText('Não configurada')).toBeVisible();
   await page.getByLabel('Confirme sua senha para começar').fill(senhaDe('prestador'));

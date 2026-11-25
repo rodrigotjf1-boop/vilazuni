@@ -70,6 +70,15 @@ export default async function globalSetup() {
   const appUrl = roleUrl(adminUrl, database, 'vilazuni_app', passwords.app);
   const appPool = new Pool({connectionString: appUrl, max: 2});
   const seed = await seedDemoChandra(appPool, {env: 'demo'});
+  const {withCondominium} = require(path.join(apiDist, 'db', 'tenant.js'));
+  // A subsindica da base e2e tem consulta de estadias delegada para exercitar a Mesa.
+  await withCondominium(appPool, seed.condominiumId, (client: import('pg').PoolClient) =>
+    client.query(
+      `update delegation set actions = array_append(actions, 'stay.read.all')
+        where condominium_id = $1 and 'ownership.validate' = any(actions)`,
+      [seed.condominiumId],
+    ),
+  );
   await appPool.end();
   process.env.VZ_E2E_CREDS = JSON.stringify(seed.credentials);
   process.env.VZ_E2E_API = `http://127.0.0.1:${API_PORT}/api/v1`;

@@ -38,9 +38,16 @@ const DELEGABLE = [
   'invitation.create',
   'person.read.all',
   'audit.read',
+  'stay.read.all',
+  'stay.manage',
 ];
 type Guard = (error: unknown, again: () => void) => boolean;
-const actionKey = (a: string) => `gestao.acoes.${a.replace(/\./g, '_')}`;
+const actionKey = (a: string) =>
+  a === 'stay.read.all'
+    ? 'stay.grantRead'
+    : a === 'stay.manage'
+      ? 'stay.grantManage'
+      : `gestao.acoes.${a.replace(/\./g, '_')}`;
 /** Síndico sem mandato vigente não tem poder de gestão (a API decide; aqui só se avisa). */
 const hasCurrentMandate = (r: RoleRow) => {
   const now = Date.now();
@@ -465,7 +472,11 @@ function Delegate({role: r, guard, onClose, onSaved}: FormProps) {
       <fieldset className="grid gap-1">
         <legend className="mb-1 font-medium">{t('gestao.pessoas.acoesDelegadas')}</legend>
         <div className="grid gap-1 sm:grid-cols-2">
-          {DELEGABLE.map((a) => (
+          {DELEGABLE.filter((a) => {
+            if (a === 'stay.read.all') return r.role === 'subsyndic' || r.role === 'service_provider';
+            if (a === 'stay.manage') return r.role === 'subsyndic';
+            return true;
+          }).map((a) => (
             <label key={a} className="flex min-h-11 items-center gap-3">
               <input
                 type="checkbox"

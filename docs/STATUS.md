@@ -37,9 +37,17 @@ Atualizado a cada PR. "Implementado" = no código, com teste executado e resulta
 
 Total: **133 testes, 133 aprovados** (`npm test`, 17/11/2026, Postgres 18 local; CI com Postgres 17): 37 de regras puras, 94 da API (sessões 14, identidade 16, gestão 17, cadastro por link e fila 17, limpeza 5, semeadura 4, cofre 6, detector 1, saúde 6, RLS 8) e 2 de regra das telas. **Ponta a ponta:** 24 aprovados (`npm run e2e`: banco novo, semeadura, API compilada com o e-mail em modo demonstração, prévia das telas, Chromium no computador e no Pixel 7). Compilação sem erro. Telas conferidas também por foto no computador e a 375 px.
 
+## Interface unificada na cópia de desenvolvimento
+
+- O Portal, o Calendário de ocupação e a Mesa de operação usam a mesma navegação e os dados de estadias da v1. O calendário mostra noites por unidade no computador e a agenda diária no celular. A mesa usa a data do condomínio e inclui a ficha da chegada e a consulta manual de placa.
+- A tela de entrada da v1 usa a marca do aplicativo e o formulário direto, substituindo a cena 3D descrita no histórico acima.
+- O build de avaliação para Android abre a mesma interface web em uma instalação HTTPS da v1. Consulte [Vilazuni v1 no Android](../apps/mobile/README.md).
+
 ## Em andamento
 
-- **F1.1 concluída** com a limpeza da base de teste. Próximo: **F1.2 — estadias e acesso temporal** (`docs/PLANO.md`).
+- **F1.1 concluída** com a limpeza da base de teste.
+- **F1.2 em desenvolvimento** (`docs/PLANO.md`). A cópia de desenvolvimento tem a migration 0005, o cadastro de estadias, a decisão pela gestão, a consulta manual de placas de temporada e o link de **Minha estadia**. A lista nominal exige titularidade vigente da casa, gestão autorizada ou delegação expressa à zeladoria. Alterar datas devolve a estadia para análise e invalida o link emitido.
+- A F1.2 ainda inclui a entrega das informações e dos segredos da casa. As regras do condomínio e o guia para hóspedes entram à medida que o conteúdo for definido. O cadastro de placas permanentes e a leitura por câmera são etapas posteriores.
 
 ## Decidido
 

@@ -1,26 +1,19 @@
 import {expect, test} from '@playwright/test';
 import {emailDe, entrar, senhaDe} from './apoio';
 
-test('a entrada tem o cenário do condomínio ao fundo, só decorativo', async ({page}) => {
+test('a entrada usa a identidade do Vilazuni e deixa o formulário acessível', async ({page}) => {
   await page.goto('/entrar');
-  const cena = page.locator('canvas[data-cena]');
-  // desenhado (3D) ou, sem WebGL, o fundo parado — nunca "carregando" para sempre
-  await expect(cena).toHaveAttribute('data-cena', /^(3d|estatica)$/, {timeout: 15_000});
-  await expect(cena).toHaveAttribute('tabindex', '-1');
-  await expect(page.locator('[aria-hidden="true"]').filter({has: cena})).toHaveCount(1);
-  // o formulário continua por cima e recebe o clique
+  await expect(page.locator('.vz-login-top')).toContainText('Vilazuni');
+  await expect(page.locator('canvas[data-cena]')).toHaveCount(0);
   await page.getByLabel('E-mail').click();
   await expect(page.getByLabel('E-mail')).toBeFocused();
 });
 
-test('com "reduzir movimento", a cena fica numa tomada só e a entrada funciona', async ({
-  browser,
-  baseURL,
-}) => {
+test('o portal abre com a preferência de reduzir movimento', async ({browser, baseURL}) => {
   const ctx = await browser.newContext({baseURL, locale: 'pt-BR', reducedMotion: 'reduce'});
   const page = await ctx.newPage();
   await entrar(page, 'duas-casas');
-  await expect(page.getByRole('heading', {name: 'Minha casa', exact: true})).toBeVisible();
+  await expect(page.getByRole('heading', {name: 'Sua casa no condomínio', exact: true})).toBeVisible();
   await ctx.close();
 });
 
@@ -32,6 +25,10 @@ test('senha errada mostra o motivo e não entra', async ({page}) => {
 
 test('proprietário de duas casas vê as duas, com vaga e situação', async ({page}) => {
   await entrar(page, 'duas-casas');
+  await page
+    .getByRole('navigation', {name: 'Navegação principal'})
+    .getByRole('link', {name: 'Minha casa', exact: true})
+    .click();
   await expect(page).toHaveURL(/\/minha-casa$/);
   await expect(page.getByRole('heading', {name: 'Minha casa'})).toBeVisible();
   await expect(page.getByRole('heading', {name: 'Casa 03'})).toBeVisible();
@@ -43,6 +40,7 @@ test('proprietário de duas casas vê as duas, com vaga e situação', async ({p
 
 test('copropriedade: as duas pessoas na mesma casa e a mesma vaga', async ({page}) => {
   await entrar(page, 'coproprietaria-a');
+  await page.goto('/minha-casa');
   await expect(page.getByRole('heading', {name: 'Casa 05'})).toBeVisible();
   await expect(page.getByText(/\[DEMO\] Coproprietária A/)).toBeVisible();
   await expect(page.getByText(/\[DEMO\] Coproprietário B/)).toBeVisible();
@@ -51,6 +49,7 @@ test('copropriedade: as duas pessoas na mesma casa e a mesma vaga', async ({page
 
 test('morador de contrato vê a casa como morador', async ({page}) => {
   await entrar(page, 'morador-contrato');
+  await page.goto('/minha-casa');
   await expect(page.getByRole('heading', {name: 'Casa 06'})).toBeVisible();
   await expect(page.getByText('Morador', {exact: true})).toBeVisible();
   await expect(page.getByText(/Ativa desde/)).toBeVisible();
@@ -71,20 +70,22 @@ test('retorno para fora do site é ignorado depois de entrar', async ({page}) =>
   await page.getByLabel('E-mail').fill(emailDe('duas-casas'));
   await page.getByLabel('Senha').fill(senhaDe('duas-casas'));
   await page.getByRole('button', {name: 'Entrar'}).click();
-  await expect(page).toHaveURL(/127\.0\.0\.1:\d+\/minha-casa$/);
+  await expect(page).toHaveURL(/127\.0\.0\.1:\d+\/$/);
 });
 
 test('idioma: espanhol e inglês', async ({page}) => {
   await entrar(page, 'coproprietaria-a');
+  await page.goto('/mais');
   await page.getByLabel('Idioma').selectOption('es');
-  await expect(page.getByRole('heading', {name: 'Mi casa'})).toBeVisible();
+  await expect(page.getByRole('heading', {name: 'Más', exact: true})).toBeVisible();
   await page.getByLabel('Idioma').selectOption('en');
-  await expect(page.getByRole('heading', {name: 'My home'})).toBeVisible();
+  await expect(page.getByRole('heading', {name: 'More', exact: true})).toBeVisible();
   await expect(page.getByText('Demo environment: fictitious people and data.')).toBeVisible();
 });
 
 test('depois de recarregar a página, os botões continuam funcionando (token recuperado)', async ({page}) => {
   await entrar(page, 'conselheiro-2');
+  await page.goto('/minha-casa');
   await expect(page.getByRole('heading', {name: 'Casa 08'})).toBeVisible();
   await page.reload();
   await page.getByLabel('Casa', {exact: true}).selectOption({label: 'Casa 14'});
@@ -95,7 +96,7 @@ test('depois de recarregar a página, os botões continuam funcionando (token re
 
 test('sair encerra a sessão', async ({page}) => {
   await entrar(page, 'duas-casas');
-  await expect(page.getByRole('heading', {name: 'Minha casa'})).toBeVisible();
+  await page.goto('/mais');
   await page.getByRole('button', {name: 'Sair'}).click();
   await expect(page).toHaveURL(/\/entrar$/);
   await page.goto('/minha-casa');

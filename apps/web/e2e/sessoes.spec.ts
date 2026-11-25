@@ -5,7 +5,7 @@ test('encerrar outra sessão derruba o outro aparelho na hora', async ({page, br
   const outro = await browser.newContext({baseURL, locale: 'pt-BR'});
   const celular = await outro.newPage();
   await entrar(celular, 'conselheiro-1');
-  await expect(celular).toHaveURL(/\/minha-casa$/);
+  await expect(celular).toHaveURL(/\/$/);
 
   await entrar(page, 'conselheiro-1');
   await page.goto('/conta/sessoes');

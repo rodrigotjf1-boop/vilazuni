@@ -9,6 +9,10 @@ test('telas sem rolagem lateral no celular', async ({page}) => {
   await semRolagemLateral(page);
 
   await entrar(page, 'subsindica');
+  await page
+    .getByRole('navigation', {name: 'Navegação principal'})
+    .getByRole('link', {name: 'Minha casa', exact: true})
+    .click();
   await expect(page.getByRole('heading', {name: 'Minha casa'})).toBeVisible();
   await expect(page.getByRole('heading', {name: 'Casa 11'})).toBeVisible();
   await expect(page.getByRole('navigation', {name: 'Navegação principal'})).toBeVisible();
