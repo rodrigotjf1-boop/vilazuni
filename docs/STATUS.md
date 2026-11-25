@@ -51,6 +51,8 @@ Total: **133 testes, 133 aprovados** (`npm test`, 17/11/2026, Postgres 18 local;
 
 - **F1.3 Regras e mural.** A migration 0007 guarda publicações e versões, com vigência, aprovação registrada e traduções. As contas do condomínio podem registrar leitura e ciência por versão. A gestão vê o histórico e os totais. O link Minha estadia mostra apenas publicações vigentes compartilhadas com hóspedes. A publicação do regimento do Chandra depende do conteúdo oficial.
 
+- **Guia da casa.** A migration 0008 guarda atrações e até três fotos por casa. Titulares vigentes cadastram, editam e excluem em Minha casa. Moradores vinculados têm leitura e hóspedes consultam pelo link Minha estadia, na janela vigente. O trajeto é escrito pelo titular com o endereço do condomínio como ponto de partida. Os testes da API verificam os limites de fotos, o salvamento em transação, a edição com versão, o escopo por casa e o fim do vínculo ou do link.
+
 ## Decidido
 
 - ADR-0009 — entrada por convite no piloto, ninguém decide o próprio pedido, decisão com versão e repetição idempotente, e-mail normalizado no banco.

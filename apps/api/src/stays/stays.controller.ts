@@ -11,6 +11,7 @@ import {
 import type {Pool, PoolClient} from 'pg';
 import {z} from 'zod';
 import {audit} from '../audit/audit.js';
+import {guidePhoto, unitGuide} from '../guide/guide-store.js';
 import {guestBulletin} from '../bulletin/bulletin-store.js';
 import {Public, type AuthedRequest} from '../auth/auth.guard.js';
 import {newToken, sha256} from '../auth/crypto.js';
@@ -49,6 +50,15 @@ const cancelSchema = versionSchema.extend({
   action: z.literal('cancel'),
   note: z.string().trim().min(3).max(500).optional(),
 });
+type GuestStay = {
+  unit_id: string;
+  unit_label: string;
+  check_in_at: Date;
+  check_out_at: Date;
+  condominium: string;
+  timezone: string;
+  arrival_instructions: string | null;
+};
 const guestSchema = z.object({token: z.string().regex(/^[A-Za-z0-9_-]{43}$/)}).strict();
 const instant = z.iso.datetime({offset: true}).transform((value) => new Date(value));
 const listSchema = z
@@ -295,6 +305,64 @@ export class StaysController {
   @HttpCode(200)
   @Header('Cache-Control', 'no-store')
   async guest(@Body() body: unknown) {
+    return this.readGuestStay(body, async (client, stay, {condominiumId, stayId, now, endsAt}) => {
+      if (stay.arrival_instructions) {
+        await audit(client, {
+          condominiumId,
+          actorPersonId: null,
+          actorKind: 'service',
+          action: 'stay.arrival.read',
+          objectType: 'stay',
+          objectId: stayId,
+        });
+      }
+      return {
+        condominium: stay.condominium,
+        timezone: stay.timezone,
+        unitLabel: stay.unit_label,
+        checkInAt: stay.check_in_at,
+        checkOutAt: stay.check_out_at,
+        availableUntil: endsAt,
+        bulletin: await guestBulletin(client, now),
+        arrivalInstructions: stay.arrival_instructions
+          ? this.vault.open(stay.arrival_instructions, instructionsContext(stayId))
+          : null,
+      };
+    });
+  }
+
+  @Public()
+  @Post('guest/guide')
+  @HttpCode(200)
+  @Header('Cache-Control', 'no-store')
+  async guestGuide(@Body() body: unknown) {
+    return this.readGuestStay(body, async (client, stay) => ({
+      attractions: await unitGuide(client, stay.unit_id),
+    }));
+  }
+
+  @Public()
+  @Post('guest/guide/:attractionId/photos/:slot')
+  @HttpCode(200)
+  @Header('Cache-Control', 'no-store')
+  @Header('X-Content-Type-Options', 'nosniff')
+  async guestGuidePhoto(
+    @Body() body: unknown,
+    @Param('attractionId') attraction: string,
+    @Param('slot') slot: string,
+  ) {
+    const id = pathId(attraction);
+    return this.readGuestStay(body, (client, stay) => guidePhoto(client, stay.unit_id, id, slot));
+  }
+
+  private async readGuestStay<T>(
+    body: unknown,
+    read: (
+      client: PoolClient,
+      stay: GuestStay,
+      context: {condominiumId: string; stayId: string; now: Date; endsAt: Date},
+    ) => Promise<T>,
+  ): Promise<T> {
     const {token} = parse(guestSchema, body);
     const hash = sha256(token);
     const match = await this.pool.query<{id: string; condominium_id: string}>(
@@ -304,15 +372,8 @@ export class StaysController {
     const link = match.rows[0];
     if (!link) throw notFound();
     return withCondominium(this.pool, link.condominium_id, async (client) => {
-      const {rows} = await client.query<{
-        unit_label: string;
-        check_in_at: Date;
-        check_out_at: Date;
-        condominium: string;
-        timezone: string;
-        arrival_instructions: string | null;
-      }>(
-        `select u.label as unit_label, s.check_in_at, s.check_out_at, c.name as condominium, c.timezone, s.arrival_instructions
+      const {rows} = await client.query<GuestStay>(
+        `select s.unit_id, u.label as unit_label, s.check_in_at, s.check_out_at, c.name as condominium, c.timezone, s.arrival_instructions
            from stay s join unit u on u.condominium_id = s.condominium_id and u.id = s.unit_id
            join condominium c on c.id = s.condominium_id
           where s.id = $1 and s.guest_token_hash = $2 and s.status = 'confirmed' and u.status = 'active'`,
@@ -324,28 +385,12 @@ export class StaysController {
       const now = this.clock.now();
       if (!isWithin(window, now))
         throw gone('link_estadia_fora_horario', 'O link está fora do período de consulta.');
-      if (stay.arrival_instructions) {
-        await audit(client, {
-          condominiumId: link.condominium_id,
-          actorPersonId: null,
-          actorKind: 'service',
-          action: 'stay.arrival.read',
-          objectType: 'stay',
-          objectId: link.id,
-        });
-      }
-      return {
-        condominium: stay.condominium,
-        timezone: stay.timezone,
-        unitLabel: stay.unit_label,
-        checkInAt: stay.check_in_at,
-        checkOutAt: stay.check_out_at,
-        availableUntil: window.endsAt,
-        bulletin: await guestBulletin(client, now),
-        arrivalInstructions: stay.arrival_instructions
-          ? this.vault.open(stay.arrival_instructions, instructionsContext(link.id))
-          : null,
-      };
+      return read(client, stay, {
+        condominiumId: link.condominium_id,
+        stayId: link.id,
+        now,
+        endsAt: window.endsAt,
+      });
     });
   }
 

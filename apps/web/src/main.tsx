@@ -11,6 +11,7 @@ import {Entrar} from './pages/Entrar';
 import {Convite} from './pages/Convite';
 import {Cadastro} from './pages/Cadastro';
 import {MinhaCasa} from './pages/MinhaCasa';
+import {GuiaDaCasa} from './pages/GuiaDaCasa';
 import {Estadias} from './pages/Estadias';
 import {Inicio} from './pages/Inicio';
 import {Calendario} from './pages/Calendario';
@@ -55,6 +56,7 @@ const router = createBrowserRouter([
     children: [
       {index: true, element: <Inicio />},
       {path: '/minha-casa', element: <MinhaCasa />},
+      {path: '/minha-casa/:unitId/guia', element: <GuiaDaCasa />},
       {path: '/estadias', element: <Estadias />},
       {path: '/estadias/calendario', element: <Calendario />},
       {path: '/operacao', element: <Operacao />},

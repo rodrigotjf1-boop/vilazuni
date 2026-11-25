@@ -6,6 +6,7 @@ import en from './en';
 import {stayText} from './stays';
 import {layoutText} from './layout';
 import {bulletinText} from './bulletin';
+import {guideText} from './guide';
 
 export const LANGS = ['pt-BR', 'es', 'en'] as const;
 export type Lang = (typeof LANGS)[number];
@@ -46,10 +47,27 @@ void i18n.use(initReactI18next).init({
         stay: stayText['pt-BR'],
         layout: layoutText['pt-BR'],
         bulletin: bulletinText['pt-BR'],
+        guide: guideText['pt-BR'],
       },
     },
-    es: {translation: {...es, stay: stayText.es, layout: layoutText.es, bulletin: bulletinText.es}},
-    en: {translation: {...en, stay: stayText.en, layout: layoutText.en, bulletin: bulletinText.en}},
+    es: {
+      translation: {
+        ...es,
+        stay: stayText.es,
+        layout: layoutText.es,
+        bulletin: bulletinText.es,
+        guide: guideText.es,
+      },
+    },
+    en: {
+      translation: {
+        ...en,
+        stay: stayText.en,
+        layout: layoutText.en,
+        bulletin: bulletinText.en,
+        guide: guideText.en,
+      },
+    },
   },
   lng: initialLanguage(),
   fallbackLng: 'pt-BR',
