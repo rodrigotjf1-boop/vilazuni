@@ -33,6 +33,7 @@ export interface MyUnit {
 }
 export interface UnitDetail {
   id: string;
+  status: 'active' | 'inactive';
   label: string;
   parkingSpace: {number: string; accessible: boolean} | null;
   owners: {personId: string; displayName: string; since: string}[];

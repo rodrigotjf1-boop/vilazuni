@@ -29,6 +29,8 @@ Legenda: **2F** = exige o segundo fator confirmado na sessão; **2F recente** = 
 |---|---|---|---|---|---|---|---|---|
 | `condominium.read` (nome, regras públicas) | ✅ | ✅ | ✅ (na janela) | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `unit.read.own` (minhas casas) | ✅ próprias | ✅ a dele | — | — | — | — | — | — |
+| Guia da casa (leitura de atrações e fotos) | Casas com titularidade vigente | Casa do vínculo vigente | Casa da estadia, na janela do link | — | — | — | — | — |
+| `guide.write.own` (cadastrar, editar, excluir atrações e fotos) | Casas com titularidade vigente | — | — | — | — | — | — | — |
 | `unit.read.all` (cadastro das 14 casas) | visão mínima (F1.2) | — | — | ✅ 2F | delegação, 2F | ✅ leitura | escopo `cadastro` | — |
 | `unit.manage` (criar/editar casas e vagas) | — | — | — | ✅ 2F | delegação, 2F | — | — | — |
 | `ownership.request` (pedir titularidade) | ✅ (pendente) | ✅ (pendente) | — | ✅ | com vínculo | ✅ | — | — |

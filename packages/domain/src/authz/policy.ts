@@ -15,6 +15,7 @@ export type Role =
 export type Action =
   | 'condominium.read'
   | 'unit.read.own'
+  | 'guide.write.own'
   | 'unit.read.all'
   | 'unit.manage'
   | 'ownership.request'
@@ -34,6 +35,7 @@ export type Action =
 export const ACTIONS: readonly Action[] = [
   'condominium.read',
   'unit.read.own',
+  'guide.write.own',
   'unit.read.all',
   'unit.manage',
   'ownership.request',
@@ -229,6 +231,7 @@ export function decide(ctx: ActorContext, action: Action, resource: {unitId?: st
       allowed = resource.unitId ? owned.includes(resource.unitId) : owned.length > 0;
       break;
     case 'stay.write.own':
+    case 'guide.write.own':
       allowed = resource.unitId !== undefined && owned.includes(resource.unitId);
       break;
     default:

@@ -100,6 +100,8 @@ export async function cleanDemoData(
     await del('stay', `delete from stay where ${inCondo}`);
     for (const table of ['bulletin_receipt', 'bulletin_revision', 'bulletin'])
       await del(table, `delete from ${table} where ${inCondo}`);
+    for (const table of ['unit_attraction_photo', 'unit_attraction'])
+      await del(table, `delete from ${table} where ${inCondo}`);
     await del('unit', `delete from unit where ${inCondo}`);
     await del('condominium', `delete from condominium where id in (select id from limpeza_condominio)`);
 

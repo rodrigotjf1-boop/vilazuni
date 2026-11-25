@@ -2,6 +2,7 @@ import {useQuery} from '@tanstack/react-query';
 import {useTranslation} from 'react-i18next';
 import {useLocation} from 'react-router';
 import {BulletinContent} from '../components/BulletinContent';
+import {GuestGuide} from '../components/GuestGuide';
 import {LanguagePicker} from '../components/LanguagePicker';
 import type {BulletinContent as Entry} from '../lib/bulletin';
 import {Card, Loading, Notice, PageTitle} from '../components/ui';
@@ -74,6 +75,7 @@ export function MinhaEstadia() {
                 <BulletinContent entry={entry} />
               </Card>
             ))}
+          <GuestGuide key={token} token={token} />
           {stay.bulletin
             ?.filter((entry) => entry.kind === 'notice')
             .map((entry) => (

@@ -1,4 +1,5 @@
 import {useState, type FormEvent} from 'react';
+import {Link} from 'react-router';
 import {useTranslation} from 'react-i18next';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {get, post} from '../lib/api';
@@ -95,6 +96,14 @@ function UnitCard({unit}: {unit: MyUnit}) {
           </li>
         ))}
       </ul>
+      {detail.data && detail.data.unit.status === 'active' && (
+        <Link
+          to={`/minha-casa/${unit.id}/guia`}
+          className="inline-flex min-h-11 w-fit items-center rounded-lg border border-linha px-4 font-medium text-primaria hover:border-primaria"
+        >
+          {t('guide.title')}
+        </Link>
+      )}
       {detail.data && detail.data.unit.owners.length > 0 && (
         <div className="grid gap-1">
           <p className="text-sm font-medium text-suave">{t('minhaCasa.proprietarios')}</p>
