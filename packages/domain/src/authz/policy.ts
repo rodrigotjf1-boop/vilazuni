@@ -27,7 +27,6 @@ export type Action =
   | 'stay.read.own'
   | 'stay.write.own'
   | 'stay.read.all'
-  | 'stay.manage'
   | 'audit.read';
 
 /** Todas as ações, para a tela saber o que mostrar (quem barra continua sendo `decide` em cada rota). */
@@ -46,7 +45,6 @@ export const ACTIONS: readonly Action[] = [
   'stay.read.own',
   'stay.write.own',
   'stay.read.all',
-  'stay.manage',
   'audit.read',
 ];
 
@@ -69,7 +67,7 @@ export interface RoleLink extends Period {
   scopes: string[];
   /** síndico: o mandato que dá os poderes */
   mandate?: (Period & {status: 'active' | 'ended'}) | null;
-  /** subsíndico e outros: só o que a delegação documentada concede */
+  /** Atribuições adicionais concedidas por delegação documentada. */
   delegations?: (Period & {status: 'active' | 'ended'; actions: string[]})[];
 }
 
@@ -124,7 +122,6 @@ const SYNDIC_ACTIONS: ReadonlySet<Action> = new Set([
   'mandate.manage',
   'delegation.manage',
   'stay.read.all',
-  'stay.manage',
   'audit.read',
 ]);
 
@@ -136,7 +133,6 @@ export const DELEGABLE_ACTIONS: ReadonlySet<Action> = new Set(
 export function canReceiveDelegation(role: Role, action: Action): boolean {
   if (!DELEGABLE_ACTIONS.has(action)) return false;
   if (action === 'stay.read.all') return role === 'subsyndic' || role === 'service_provider';
-  if (action === 'stay.manage') return role === 'subsyndic';
   return true;
 }
 
@@ -184,6 +180,8 @@ function roleActions(ctx: ActorContext): {free: Set<Action>; managed: Set<Action
       const m = r.mandate;
       if (m && m.status === 'active' && inPeriod(m, ctx.now)) SYNDIC_ACTIONS.forEach((a) => managed.add(a));
       else expiredMandate = true;
+    } else if (r.role === 'subsyndic') {
+      managed.add('stay.read.all');
     } else if (r.role === 'fiscal_council') {
       FISCAL_ACTIONS.forEach((a) => free.add(a));
     } else if (r.role === 'administrator') {
@@ -192,8 +190,7 @@ function roleActions(ctx: ActorContext): {free: Set<Action>; managed: Set<Action
         scope?.actions.forEach((a) => (scope.mfa ? managed : free).add(a));
       }
     }
-    // Subsíndico e demais: o que delegação vigente conceder (nunca cópia automática dos poderes do síndico, nunca
-    // ato crítico).
+    // Outras ações de gestão exigem delegação vigente. A delegação exclui atos críticos.
     for (const d of r.delegations ?? [])
       if (d.status === 'active' && inPeriod(d, ctx.now))
         for (const a of d.actions) if (canReceiveDelegation(r.role, a as Action)) managed.add(a as Action);

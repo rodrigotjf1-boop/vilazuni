@@ -2,17 +2,19 @@ import {useState} from 'react';
 import {useTranslation} from 'react-i18next';
 import {ActionLink, Icon, StayStatus, WorkspaceError} from '../components/Workspace';
 import {Loading, Notice} from '../components/ui';
+import {dayOf, stayEvents} from '../lib/agenda';
 import {groupSize, stayDetail, useStays} from '../lib/stays';
 import {displayStayTime} from '../lib/stay-time';
 import {PlateLookup} from './Estadias';
 
 export function Operacao() {
   const {t, i18n} = useTranslation();
-  const query = useStays({scope: 'all', view: 'arrivals'});
+  const query = useStays({scope: 'all', view: 'day'});
   const [selection, setSelection] = useState('');
   const data = query.data;
-  const queue = data?.stays ?? [];
-  const current = queue.find((stay) => stay.id === selection) ?? queue[0];
+  const queue = data ? stayEvents(data.stays, dayOf(data.serverNow, data.timezone), data.timezone) : [];
+  const selected = queue.find(({stay, kind}) => `${stay.id}:${kind}` === selection) ?? queue[0];
+  const current = selected?.stay;
   const when = (date: string) => data && displayStayTime(date, data.timezone, i18n.language);
   return (
     <div className="vz-flow">
@@ -30,24 +32,30 @@ export function Operacao() {
           <div className="vz-operations">
             <section className="vz-queue" aria-labelledby="queue-title">
               <h2 id="queue-title" className="vz-subtitle">
-                {t('layout.arrivalsToday')}
+                {t('layout.movementToday')}
               </h2>
-              {!queue.length && <p className="vz-empty">{t('layout.noArrivals')}</p>}
+              {!queue.length && <p className="vz-empty">{t('layout.noMovementToday')}</p>}
               <ul className="vz-lines">
-                {queue.map((stay) => (
-                  <li key={stay.id}>
-                    <button
-                      type="button"
-                      aria-pressed={stay.id === current?.id}
-                      onClick={() => setSelection(stay.id)}
-                    >
-                      <strong>{stay.unitLabel}</strong>
-                      <span>{when(stay.checkInAt)}</span>
-                      <small>{stay.members[0]?.name}</small>
-                      <StayStatus status={stay.status} />
-                    </button>
-                  </li>
-                ))}
+                {queue.map((event) => {
+                  const {stay, kind, time} = event;
+                  const key = `${stay.id}:${kind}`;
+                  return (
+                    <li key={key}>
+                      <button
+                        type="button"
+                        aria-pressed={event === selected}
+                        onClick={() => setSelection(key)}
+                      >
+                        <strong>{stay.unitLabel}</strong>
+                        <span>
+                          {t(`stay.${kind}`)} · {when(time)}
+                        </span>
+                        <small>{stay.members[0]?.name}</small>
+                        <StayStatus status={stay.status} />
+                      </button>
+                    </li>
+                  );
+                })}
               </ul>
             </section>
             <div className="vz-details">

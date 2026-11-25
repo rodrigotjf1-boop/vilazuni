@@ -16,6 +16,7 @@ const confirmed: Stay = {
   id: '1',
   unitId: 'casa-7',
   unitLabel: 'Casa 07',
+  registeredBy: 'Proprietária de teste',
   checkInAt: '2026-11-24T18:00:00Z',
   checkOutAt: '2026-11-27T14:00:00Z',
   members: [],

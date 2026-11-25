@@ -1,4 +1,4 @@
-import {useState, type FormEvent} from 'react';
+import {useId, useState, type FormEvent} from 'react';
 import {useOutletContext, useSearchParams} from 'react-router';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {useTranslation} from 'react-i18next';
@@ -51,7 +51,7 @@ export function Estadias() {
             </div>
           )}
           {create && !!list.data.ownUnits.length && (
-            <StayForm data={list.data} close={() => setCreate(false)} />
+            <StayForm data={list.data} onCreated={(id) => setParams({estadia: id}, {replace: true})} />
           )}
           {!selected && !canPlan && <PlateLookup timezone={list.data.timezone} />}
           {!list.data.stays.length && <Notice>{t(selected ? 'layout.noStay' : 'stay.empty')}</Notice>}
@@ -65,12 +65,20 @@ export function Estadias() {
   );
 }
 
-function readPeriod(form: HTMLFormElement, timezone: string) {
+function readPeriod(form: HTMLFormElement, timezone: string, stay?: Stay) {
   const data = new FormData(form);
+  const instructions = data.get('arrivalInstructions');
+  const readTime = (name: string, original?: string) => {
+    const value = String(data.get(name));
+    return original && value === stayTimeInput(original, timezone)
+      ? original
+      : localStayTime(value, timezone);
+  };
   try {
     return {
-      checkInAt: localStayTime(String(data.get('in')), timezone),
-      checkOutAt: localStayTime(String(data.get('out')), timezone),
+      checkInAt: readTime('in', stay?.checkInAt),
+      checkOutAt: readTime('out', stay?.checkOutAt),
+      ...(typeof instructions === 'string' ? {arrivalInstructions: instructions.trim()} : {}),
     };
   } catch {
     throw timeError();
@@ -100,7 +108,31 @@ function PeriodFields({timezone, stay}: {timezone: string; stay?: Stay}) {
   );
 }
 
-function StayForm({data, close}: {data: StayList; close: () => void}) {
+function ArrivalInstructions({value}: {value?: string}) {
+  const id = useId();
+  const {t} = useTranslation();
+  return (
+    <div className="grid gap-1">
+      <label htmlFor={id} className="font-medium">
+        {t('stay.arrivalInstructions')}
+      </label>
+      <textarea
+        id={id}
+        className="w-full min-w-0 rounded-lg border border-linha bg-superficie px-3 py-2 text-base"
+        name="arrivalInstructions"
+        rows={3}
+        maxLength={2000}
+        defaultValue={value}
+        aria-describedby={`${id}-ajuda`}
+      />
+      <small id={`${id}-ajuda`} className="text-suave">
+        {t('stay.arrivalInstructionsHint')}
+      </small>
+    </div>
+  );
+}
+
+function StayForm({data, onCreated}: {data: StayList; onCreated: (id: string) => void}) {
   const {t} = useTranslation();
   const errorText = useErrorText();
   const client = useQueryClient();
@@ -117,7 +149,7 @@ function StayForm({data, close}: {data: StayList; close: () => void}) {
       const members: Member[] = [{name: named('primary'), band: 'adult', contact: named('contact')}];
       if (!single) members.push({name: named('backup'), band: 'adult', contact: named('backupContact')});
       for (const person of people) members.push({name: named(`person-${person.id}`), band: person.band});
-      return post('/stays', {
+      return post<{id: string}>('/stays', {
         requestId,
         unitId: named('unitId'),
         ...readPeriod(form, data.timezone),
@@ -128,9 +160,9 @@ function StayForm({data, close}: {data: StayList; close: () => void}) {
         ...(single ? {exceptionReason: named('exception')} : {}),
       });
     },
-    onSuccess: async () => {
+    onSuccess: async ({id}) => {
       await client.invalidateQueries({queryKey: ['stays']});
-      close();
+      onCreated(id);
     },
   });
   return (
@@ -225,6 +257,7 @@ function StayForm({data, close}: {data: StayList; close: () => void}) {
           </div>
         </fieldset>
         <Field label={t('stay.plates')} hint={t('stay.platesHint')} name="plates" maxLength={110} />
+        <ArrivalInstructions />
         {create.error && <Notice tone="error">{errorText(create.error)}</Notice>}
         <div>
           <Button type="submit" busy={create.isPending}>
@@ -254,11 +287,11 @@ function StayCard({stay, data, expanded}: {stay: Stay; data: StayList; expanded:
   const {t, i18n} = useTranslation();
   const errorText = useErrorText();
   const client = useQueryClient();
-  const [mode, setMode] = useState<'edit' | 'reject' | 'cancel' | null>(null);
+  const [mode, setMode] = useState<'edit' | 'cancel' | null>(null);
   const [guestLink, setGuestLink] = useState('');
   const update = useMutation({
     mutationFn: async (input: {route: string; body?: Record<string, unknown>; form?: HTMLFormElement}) => {
-      const body = input.form ? readPeriod(input.form, data.timezone) : input.body;
+      const body = input.form ? readPeriod(input.form, data.timezone, stay) : input.body;
       return post<{token?: string}>(`/stays/${stay.id}/${input.route}`, {version: stay.version, ...body});
     },
     onSuccess: async (result) => {
@@ -267,14 +300,13 @@ function StayCard({stay, data, expanded}: {stay: Stay; data: StayList; expanded:
       await client.invalidateQueries({queryKey: ['stays']});
     },
   });
-  const updateAllowed = own(data, stay) || data.manage;
+  const updateAllowed = own(data, stay);
   const open = stay.status === 'pending' || stay.status === 'confirmed';
   const when = (date: string) => displayStayTime(date, data.timezone, i18n.language);
-  function decision(event: FormEvent<HTMLFormElement>) {
+  function cancel(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const note = String(new FormData(event.currentTarget).get('note') ?? '').trim();
-    if (mode === 'reject' || mode === 'cancel')
-      update.mutate({route: 'decision', body: {action: mode, ...(note ? {note} : {})}});
+    update.mutate({route: 'decision', body: {action: 'cancel', ...(note ? {note} : {})}});
   }
   return (
     <Card>
@@ -285,6 +317,7 @@ function StayCard({stay, data, expanded}: {stay: Stay; data: StayList; expanded:
       <p className="text-suave">
         {when(stay.checkInAt)} – {when(stay.checkOutAt)}
       </p>
+      <p className="text-suave text-sm">{t('stay.registeredBy', {name: stay.registeredBy})}</p>
       <GroupCounts counts={stay.counts} />
       <details open={expanded || undefined}>
         <summary className="cursor-pointer font-medium">{t('stay.details')}</summary>
@@ -310,19 +343,6 @@ function StayCard({stay, data, expanded}: {stay: Stay; data: StayList; expanded:
       {stay.decisionNote && <p className="break-words text-suave">{stay.decisionNote}</p>}
       {updateAllowed && open && (
         <div className="flex flex-wrap gap-2">
-          {stay.status === 'pending' && data.manage && (
-            <>
-              <Button
-                busy={update.isPending}
-                onClick={() => update.mutate({route: 'decision', body: {action: 'confirm'}})}
-              >
-                {t('stay.confirm')}
-              </Button>
-              <Button tone="secondary" onClick={() => setMode('reject')}>
-                {t('stay.reject')}
-              </Button>
-            </>
-          )}
           <Button tone="secondary" onClick={() => setMode('edit')}>
             {t('stay.edit')}
           </Button>
@@ -361,6 +381,7 @@ function StayCard({stay, data, expanded}: {stay: Stay; data: StayList; expanded:
         >
           <Notice>{t('stay.editHint')}</Notice>
           <PeriodFields timezone={data.timezone} stay={stay} />
+          {expanded && <ArrivalInstructions value={stay.arrivalInstructions} />}
           <div className="flex flex-wrap gap-2">
             <Button type="submit" busy={update.isPending}>
               {t('stay.save')}
@@ -371,18 +392,12 @@ function StayCard({stay, data, expanded}: {stay: Stay; data: StayList; expanded:
           </div>
         </form>
       )}
-      {(mode === 'reject' || mode === 'cancel') && (
-        <form className="grid gap-3" onSubmit={decision}>
-          <Field
-            label={t('stay.reason')}
-            name="note"
-            minLength={3}
-            maxLength={500}
-            required={mode === 'reject'}
-          />
+      {mode === 'cancel' && (
+        <form className="grid gap-3" onSubmit={cancel}>
+          <Field label={t('stay.reason')} name="note" minLength={3} maxLength={500} />
           <div className="flex flex-wrap gap-2">
             <Button type="submit" tone="danger" busy={update.isPending}>
-              {t(mode === 'reject' ? 'stay.reject' : 'stay.cancel')}
+              {t('stay.cancel')}
             </Button>
             <Button tone="secondary" onClick={() => setMode(null)}>
               {t('stay.close')}

@@ -11,6 +11,7 @@ type GuestStay = {
   timezone: string;
   checkInAt: string;
   checkOutAt: string;
+  arrivalInstructions: string | null;
 };
 
 export function MinhaEstadia() {
@@ -41,16 +42,24 @@ export function MinhaEstadia() {
       {valid && query.isPending && <Loading />}
       {(!valid || query.error) && <Notice tone="warn">{t('stay.unavailable')}</Notice>}
       {stay && !query.error && (
-        <Card>
-          <h2 className="text-xl font-semibold">{stay.condominium}</h2>
-          <p>{stay.unitLabel}</p>
-          <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2">
-            <dt className="font-medium">{t('stay.in')}</dt>
-            <dd>{when(stay.checkInAt)}</dd>
-            <dt className="font-medium">{t('stay.out')}</dt>
-            <dd>{when(stay.checkOutAt)}</dd>
-          </dl>
-        </Card>
+        <>
+          <Card>
+            <h2 className="text-xl font-semibold">{stay.condominium}</h2>
+            <p>{stay.unitLabel}</p>
+            <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2">
+              <dt className="font-medium">{t('stay.in')}</dt>
+              <dd>{when(stay.checkInAt)}</dd>
+              <dt className="font-medium">{t('stay.out')}</dt>
+              <dd>{when(stay.checkOutAt)}</dd>
+            </dl>
+          </Card>
+          {stay.arrivalInstructions && (
+            <Card>
+              <h2 className="text-xl font-semibold">{t('stay.arrivalInstructions')}</h2>
+              <p className="whitespace-pre-wrap break-words">{stay.arrivalInstructions}</p>
+            </Card>
+          )}
+        </>
       )}
     </main>
   );
