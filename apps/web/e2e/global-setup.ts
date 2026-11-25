@@ -8,21 +8,13 @@ import {fileURLToPath} from 'node:url';
  * Sobe o conjunto inteiro para os testes de ponta a ponta e devolve a rotina que desmonta tudo:
  * 1) banco NOVO no Postgres (local: o cluster do projeto; CI: o serviço do workflow), papéis e migrations;
  * 2) semeadura demonstrativa do Chandra (as senhas geradas vão para os testes pela variável VZ_E2E_CREDS);
- * 3) a API COMPILADA (`apps/api/dist`) e a prévia do app web (`vite preview`, que repassa /api para a API).
+ * 3) a API compilada serve a interface do build web na mesma origem, como no contêiner da v1.
  * Requer `npm run build` antes.
  */
 const require = createRequire(import.meta.url);
 const here = path.dirname(fileURLToPath(import.meta.url));
 const apiDist = path.resolve(here, '..', '..', 'api', 'dist');
-const webDir = path.resolve(here, '..');
-// o Vite não expõe o executável no "exports": acha a pasta do pacote e monta o caminho
-const viteBin = path.join(
-  path.dirname(require.resolve('vite/package.json', {paths: [webDir]})),
-  'bin',
-  'vite.js',
-);
-
-const API_PORT = Number(process.env.VZ_E2E_API_PORT || 3197);
+const webDir = path.resolve(here, '..', 'dist');
 const WEB_PORT = Number(process.env.VZ_WEB_PORT || 4173);
 
 async function waitFor(url: string, child: ChildProcess, name: string, log: string[]) {
@@ -81,12 +73,12 @@ export default async function globalSetup() {
   );
   await appPool.end();
   process.env.VZ_E2E_CREDS = JSON.stringify(seed.credentials);
-  process.env.VZ_E2E_API = `http://127.0.0.1:${API_PORT}/api/v1`;
 
   const api = start('API', [path.join(apiDist, 'main.js')], path.resolve(apiDist, '..'), {
     DATABASE_URL: appUrl,
     VILAZUNI_ENV: 'demo',
-    PORT: String(API_PORT),
+    PORT: String(WEB_PORT),
+    VILAZUNI_WEB_DIR: webDir,
     ALLOWED_ORIGINS: `http://127.0.0.1:${WEB_PORT}`,
     COOKIE_SECURE: 'false',
     VILAZUNI_MASTER_KEYS: `e2e:${randomBytes(32).toString('base64')}`,
@@ -95,15 +87,9 @@ export default async function globalSetup() {
     DEMO_MAILBOX_ROUTE: 'true',
     OUTBOX_INTERVAL_MS: '200',
   });
-  await waitFor(`http://127.0.0.1:${API_PORT}/api/v1/ready`, api.child, 'API', api.log);
-  const web = start('Prévia do app web', [viteBin, 'preview'], webDir, {
-    VZ_API_URL: `http://127.0.0.1:${API_PORT}`,
-    VZ_WEB_PORT: String(WEB_PORT),
-  });
-  await waitFor(`http://127.0.0.1:${WEB_PORT}/`, web.child, 'Prévia do app web', web.log);
+  await waitFor(`http://127.0.0.1:${WEB_PORT}/api/v1/ready`, api.child, 'API', api.log);
 
   return async () => {
-    web.child.kill();
     api.child.kill();
     await new Promise((r) => setTimeout(r, 300));
     await dropDatabase(adminUrl, database);

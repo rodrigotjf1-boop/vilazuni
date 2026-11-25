@@ -78,3 +78,5 @@ jobs:
       - name: Ponta a ponta (API compilada + telas, banco novo)
         run: npm run e2e
       - run: npm audit --omit=dev --audit-level=high
+      - name: Empacotamento da v1
+        run: docker build -f deploy/v1/Dockerfile -t vilazuni-v1:ci .
