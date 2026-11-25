@@ -150,11 +150,11 @@ export class BulletinController {
         throw badRequest('ciencia_nao_solicitada', 'Esta publicação pede apenas leitura.');
       const stored = await client.query<Receipt>(
         `insert into bulletin_receipt (condominium_id, bulletin_id, version, person_id, read_at, acknowledged_at)
-         values ($1,$2,$3,$4,$5,case when $6 then $5 else null end)
+         values ($1,$2,$3,$4,$5,$6)
          on conflict (condominium_id, bulletin_id, version, person_id) do update
            set acknowledged_at = coalesce(bulletin_receipt.acknowledged_at, excluded.acknowledged_at)
          returning read_at, acknowledged_at`,
-        [actor.condominiumId, id, entry.version, actor.personId, actor.now, acknowledge],
+        [actor.condominiumId, id, entry.version, actor.personId, actor.now, acknowledge ? actor.now : null],
       );
       return {readAt: stored.rows[0]!.read_at, acknowledgedAt: stored.rows[0]!.acknowledged_at};
     });
