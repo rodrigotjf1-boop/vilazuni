@@ -143,4 +143,17 @@ test('síndica configura a verificação a partir da Gestão, concede papel, del
   await page.getByRole('button', {name: 'Filtrar'}).click();
   await expect(registro.getByText('Motivo: faltou o código de verificação').first()).toBeVisible();
   await expect(registro.getByText('Feito')).toHaveCount(0);
+
+  await nav.getByRole('link', {name: 'Mural', exact: true}).click();
+  await page.getByRole('link', {name: 'Gerenciar mural'}).click();
+  await page.getByRole('button', {name: 'Nova publicação'}).click();
+  await page.getByLabel('Tipo de publicação').selectOption('rule');
+  const portuguese = page.getByRole('group', {name: 'Português'});
+  await portuguese.getByLabel('Título').fill('Uso da piscina em teste');
+  await portuguese.getByLabel('Texto').fill('O horário está no mural do condomínio.');
+  await page.getByRole('button', {name: 'Aprovar e publicar'}).click();
+  await expect(page.getByRole('heading', {name: 'Uso da piscina em teste'})).toBeVisible();
+  await nav.getByRole('link', {name: 'Mural', exact: true}).click();
+  await page.getByRole('button', {name: 'Registrar ciência'}).click();
+  await expect(page.getByText(/Ciência registrada em/)).toBeVisible();
 });

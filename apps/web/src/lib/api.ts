@@ -37,9 +37,15 @@ export function setCondominium(id: string | null) {
 
 type Method = 'GET' | 'POST' | 'DELETE';
 
-async function send<T>(method: Method, path: string, body?: unknown): Promise<T> {
+async function send<T>(
+  method: Method,
+  path: string,
+  body?: unknown,
+  decode?: (response: Response) => Promise<T>,
+): Promise<T> {
   const headers: Record<string, string> = {accept: 'application/json'};
-  if (body !== undefined) headers['content-type'] = 'application/json';
+  const multipart = body instanceof FormData;
+  if (body !== undefined && !multipart) headers['content-type'] = 'application/json';
   if (method !== 'GET' && csrf) headers['x-csrf-token'] = csrf;
   const condo = getCondominium();
   if (condo) headers['x-condominium-id'] = condo;
@@ -49,11 +55,12 @@ async function send<T>(method: Method, path: string, body?: unknown): Promise<T>
       method,
       headers,
       credentials: 'same-origin',
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body: multipart ? body : body === undefined ? undefined : JSON.stringify(body),
     });
   } catch {
     throw new ApiError(0, 'rede', 'Sem conexão com o servidor.');
   }
+  if (response.ok && decode) return decode(response);
   const text = await response.text();
   let data: unknown = null;
   try {
@@ -93,6 +100,7 @@ export async function login(email: string, password: string): Promise<void> {
   csrf = r.csrfToken;
 }
 
+export const getFile = (path: string) => send('GET', path, undefined, (response) => response.blob());
 export const get = <T>(path: string) => api<T>('GET', path);
 export const post = <T>(path: string, body: unknown = {}) => api<T>('POST', path, body);
 export const del = <T>(path: string) => api<T>('DELETE', path);

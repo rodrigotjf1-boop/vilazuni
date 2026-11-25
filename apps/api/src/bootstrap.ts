@@ -22,7 +22,7 @@ export async function createApp(
     rawBody: false,
   });
   app.setGlobalPrefix('api/v1');
-  app.use(helmet());
+  app.use(helmet({contentSecurityPolicy: {directives: {imgSrc: ["'self'", 'data:', 'blob:']}}}));
   // O id é sempre gerado aqui (nunca aceito do cliente): liga o log local ao erro que o usuário vê.
   app.use((req: Request & {correlationId?: string}, res: Response, next: NextFunction) => {
     req.correlationId = randomUUID();

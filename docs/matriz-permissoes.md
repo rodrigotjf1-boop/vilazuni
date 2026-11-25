@@ -29,6 +29,8 @@ Legenda: **2F** = exige o segundo fator confirmado na sessão; **2F recente** = 
 |---|---|---|---|---|---|---|---|---|
 | `condominium.read` (nome, regras públicas) | ✅ | ✅ | ✅ (na janela) | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `unit.read.own` (minhas casas) | ✅ próprias | ✅ a dele | — | — | — | — | — | — |
+| Guia da casa (leitura de atrações e fotos) | Casas com titularidade vigente | Casa do vínculo vigente | Casa da estadia, na janela do link | — | — | — | — | — |
+| `guide.write.own` (cadastrar, editar, excluir atrações e fotos) | Casas com titularidade vigente | — | — | — | — | — | — | — |
 | `unit.read.all` (cadastro das 14 casas) | visão mínima (F1.2) | — | — | ✅ 2F | delegação, 2F | ✅ leitura | escopo `cadastro` | — |
 | `unit.manage` (criar/editar casas e vagas) | — | — | — | ✅ 2F | delegação, 2F | — | — | — |
 | `ownership.request` (pedir titularidade) | ✅ (pendente) | ✅ (pendente) | — | ✅ | com vínculo | ✅ | — | — |
@@ -38,6 +40,8 @@ Legenda: **2F** = exige o segundo fator confirmado na sessão; **2F recente** = 
 | `stay.read.own` / `stay.write.own` | Casas com titularidade vigente | — | — | — | — | — | — | — |
 | `stay.read.all` | — | — | — | ✅ mandato vigente, 2F | ✅ papel vigente, 2F | — | — | Delegação vigente de consulta e 2F |
 | Consulta pelo link de **Minha estadia** | — | — | Dados básicos e orientações de chegada, dentro da janela | — | — | — | — | — |
+| Leitura e ciência no mural | ✅ | ✅ | Só publicações compartilhadas, durante a estadia | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `bulletin.publish` (aprovar e publicar versões e consultar histórico) | — | — | — | ✅ mandato vigente, 2F | Delegação vigente e 2F | — | — | — |
 | `audit.read` | — | — | — | ✅ 2F | delegação, 2F | ✅ | — | — |
 | `role.assign` (papel e convite para papel) / `mandate.manage` / `delegation.manage` | — | — | — | ✅ 2F recente | nunca (não se delega) | — | — | — |
 | `session.manage.own` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |

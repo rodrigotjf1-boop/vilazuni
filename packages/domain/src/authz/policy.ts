@@ -15,6 +15,7 @@ export type Role =
 export type Action =
   | 'condominium.read'
   | 'unit.read.own'
+  | 'guide.write.own'
   | 'unit.read.all'
   | 'unit.manage'
   | 'ownership.request'
@@ -27,12 +28,14 @@ export type Action =
   | 'stay.read.own'
   | 'stay.write.own'
   | 'stay.read.all'
+  | 'bulletin.publish'
   | 'audit.read';
 
 /** Todas as ações, para a tela saber o que mostrar (quem barra continua sendo `decide` em cada rota). */
 export const ACTIONS: readonly Action[] = [
   'condominium.read',
   'unit.read.own',
+  'guide.write.own',
   'unit.read.all',
   'unit.manage',
   'ownership.request',
@@ -45,6 +48,7 @@ export const ACTIONS: readonly Action[] = [
   'stay.read.own',
   'stay.write.own',
   'stay.read.all',
+  'bulletin.publish',
   'audit.read',
 ];
 
@@ -122,6 +126,7 @@ const SYNDIC_ACTIONS: ReadonlySet<Action> = new Set([
   'mandate.manage',
   'delegation.manage',
   'stay.read.all',
+  'bulletin.publish',
   'audit.read',
 ]);
 
@@ -133,6 +138,7 @@ export const DELEGABLE_ACTIONS: ReadonlySet<Action> = new Set(
 export function canReceiveDelegation(role: Role, action: Action): boolean {
   if (!DELEGABLE_ACTIONS.has(action)) return false;
   if (action === 'stay.read.all') return role === 'subsyndic' || role === 'service_provider';
+  if (action === 'bulletin.publish') return role === 'subsyndic';
   return true;
 }
 
@@ -225,6 +231,7 @@ export function decide(ctx: ActorContext, action: Action, resource: {unitId?: st
       allowed = resource.unitId ? owned.includes(resource.unitId) : owned.length > 0;
       break;
     case 'stay.write.own':
+    case 'guide.write.own':
       allowed = resource.unitId !== undefined && owned.includes(resource.unitId);
       break;
     default:

@@ -1,6 +1,10 @@
 import {useQuery} from '@tanstack/react-query';
 import {useTranslation} from 'react-i18next';
 import {useLocation} from 'react-router';
+import {BulletinContent} from '../components/BulletinContent';
+import {GuestGuide} from '../components/GuestGuide';
+import {LanguagePicker} from '../components/LanguagePicker';
+import type {BulletinContent as Entry} from '../lib/bulletin';
 import {Card, Loading, Notice, PageTitle} from '../components/ui';
 import {ApiError} from '../lib/api';
 import {displayStayTime} from '../lib/stay-time';
@@ -12,6 +16,7 @@ type GuestStay = {
   checkInAt: string;
   checkOutAt: string;
   arrivalInstructions: string | null;
+  bulletin?: Entry[];
 };
 
 export function MinhaEstadia() {
@@ -38,7 +43,10 @@ export function MinhaEstadia() {
   const when = (time: string) => displayStayTime(time, stay!.timezone, i18n.language);
   return (
     <main className="mx-auto grid max-w-xl gap-5 p-5 sm:pt-12">
-      <PageTitle>{t('stay.guestTitle')}</PageTitle>
+      <header className="flex flex-wrap items-center justify-between gap-3">
+        <PageTitle>{t('stay.guestTitle')}</PageTitle>
+        <LanguagePicker compact />
+      </header>
       {valid && query.isPending && <Loading />}
       {(!valid || query.error) && <Notice tone="warn">{t('stay.unavailable')}</Notice>}
       {stay && !query.error && (
@@ -59,6 +67,23 @@ export function MinhaEstadia() {
               <p className="whitespace-pre-wrap break-words">{stay.arrivalInstructions}</p>
             </Card>
           )}
+          {stay.bulletin
+            ?.filter((entry) => entry.kind === 'rule')
+            .map((entry) => (
+              <Card key={entry.id}>
+                <p className="text-sm font-medium text-suave">{t('bulletin.rule')}</p>
+                <BulletinContent entry={entry} />
+              </Card>
+            ))}
+          <GuestGuide key={token} token={token} />
+          {stay.bulletin
+            ?.filter((entry) => entry.kind === 'notice')
+            .map((entry) => (
+              <Card key={entry.id}>
+                <p className="text-sm font-medium text-suave">{t('bulletin.notice')}</p>
+                <BulletinContent entry={entry} />
+              </Card>
+            ))}
         </>
       )}
     </main>
