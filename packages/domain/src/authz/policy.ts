@@ -27,6 +27,7 @@ export type Action =
   | 'stay.read.own'
   | 'stay.write.own'
   | 'stay.read.all'
+  | 'bulletin.publish'
   | 'audit.read';
 
 /** Todas as ações, para a tela saber o que mostrar (quem barra continua sendo `decide` em cada rota). */
@@ -45,6 +46,7 @@ export const ACTIONS: readonly Action[] = [
   'stay.read.own',
   'stay.write.own',
   'stay.read.all',
+  'bulletin.publish',
   'audit.read',
 ];
 
@@ -122,6 +124,7 @@ const SYNDIC_ACTIONS: ReadonlySet<Action> = new Set([
   'mandate.manage',
   'delegation.manage',
   'stay.read.all',
+  'bulletin.publish',
   'audit.read',
 ]);
 
@@ -133,6 +136,7 @@ export const DELEGABLE_ACTIONS: ReadonlySet<Action> = new Set(
 export function canReceiveDelegation(role: Role, action: Action): boolean {
   if (!DELEGABLE_ACTIONS.has(action)) return false;
   if (action === 'stay.read.all') return role === 'subsyndic' || role === 'service_provider';
+  if (action === 'bulletin.publish') return role === 'subsyndic';
   return true;
 }
 

@@ -23,6 +23,7 @@ import {DemoMailboxController} from './signup/demo-mailbox.controller.js';
 import {EMAIL_SENDER, createEmailSender} from './messaging/email.js';
 import {OutboxRunner} from './messaging/outbox.js';
 import {StaysController} from './stays/stays.controller.js';
+import {BulletinController} from './bulletin/bulletin.controller.js';
 
 /** Fecha o pool do banco quando a aplicação para. */
 class PoolCloser implements OnApplicationShutdown {
@@ -57,6 +58,7 @@ export class AppModule {
         SignupController,
         DemoMailboxController,
         StaysController,
+        BulletinController,
       ],
       providers: [
         {provide: CONFIG, useValue: config},

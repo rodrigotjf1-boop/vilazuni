@@ -11,6 +11,7 @@ import {
 import type {Pool, PoolClient} from 'pg';
 import {z} from 'zod';
 import {audit} from '../audit/audit.js';
+import {guestBulletin} from '../bulletin/bulletin-store.js';
 import {Public, type AuthedRequest} from '../auth/auth.guard.js';
 import {newToken, sha256} from '../auth/crypto.js';
 import {ActorService} from '../authz/actor.service.js';
@@ -320,7 +321,8 @@ export class StaysController {
       const stay = rows[0];
       if (!stay) throw notFound();
       const window = guestAppWindow({checkInAt: stay.check_in_at, checkOutAt: stay.check_out_at});
-      if (!isWithin(window, this.clock.now()))
+      const now = this.clock.now();
+      if (!isWithin(window, now))
         throw gone('link_estadia_fora_horario', 'O link está fora do período de consulta.');
       if (stay.arrival_instructions) {
         await audit(client, {
@@ -339,6 +341,7 @@ export class StaysController {
         checkInAt: stay.check_in_at,
         checkOutAt: stay.check_out_at,
         availableUntil: window.endsAt,
+        bulletin: await guestBulletin(client, now),
         arrivalInstructions: stay.arrival_instructions
           ? this.vault.open(stay.arrival_instructions, instructionsContext(link.id))
           : null,

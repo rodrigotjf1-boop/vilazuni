@@ -82,6 +82,9 @@ export function Shell() {
     {to: home, icon: 'home', label: t('layout.home')},
     {to: '/minha-casa', icon: 'house', label: t('nav.minhaCasa')},
     ...(own || team ? [{to: '/estadias', icon: 'calendar' as const, label: t('stay.title')}] : []),
+    ...(canOpen(actions, 'condominium.read')
+      ? [{to: '/mural', icon: 'list' as const, label: t('bulletin.nav')}]
+      : []),
     {to: '/mais', icon: 'account', label: t('layout.account')},
   ];
   const context: ShellContext = {

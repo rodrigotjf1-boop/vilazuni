@@ -47,7 +47,9 @@ Total: **133 testes, 133 aprovados** (`npm test`, 17/11/2026, Postgres 18 local;
 
 - **F1.1 concluída** com a limpeza da base de teste.
 - **F1.2 em desenvolvimento** (`docs/PLANO.md`). A migration 0006 transforma pendências anteriores em estadias comunicadas. O proprietário cadastra para informar entradas e saídas e fica identificado na ficha. Síndico, subsíndico e prestador de serviço com delegação de consulta acompanham as estadias pelo Calendário e pela Mesa. A comunicação fica ativa no cadastro. Alterar datas ou cancelar invalida o link já emitido.
-- **Minha estadia** entrega as orientações de chegada cadastradas pelo proprietário durante a janela do link. O cofre guarda o texto cifrado e a API registra sua entrega ao hóspede. O cadastro permanente de informações da casa, o mural, as regras e o registro de ocorrências ou advertências entram em incrementos próprios.
+- **Minha estadia** entrega as orientações de chegada cadastradas pelo proprietário durante a janela do link. O cofre guarda o texto cifrado e a API registra sua entrega ao hóspede. O cadastro permanente de informações da casa e o registro de ocorrências e advertências entram em incrementos próprios.
+
+- **F1.3 Regras e mural.** A migration 0007 guarda publicações e versões, com vigência, aprovação registrada e traduções. As contas do condomínio podem registrar leitura e ciência por versão. A gestão vê o histórico e os totais. O link Minha estadia mostra apenas publicações vigentes compartilhadas com hóspedes. A publicação do regimento do Chandra depende do conteúdo oficial.
 
 ## Decidido
 

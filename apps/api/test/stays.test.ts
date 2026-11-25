@@ -158,6 +158,15 @@ describe('Estadias', () => {
     const guest = new WebClient(api.url);
     expect((await guest.post('/stays/guest', {token})).status).toBe(410);
 
+    const bulletin = {
+      kind: 'notice',
+      translations: {'pt-BR': {title: 'Chegada no teste', body: 'Leia as orientações.'}},
+      requiresAcknowledgement: true,
+    };
+    const shared = await syndic.post('/bulletin', {...bulletin, shareWithGuests: true});
+    expect(shared.status).toBe(201);
+    expect((await syndic.post('/bulletin', {...bulletin, shareWithGuests: false})).status).toBe(201);
+
     clock.t = start - 3 * 60 * MIN;
     const guestView = await guest.post('/stays/guest', {token});
     expect(guestView.status).toBe(200);
@@ -165,6 +174,8 @@ describe('Estadias', () => {
     expect(guestView.body.arrivalInstructions).toBe(instructions);
     expect(guestView.body).not.toHaveProperty('members');
     expect(guestView.body).not.toHaveProperty('registeredBy');
+    expect(guestView.body.bulletin).toMatchObject([{id: shared.body.id, version: 1}]);
+    expect(guestView.body.bulletin[0]).not.toHaveProperty('publishedBy');
     expect((await syndic.post('/stays/plate', {plate: 'ABC1D23'})).body.status).toBe('none');
 
     clock.t = start;

@@ -17,6 +17,8 @@ import {Calendario} from './pages/Calendario';
 import {Operacao} from './pages/Operacao';
 import {Mais} from './pages/Mais';
 import {MinhaEstadia} from './pages/MinhaEstadia';
+import {Mural} from './pages/Mural';
+import {GerirMural} from './pages/gestao/Mural';
 import {Verificacao} from './pages/Verificacao';
 import {Sessoes} from './pages/Sessoes';
 import {EscolherCondominio} from './pages/EscolherCondominio';
@@ -57,6 +59,8 @@ const router = createBrowserRouter([
       {path: '/estadias/calendario', element: <Calendario />},
       {path: '/operacao', element: <Operacao />},
       {path: '/mais', element: <Mais />},
+      {path: '/mural', element: <Mural />},
+      {path: '/gestao/mural', element: <GerirMural />},
       {path: '/verificacao', element: <Verificacao />},
       {path: '/conta/sessoes', element: <Sessoes />},
       {path: '/escolher-condominio', element: <EscolherCondominio />},

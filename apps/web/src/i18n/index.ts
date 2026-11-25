@@ -5,6 +5,7 @@ import es from './es';
 import en from './en';
 import {stayText} from './stays';
 import {layoutText} from './layout';
+import {bulletinText} from './bulletin';
 
 export const LANGS = ['pt-BR', 'es', 'en'] as const;
 export type Lang = (typeof LANGS)[number];
@@ -39,9 +40,16 @@ export function setLanguage(lang: Lang) {
 
 void i18n.use(initReactI18next).init({
   resources: {
-    'pt-BR': {translation: {...ptBR, stay: stayText['pt-BR'], layout: layoutText['pt-BR']}},
-    es: {translation: {...es, stay: stayText.es, layout: layoutText.es}},
-    en: {translation: {...en, stay: stayText.en, layout: layoutText.en}},
+    'pt-BR': {
+      translation: {
+        ...ptBR,
+        stay: stayText['pt-BR'],
+        layout: layoutText['pt-BR'],
+        bulletin: bulletinText['pt-BR'],
+      },
+    },
+    es: {translation: {...es, stay: stayText.es, layout: layoutText.es, bulletin: bulletinText.es}},
+    en: {translation: {...en, stay: stayText.en, layout: layoutText.en, bulletin: bulletinText.en}},
   },
   lng: initialLanguage(),
   fallbackLng: 'pt-BR',
